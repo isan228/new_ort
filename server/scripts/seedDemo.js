@@ -1,15 +1,12 @@
 require('dotenv').config({ path: require('path').join(__dirname, '..', '..', '.env') });
+const { ensureDatabase } = require('../utils/ensureDatabase');
+const { prepareAppData } = require('../utils/prepareAppData');
 const { sequelize } = require('../models');
-const { ensureOrtTagsSeeded } = require('../utils/ensureOrtTagsSeeded');
-const { ensurePlansForOrt } = require('../utils/subscriptionPlans');
-const { seedDemoContent } = require('../utils/seedDemo');
 
 (async () => {
-  await sequelize.authenticate();
-  await sequelize.sync({ alter: true });
-  await ensureOrtTagsSeeded();
-  await ensurePlansForOrt();
-  await seedDemoContent();
+  await ensureDatabase();
+  await prepareAppData();
+  await sequelize.close();
   console.log('Сиды готовы');
   process.exit(0);
 })().catch((err) => {

@@ -3,10 +3,8 @@ require('dotenv').config({ path: require('path').join(__dirname, '..', '.env') }
 const path = require('path');
 const express = require('express');
 const cors = require('cors');
-const { sequelize } = require('./models');
-const { ensureOrtTagsSeeded } = require('./utils/ensureOrtTagsSeeded');
-const { ensurePlansForOrt } = require('./utils/subscriptionPlans');
-const { seedDemoContent } = require('./utils/seedDemo');
+const { ensureDatabase } = require('./utils/ensureDatabase');
+const { prepareAppData } = require('./utils/prepareAppData');
 const { requireAdmin } = require('./middleware/auth');
 
 const authRoutes = require('./routes/auth');
@@ -48,11 +46,8 @@ app.use((err, req, res, next) => {
 });
 
 async function boot() {
-  await sequelize.authenticate();
-  await sequelize.sync({ alter: true });
-  await ensureOrtTagsSeeded();
-  await ensurePlansForOrt();
-  await seedDemoContent();
+  await ensureDatabase();
+  await prepareAppData();
 
   app.listen(port, () => {
     console.log(`ОРТ 2026 API: http://localhost:${port}`);

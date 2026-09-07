@@ -25,19 +25,27 @@
 
 ## Запуск локально
 
-1. Установите PostgreSQL и создайте базу:
+1. Установите PostgreSQL (служба должна быть запущена).
 
-```sql
-CREATE DATABASE ort_2026;
-```
-
-2. Скопируйте `.env.example` в `.env` и поправьте `DATABASE_URL`, если пароль не `postgres`.
-
-3. Установите зависимости и запустите оба процесса:
+2. Поставьте зависимости и дайте скрипту самому создать базу, таблицы и сиды:
 
 ```bash
 npm install
 npm run install:all
+npm run setup:db
+```
+
+Если пароль суперпользователя не `postgres` (PowerShell):
+
+```bash
+$env:POSTGRES_PASSWORD="твой_пароль"; npm run setup:db
+```
+
+Скрипт при отсутствии скопирует `.env` из `.env.example`, создаст пользователя и базу из `DATABASE_URL`, накатит схему и демо.
+
+3. Запуск:
+
+```bash
 npm run dev
 ```
 

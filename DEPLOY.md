@@ -45,17 +45,11 @@ node -v
 
 ## 2. PostgreSQL
 
+Поставь пакет. Базу, пользователя и таблицы создаёт скрипт, не руками.
+
 ```bash
 sudo apt-get install -y postgresql postgresql-contrib
-sudo -u postgres psql
-```
-
-В `psql`:
-
-```sql
-CREATE USER ort WITH PASSWORD 'СИЛЬНЫЙ_ПАРОЛЬ';
-CREATE DATABASE ort_2026 OWNER ort;
-\q
+sudo systemctl enable --now postgresql
 ```
 
 ## 3. Код
@@ -91,15 +85,30 @@ ADMIN_PASSWORD=смени_сразу
 
 Смени пароль админа после первого входа. Демо `demo@ort.kg` на проде лучше выключить или сменить пароль в базе.
 
-## 5. Сборка и первый запуск
+## 5. База, сборка и первый запуск
 
 ```bash
 cd /var/www/ort-2026
 npm install
 npm run install:all
+```
+
+В `.env` должны быть `DATABASE_URL` и пароль суперпользователя Postgres:
+
+```
+POSTGRES_USER=postgres
+POSTGRES_PASSWORD=пароль_суперпользователя
+```
+
+На Ubuntu, если TCP к `postgres` закрыт, скрипт сам пробует `sudo -u postgres psql`.
+
+```bash
+npm run setup:db
 npm run build
 NODE_ENV=production npm start
 ```
+
+`setup:db` создаёт роль и базу из `DATABASE_URL`, таблицы, теги, тарифы и демо. Повторный запуск безопасен: существующую базу не ломает, сиды не дублируют предметы.
 
 Проверка: `curl http://127.0.0.1:4000/api/health` → `{"ok":true,"product":"ort-2026"}`.
 
