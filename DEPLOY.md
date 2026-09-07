@@ -116,16 +116,29 @@ NODE_ENV=production npm start
 
 ## 6. systemd
 
-`sudo nano /etc/systemd/system/ort-2026.service`
+Файл юнита лежит в репозитории. Не надо писать его руками через nano.
 
+```bash
+sudo npm run setup:service
+sudo systemctl status ort-2026
+curl http://127.0.0.1:4000/api/health
 ```
+
+Скрипт копирует сервис в `/etc/systemd/system/ort-2026.service`, ставит владельца `www-data` и делает `enable --now`.
+
+Если скрипта ещё нет на сервере (старый clone) — создай юнит так:
+
+```bash
+sudo tee /etc/systemd/system/ort-2026.service >/dev/null <<'EOF'
 [Unit]
 Description=ORT 2026
 After=network.target postgresql.service
+Wants=postgresql.service
 
 [Service]
 Type=simple
 User=www-data
+Group=www-data
 WorkingDirectory=/var/www/ort-2026/server
 Environment=NODE_ENV=production
 EnvironmentFile=/var/www/ort-2026/.env
@@ -135,11 +148,8 @@ RestartSec=5
 
 [Install]
 WantedBy=multi-user.target
-```
+EOF
 
-Права:
-
-```bash
 sudo chown -R www-data:www-data /var/www/ort-2026
 sudo chmod 640 /var/www/ort-2026/.env
 sudo systemctl daemon-reload
