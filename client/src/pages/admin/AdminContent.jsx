@@ -39,6 +39,114 @@ function NameForm({ initial = '', onSubmit, onClose }) {
   );
 }
 
+function OptionalList({
+  title,
+  items,
+  adding,
+  draft,
+  placeholder,
+  addLabel,
+  onDraft,
+  onStartAdd,
+  onCancelAdd,
+  onAdd,
+  onEdit,
+  onDelete,
+  itemMeta,
+  itemExtra,
+  footer,
+}) {
+  const { t } = useLang();
+
+  return (
+    <div className="admin-optional-block">
+      <p className="admin-block-label">
+        {title}
+        <span className="admin-optional">{t('admin.optional')}</span>
+      </p>
+      {!!items.length && (
+        <div className="admin-list">
+          {items.map((item) => (
+            <div key={item.id} className="admin-list-item">
+              <div style={{ minWidth: 0, flex: 1 }}>
+                <h4>{item.name}</h4>
+                {itemMeta && <p className="muted" style={{ margin: '4px 0 0' }}>{itemMeta(item)}</p>}
+              </div>
+              <div className="row" style={{ flexWrap: 'wrap' }}>
+                {itemExtra && itemExtra(item)}
+                <button className="btn ghost sm" type="button" onClick={() => onEdit(item)}>{t('common.edit')}</button>
+                <button className="btn ghost sm" type="button" onClick={() => onDelete(item)}>{t('common.delete')}</button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+      {adding ? (
+        <form
+          className="admin-inline-add"
+          onSubmit={(e) => {
+            e.preventDefault();
+            const name = (draft || '').trim();
+            if (!name) return;
+            onAdd(name);
+          }}
+        >
+          <input autoFocus value={draft || ''} placeholder={placeholder} onChange={(e) => onDraft(e.target.value)} />
+          <button className="btn sm" type="submit">{t('common.add')}</button>
+          <button className="btn ghost sm" type="button" onClick={onCancelAdd}>{t('common.cancel')}</button>
+        </form>
+      ) : (
+        <button className="btn ghost sm" type="button" onClick={onStartAdd}>{addLabel}</button>
+      )}
+      {footer}
+    </div>
+  );
+}
+
+function pickTxtFile() {
+  return new Promise((resolve) => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.txt,text/plain';
+    input.onchange = () => resolve(input.files?.[0] || null);
+    input.click();
+  });
+}
+
+function TxtUploadButtons({ testId, subjectId, onDone }) {
+  const { t } = useLang();
+  const [busy, setBusy] = useState(false);
+
+  async function upload(kind) {
+    const file = await pickTxtFile();
+    if (!file) return;
+    setBusy(true);
+    try {
+      const url = kind === 'linked'
+        ? '/api/admin/upload-txt-linked'
+        : '/api/admin/upload-txt-explained';
+      const extra = subjectId && !testId ? { subjectId } : {};
+      const data = await adminApi.uploadTxt(url, testId, file, extra);
+      await onDone(data.message || t('admin.uploadedN', { n: data.total || 0 }));
+    } catch (err) {
+      await onDone(null, err.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="row" style={{ flexWrap: 'wrap' }}>
+      <button className="btn sm" type="button" disabled={busy} onClick={() => upload('explained')}>
+        {t('admin.txtExplained')}
+      </button>
+      <button className="btn ghost sm" type="button" disabled={busy} onClick={() => upload('linked')}>
+        {t('admin.txtLinked')}
+      </button>
+    </div>
+  );
+}
+
 export default function AdminContent() {
   const { t } = useLang();
   const [subjects, setSubjects] = useState([]);
@@ -46,9 +154,9 @@ export default function AdminContent() {
   const [error, setError] = useState('');
   const [modal, setModal] = useState(null);
   const [tagDraft, setTagDraft] = useState({});
+  const [addingTag, setAddingTag] = useState(null);
   const [sectionDraft, setSectionDraft] = useState({});
-  const [editingTag, setEditingTag] = useState(null);
-  const [tagEditName, setTagEditName] = useState('');
+  const [addingSection, setAddingSection] = useState(null);
 
   async function reload() {
     setSubjects((await adminApi.subjects()).subjects);
@@ -62,16 +170,29 @@ export default function AdminContent() {
     setError('');
     setMsg('');
     try {
-      await fn();
+      const result = await fn();
       await reload();
       setMsg(ok);
+      return result;
     } catch (err) {
       setError(err.message);
+      return null;
     }
   }
 
   function confirmDelete() {
     return window.confirm(t('common.delete'));
+  }
+
+  async function afterUpload(ok, err) {
+    if (err) {
+      setMsg('');
+      setError(err);
+      return;
+    }
+    setError('');
+    setMsg(ok);
+    await reload();
   }
 
   return (
@@ -115,135 +236,64 @@ export default function AdminContent() {
                 </div>
               </div>
 
-              <p className="admin-block-label">{t('admin.tags')}</p>
-              <div className="admin-chip-row">
-                {tags.map((tag) => (
-                  editingTag === tag.id ? (
-                    <form
-                      key={tag.id}
-                      className="admin-inline-add"
-                      onSubmit={(e) => {
-                        e.preventDefault();
-                        const name = tagEditName.trim();
-                        if (!name) return;
-                        run(async () => {
-                          await adminApi.updateTag(tag.id, { name });
-                          setEditingTag(null);
-                        });
-                      }}
-                    >
-                      <input
-                        autoFocus
-                        value={tagEditName}
-                        onChange={(e) => setTagEditName(e.target.value)}
-                        onBlur={() => {
-                          const name = tagEditName.trim();
-                          if (name && name !== tag.name) {
-                            run(async () => {
-                              await adminApi.updateTag(tag.id, { name });
-                              setEditingTag(null);
-                            });
-                          } else {
-                            setEditingTag(null);
-                          }
-                        }}
-                      />
-                    </form>
-                  ) : (
-                    <span key={tag.id} className="admin-chip">
-                      <button
-                        type="button"
-                        className="admin-chip-name"
-                        onClick={() => {
-                          setEditingTag(tag.id);
-                          setTagEditName(tag.name);
-                        }}
-                      >
-                        {tag.name}
-                      </button>
-                      <button
-                        type="button"
-                        className="admin-chip-x"
-                        aria-label={t('common.delete')}
-                        onClick={() => {
-                          if (!confirmDelete()) return;
-                          run(() => adminApi.deleteTag(tag.id));
-                        }}
-                      >
-                        ×
-                      </button>
-                    </span>
-                  )
-                ))}
-                {!tags.length && <span className="muted">{t('admin.noTags')}</span>}
-              </div>
-              <form
-                className="admin-inline-add"
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  const name = (tagDraft[subject.id] || '').trim();
-                  if (!name) return;
-                  run(async () => {
-                    await adminApi.createTag({ name, subjectId: subject.id });
-                    setTagDraft((prev) => ({ ...prev, [subject.id]: '' }));
-                  });
+              <OptionalList
+                title={t('admin.tags')}
+                items={tags}
+                adding={addingTag === subject.id}
+                draft={tagDraft[subject.id]}
+                placeholder={t('admin.newTag')}
+                addLabel={t('admin.addTag')}
+                onDraft={(value) => setTagDraft((prev) => ({ ...prev, [subject.id]: value }))}
+                onStartAdd={() => setAddingTag(subject.id)}
+                onCancelAdd={() => setAddingTag(null)}
+                onAdd={(name) => run(async () => {
+                  await adminApi.createTag({ name, subjectId: subject.id });
+                  setTagDraft((prev) => ({ ...prev, [subject.id]: '' }));
+                  setAddingTag(null);
+                })}
+                onEdit={(item) => setModal({ type: 'tag', item })}
+                onDelete={(item) => {
+                  if (!confirmDelete()) return;
+                  run(() => adminApi.deleteTag(item.id));
                 }}
-              >
-                <input
-                  value={tagDraft[subject.id] || ''}
-                  placeholder={t('admin.newTag')}
-                  onChange={(e) => setTagDraft((prev) => ({ ...prev, [subject.id]: e.target.value }))}
-                />
-                <button className="btn sm" type="submit">{t('admin.addTag')}</button>
-              </form>
+              />
 
-              <p className="admin-block-label">{t('admin.sections')}</p>
-              <div className="admin-list">
-                {sections.map((section) => (
-                  <div key={section.id} className="admin-list-item">
-                    <h4>{section.name}</h4>
-                    <div className="row">
-                      <button
-                        className="btn ghost sm"
-                        type="button"
-                        onClick={() => setModal({ type: 'section', item: section, subjectId: subject.id })}
-                      >
-                        {t('common.edit')}
-                      </button>
-                      <button
-                        className="btn ghost sm"
-                        type="button"
-                        onClick={() => {
-                          if (!confirmDelete()) return;
-                          run(() => adminApi.deleteTest(section.id));
-                        }}
-                      >
-                        {t('common.delete')}
-                      </button>
-                    </div>
-                  </div>
-                ))}
-                {!sections.length && <p className="muted" style={{ margin: 0 }}>{t('admin.noSections')}</p>}
-              </div>
-              <form
-                className="admin-inline-add"
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  const name = (sectionDraft[subject.id] || '').trim();
-                  if (!name) return;
-                  run(async () => {
-                    await adminApi.createTest({ name, subjectId: subject.id });
-                    setSectionDraft((prev) => ({ ...prev, [subject.id]: '' }));
-                  });
+              <OptionalList
+                title={t('admin.sections')}
+                items={sections}
+                adding={addingSection === subject.id}
+                draft={sectionDraft[subject.id]}
+                placeholder={t('admin.sectionName')}
+                addLabel={t('admin.addSection')}
+                onDraft={(value) => setSectionDraft((prev) => ({ ...prev, [subject.id]: value }))}
+                onStartAdd={() => setAddingSection(subject.id)}
+                onCancelAdd={() => setAddingSection(null)}
+                onAdd={(name) => run(async () => {
+                  await adminApi.createTest({ name, subjectId: subject.id });
+                  setSectionDraft((prev) => ({ ...prev, [subject.id]: '' }));
+                  setAddingSection(null);
+                })}
+                onEdit={(item) => setModal({ type: 'section', item })}
+                onDelete={(item) => {
+                  if (!confirmDelete()) return;
+                  run(() => adminApi.deleteTest(item.id));
                 }}
-              >
-                <input
-                  value={sectionDraft[subject.id] || ''}
-                  placeholder={t('admin.sectionName')}
-                  onChange={(e) => setSectionDraft((prev) => ({ ...prev, [subject.id]: e.target.value }))}
-                />
-                <button className="btn sm" type="submit">{t('admin.addSection')}</button>
-              </form>
+                itemMeta={(item) => t('admin.questionsCount', { n: item.questionCount || 0 })}
+                itemExtra={(item) => (
+                  <TxtUploadButtons testId={item.id} onDone={afterUpload} />
+                )}
+                footer={(
+                  <>
+                    {!sections.length && (
+                      <div className="admin-upload-block">
+                        <p className="admin-block-label">{t('admin.questionsBlock')}</p>
+                        <TxtUploadButtons subjectId={subject.id} onDone={afterUpload} />
+                      </div>
+                    )}
+                    <p className="muted" style={{ marginTop: 10, fontSize: 13 }}>{t('admin.txtHint')}</p>
+                  </>
+                )}
+              />
             </article>
           );
         })}
@@ -256,8 +306,28 @@ export default function AdminContent() {
             onClose={() => setModal(null)}
             onSubmit={(name) => {
               run(async () => {
-                if (modal.item) await adminApi.updateSubject(modal.item.id, { name });
-                else await adminApi.createSubject({ name });
+                if (modal.item) {
+                  await adminApi.updateSubject(modal.item.id, { name });
+                  setModal(null);
+                  return;
+                }
+                const { subject } = await adminApi.createSubject({ name });
+                setModal(null);
+                setAddingTag(subject.id);
+              });
+            }}
+          />
+        </Modal>
+      )}
+
+      {modal?.type === 'tag' && (
+        <Modal title={t('common.edit')} onClose={() => setModal(null)}>
+          <NameForm
+            initial={modal.item?.name || ''}
+            onClose={() => setModal(null)}
+            onSubmit={(name) => {
+              run(async () => {
+                await adminApi.updateTag(modal.item.id, { name });
                 setModal(null);
               });
             }}

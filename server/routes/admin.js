@@ -239,7 +239,13 @@ router.get('/subjects', async (req, res) => {
   const subjects = await Subject.findAll({
     where,
     include: [
-      { model: Test, attributes: ['id', 'name', 'sortOrder'], separate: true, order: [['sortOrder', 'ASC'], ['id', 'ASC']] },
+      {
+        model: Test,
+        attributes: ['id', 'name', 'sortOrder'],
+        separate: true,
+        order: [['sortOrder', 'ASC'], ['id', 'ASC']],
+        include: [{ model: Question, attributes: ['id'] }],
+      },
       { model: QuestionTag, attributes: ['id', 'name', 'kind'], separate: true, order: [['name', 'ASC']] },
     ],
     order: [['sortOrder', 'ASC'], ['id', 'ASC']],
@@ -247,9 +253,13 @@ router.get('/subjects', async (req, res) => {
   res.json({
     subjects: subjects.map((row) => {
       const subject = row.toJSON();
-      subject.sections = subject.Tests || [];
+      subject.sections = (subject.Tests || []).map((test) => {
+        const { Questions, ...rest } = test;
+        return { ...rest, questionCount: (Questions || []).length };
+      });
       subject.tags = subject.QuestionTags || [];
       subject.testCount = subject.sections.length;
+      subject.questionCount = subject.sections.reduce((sum, test) => sum + test.questionCount, 0);
       return subject;
     }),
   });

@@ -1,90 +1,177 @@
 const { encodeLinkedText, QUESTION_MARK } = require('./ortLinkedQuestions');
 const { normalizeTagName } = require('./ortTagNormalize');
+const {
+  extractQuotedField,
+  extractTxtAnswers,
+  mapAnswersWithCorrect,
+  isValidCorrectIndex,
+  normalizeTxt,
+} = require('./txtQuestionAnswers');
 
-function parseFieldBlocks(raw) {
-  const text = String(raw || '').replace(/\r\n/g, '\n');
-  const records = [];
-  let current = {};
-  let openKey = null;
-
-  const commit = () => {
-    if (current.Q || current.ID) records.push(current);
-    current = {};
-    openKey = null;
-  };
-
-  for (const line of text.split('\n')) {
-    const start = line.match(/^"([^"]+)"\s*:\s*"(.*)$/);
-    if (start && !openKey) {
-      const key = start[1];
-      let value = start[2];
-      if (key === 'ID' || key === 'GroupID') {
-        if (current.ID || current.Q) commit();
-      }
-      if (value.endsWith('"') && !value.endsWith('\\"')) {
-        current[key] = value.slice(0, -1);
-        openKey = null;
-      } else {
-        current[key] = value;
-        openKey = key;
-      }
-      continue;
-    }
-    if (openKey) {
-      if (line.endsWith('"') && !line.endsWith('\\"')) {
-        current[openKey] += `\n${line.slice(0, -1)}`;
-        openKey = null;
-      } else {
-        current[openKey] += `\n${line}`;
-      }
-      continue;
-    }
-    if (Object.keys(current).length && line.trim() === '') commit();
-  }
-  commit();
-  return records;
+function parseTagNames(raw) {
+  if (raw == null) return [];
+  return [...new Set(String(raw)
+    .split(/[,;|]/)
+    .map((s) => normalizeTagName(s.trim()))
+    .filter(Boolean))];
 }
 
-function extractAnswers(record) {
-  const answers = [];
-  for (let i = 1; i <= 8; i += 1) {
-    const key = `A${i}`;
-    if (record[key]) answers.push({ text: record[key], sortOrder: i });
-  }
-  const correctRaw = String(record.Correct || record.C || '1').trim();
-  const correctIndex = Number(correctRaw) - 1;
-  return answers.map((a, idx) => ({ ...a, isCorrect: idx === correctIndex }));
-}
-
-function extractTags(record) {
+function extractTagsFromBlock(block) {
   const tags = [];
-  if (record.Topic) tags.push({ name: normalizeTagName(record.Topic), kind: 'topic' });
-  if (record.Skill) tags.push({ name: normalizeTagName(record.Skill), kind: 'skill' });
-  const extra = record.Tags || record.T || record.Tag;
-  if (extra) {
-    extra.split(',').forEach((part) => {
-      const name = normalizeTagName(part);
-      if (name) tags.push({ name, kind: 'topic' });
-    });
+  const seen = new Set();
+
+  function add(name, kind) {
+    const clean = normalizeTagName(name);
+    if (!clean) return;
+    const key = `${kind}:${clean.toLowerCase()}`;
+    if (seen.has(key)) return;
+    seen.add(key);
+    tags.push({ name: clean, kind });
   }
+
+  add(extractQuotedField(block, 'Topic'), 'topic');
+  add(extractQuotedField(block, 'Skill'), 'skill');
+  add(extractQuotedField(block, 'System'), 'skill');
+  add(extractQuotedField(block, 'Subject'), 'topic');
+
+  const extra = [
+    extractQuotedField(block, 'Tags'),
+    extractQuotedField(block, 'T'),
+    extractQuotedField(block, 'Tag'),
+  ].filter(Boolean).join(',');
+  parseTagNames(extra).forEach((name) => add(name, 'topic'));
   return tags;
 }
 
-function parseExplainedQuestions(raw, { linked = false } = {}) {
-  return parseFieldBlocks(raw).map((record) => {
-    let text = record.Q || '';
-    if (linked && record.GroupID) {
-      text = encodeLinkedText(record.GroupID, QUESTION_MARK, text);
-    }
-    return {
-      externalId: record.ID || null,
-      groupId: record.GroupID || null,
-      text,
-      explanation: record.E || record.Explanation || '',
-      answers: extractAnswers(record),
-      tags: extractTags(record),
-    };
-  }).filter((q) => q.text);
+function parseHint(stats, { requireExplanation, requireTags, linked }) {
+  if (stats.idBlocks === 0) {
+    return 'В файле не найдено ни одного "ID":"...". Проверьте кавычки.';
+  }
+  if (linked && stats.missingGroup > 0 && stats.accepted === 0) {
+    return `Найдено блоков ID: ${stats.idBlocks}, но нет "GroupID".`;
+  }
+  if (stats.missingQ > 0 && stats.accepted === 0) {
+    return `Найдено блоков ID: ${stats.idBlocks}, но нет поля "Q".`;
+  }
+  if (stats.missingAnswers > 0 && stats.accepted === 0) {
+    return `Найдено блоков ID: ${stats.idBlocks}, но мало ответов A1/A2… (нужно ≥ 2).`;
+  }
+  if (stats.missingCorrect > 0 && stats.accepted === 0) {
+    return `Найдено блоков ID: ${stats.idBlocks}, но нет/неверный "Correct".`;
+  }
+  if (requireExplanation && stats.missingExplanation > 0 && stats.accepted === 0) {
+    return `Найдено вопросов без поля "E" (объяснение): ${stats.missingExplanation}.`;
+  }
+  if (requireTags && stats.missingTags > 0 && stats.accepted === 0) {
+    return `Найдено вопросов без темы/тегов (Topic/Skill или Subject/System/Tags): ${stats.missingTags}.`;
+  }
+  return linked
+    ? 'Нужны поля GroupID, ID, Q, A1–A30, Correct, E.'
+    : 'Нужны поля ID, Q, A1–A30, Correct, E и теги Topic/Skill или Subject/System/Tags.';
 }
 
-module.exports = { parseExplainedQuestions, parseFieldBlocks };
+function parseQuestionsFromText(text, options = {}) {
+  const {
+    requireExplanation = false,
+    requireTags = false,
+    parseTags = true,
+    linked = false,
+  } = options;
+
+  const questions = [];
+  const stats = {
+    idBlocks: 0,
+    missingQ: 0,
+    missingAnswers: 0,
+    missingCorrect: 0,
+    missingExplanation: 0,
+    missingTags: 0,
+    missingGroup: 0,
+    accepted: 0,
+  };
+
+  const prepared = normalizeTxt(text);
+  const blocks = prepared.split(/"ID"\s*:\s*"/i);
+
+  for (let i = 1; i < blocks.length; i += 1) {
+    const block = blocks[i];
+    stats.idBlocks += 1;
+
+    const idMatch = block.match(/^([^"]+)"/);
+    if (!idMatch) continue;
+    const externalId = String(idMatch[1] || '').trim();
+
+    let groupId = extractQuotedField(block, 'GroupID') || extractQuotedField(block, 'Group');
+    if (linked && !groupId && i === 1) {
+      groupId = extractQuotedField(blocks[0], 'GroupID') || extractQuotedField(blocks[0], 'Group');
+    }
+    if (linked && !groupId && i > 1) {
+      groupId = extractQuotedField(blocks[i - 1], 'GroupID') || extractQuotedField(blocks[i - 1], 'Group');
+    }
+    if (linked && !groupId) {
+      stats.missingGroup += 1;
+      continue;
+    }
+
+    const questionText = extractQuotedField(block, 'Q');
+    if (!questionText) {
+      stats.missingQ += 1;
+      continue;
+    }
+
+    const answers = extractTxtAnswers(block);
+    if (answers.length < 2) {
+      stats.missingAnswers += 1;
+      continue;
+    }
+
+    const correctRaw = extractQuotedField(block, 'Correct');
+    if (!correctRaw || !isValidCorrectIndex(answers, correctRaw)) {
+      stats.missingCorrect += 1;
+      continue;
+    }
+
+    const explanation = extractQuotedField(block, 'E');
+    if (requireExplanation && !explanation) {
+      stats.missingExplanation += 1;
+      continue;
+    }
+
+    const tags = parseTags ? extractTagsFromBlock(block) : [];
+    if (requireTags && !tags.length) {
+      stats.missingTags += 1;
+      continue;
+    }
+
+    questions.push({
+      externalId,
+      groupId: groupId || null,
+      text: linked && groupId
+        ? encodeLinkedText(groupId, QUESTION_MARK, questionText)
+        : questionText,
+      explanation: explanation || '',
+      answers: mapAnswersWithCorrect(answers, correctRaw),
+      tags,
+    });
+    stats.accepted += 1;
+  }
+
+  questions._parseStats = stats;
+  questions._parseHint = parseHint(stats, { requireExplanation, requireTags, linked });
+  return questions;
+}
+
+function parseExplainedQuestions(raw, { linked = false } = {}) {
+  return parseQuestionsFromText(raw, {
+    linked,
+    requireExplanation: false,
+    requireTags: false,
+    parseTags: true,
+  });
+}
+
+module.exports = {
+  parseExplainedQuestions,
+  parseQuestionsFromText,
+  extractTagsFromBlock,
+};

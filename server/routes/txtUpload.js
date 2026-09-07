@@ -4,13 +4,14 @@ const path = require('path');
 const fs = require('fs');
 const {
   Test,
+  Subject,
   Question,
   Answer,
   Flashcard,
   FlashcardTagMap,
   QuestionTagMap,
 } = require('../models');
-const { parseExplainedQuestions } = require('../utils/parseQuestionsTxt');
+const { parseQuestionsFromText } = require('../utils/parseQuestionsTxt');
 const { parseFlashcardsTxt } = require('../utils/parseFlashcardsTxt');
 const { findOrCreateTag } = require('../utils/findOrCreateTag');
 
@@ -81,24 +82,73 @@ async function upsertQuestions(test, parsed) {
   return { created, updated, total: parsed.length };
 }
 
-router.post('/upload-txt-explained', fileField, async (req, res) => {
-  const test = await Test.findByPk(req.body.testId);
-  if (!test) return res.status(404).json({ error: 'Тест не найден' });
+async function resolveTest(req) {
+  if (req.body.testId) {
+    return Test.findByPk(req.body.testId);
+  }
+  const subjectId = Number(req.body.subjectId);
+  if (!subjectId) return null;
+  let test = await Test.findOne({
+    where: { subjectId },
+    order: [['sortOrder', 'ASC'], ['id', 'ASC']],
+  });
+  if (test) return test;
+  const subject = await Subject.findByPk(subjectId);
+  if (!subject) return null;
+  return Test.create({
+    name: subject.name,
+    subjectId: subject.id,
+    hasExplanations: true,
+    isActive: true,
+  });
+}
+
+async function handleQuestionTxt(req, res, options) {
+  const test = await resolveTest(req);
+  if (!test) return res.status(404).json({ error: 'Предмет или раздел не найден' });
   const raw = readUploaded(req);
-  if (!raw) return res.status(400).json({ error: 'Файл не получен. Поле: pdf или file' });
-  const parsed = parseExplainedQuestions(raw, { linked: false });
+  if (!raw) return res.status(400).json({ error: 'TXT файл не загружен. Поле: pdf или file' });
+  const parsed = parseQuestionsFromText(raw, options);
+  if (!parsed.length) {
+    return res.status(400).json({
+      error: `Не удалось найти вопросы в TXT. ${parsed._parseHint || ''}`,
+      stats: parsed._parseStats || {},
+    });
+  }
   const stats = await upsertQuestions(test, parsed);
-  res.json(stats);
+  res.json({
+    message: `Загружено ${stats.total} вопросов (${stats.created} новых, ${stats.updated} обновлено)`,
+    ...stats,
+    testId: test.id,
+  });
+}
+
+router.post('/upload-txt-explained', fileField, async (req, res) => {
+  try {
+    await handleQuestionTxt(req, res, {
+      linked: false,
+      requireExplanation: true,
+      requireTags: false,
+      parseTags: true,
+    });
+  } catch (error) {
+    console.error('Ошибка загрузки TXT:', error);
+    res.status(500).json({ error: error.message || 'Ошибка обработки TXT файла' });
+  }
 });
 
 router.post('/upload-txt-linked', fileField, async (req, res) => {
-  const test = await Test.findByPk(req.body.testId);
-  if (!test) return res.status(404).json({ error: 'Тест не найден' });
-  const raw = readUploaded(req);
-  if (!raw) return res.status(400).json({ error: 'Файл не получен. Поле: pdf или file' });
-  const parsed = parseExplainedQuestions(raw, { linked: true });
-  const stats = await upsertQuestions(test, parsed);
-  res.json(stats);
+  try {
+    await handleQuestionTxt(req, res, {
+      linked: true,
+      requireExplanation: true,
+      requireTags: false,
+      parseTags: true,
+    });
+  } catch (error) {
+    console.error('Ошибка загрузки связанных вопросов:', error);
+    res.status(500).json({ error: error.message || 'Ошибка обработки TXT файла' });
+  }
 });
 
 router.post('/upload-txt-flashcards', fileField, async (req, res) => {
