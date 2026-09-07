@@ -1,6 +1,8 @@
 node_modules/
 dist/
 .env
+finik_private.pem
+finik_public.pem
 uploads/
 *.log
 .DS_Store

@@ -68,6 +68,7 @@ export const payApi = {
     method: 'POST',
     body: JSON.stringify({ paymentId }),
   }),
+  status: (paymentId) => api(`/api/payments/status?paymentId=${encodeURIComponent(paymentId)}`),
 };
 
 export const glossaryApi = {
@@ -83,31 +84,39 @@ export const adminApi = {
   }),
   tags: () => api('/api/admin/question-tags'),
   createTag: (body) => api('/api/admin/question-tags', { method: 'POST', body: JSON.stringify(body) }),
+  updateTag: (id, body) => api(`/api/admin/question-tags/${id}`, { method: 'PUT', body: JSON.stringify(body) }),
   mergeTags: (sourceId, targetId) => api('/api/admin/question-tags/merge', {
     method: 'POST',
     body: JSON.stringify({ sourceId, targetId }),
   }),
+  mergeDuplicateTags: () => api('/api/admin/question-tags/merge-duplicates', { method: 'POST' }),
   deleteTag: (id) => api(`/api/admin/question-tags/${id}`, { method: 'DELETE' }),
   termImages: () => api('/api/admin/term-images'),
   createTerm: (form) => api('/api/admin/term-images', { method: 'POST', body: form }),
   deleteTerm: (id) => api(`/api/admin/term-images/${id}`, { method: 'DELETE' }),
-  subjects: () => api('/api/admin/subjects'),
+  subjects: (trackGroup) => api(`/api/admin/subjects${trackGroup ? `?trackGroup=${trackGroup}` : ''}`),
   createSubject: (body) => api('/api/admin/subjects', { method: 'POST', body: JSON.stringify(body) }),
   updateSubject: (id, body) => api(`/api/admin/subjects/${id}`, { method: 'PUT', body: JSON.stringify(body) }),
   deleteSubject: (id) => api(`/api/admin/subjects/${id}`, { method: 'DELETE' }),
   tests: (subjectId) => api(`/api/admin/tests${subjectId ? `?subjectId=${subjectId}` : ''}`),
   createTest: (body) => api('/api/admin/tests', { method: 'POST', body: JSON.stringify(body) }),
+  updateTest: (id, body) => api(`/api/admin/tests/${id}`, { method: 'PUT', body: JSON.stringify(body) }),
   deleteTest: (id) => api(`/api/admin/tests/${id}`, { method: 'DELETE' }),
   questions: (testId) => api(`/api/admin/questions?testId=${testId}`),
   createQuestion: (body) => api('/api/admin/questions', { method: 'POST', body: JSON.stringify(body) }),
+  updateQuestion: (id, body) => api(`/api/admin/questions/${id}`, { method: 'PUT', body: JSON.stringify(body) }),
   deleteQuestion: (id) => api(`/api/admin/questions/${id}`, { method: 'DELETE' }),
   flashcards: (params = {}) => {
     const q = new URLSearchParams(params).toString();
     return api(`/api/admin/flashcards${q ? `?${q}` : ''}`);
   },
   createFlashcard: (body) => api('/api/admin/flashcards', { method: 'POST', body: JSON.stringify(body) }),
+  updateFlashcard: (id, body) => api(`/api/admin/flashcards/${id}`, { method: 'PUT', body: JSON.stringify(body) }),
   deleteFlashcard: (id) => api(`/api/admin/flashcards/${id}`, { method: 'DELETE' }),
-  users: () => api('/api/admin/users'),
+  users: (params = {}) => {
+    const q = new URLSearchParams(params).toString();
+    return api(`/api/admin/users${q ? `?${q}` : ''}`);
+  },
   grant: (id, months) => api(`/api/admin/users/${id}/grant-subscription`, {
     method: 'POST',
     body: JSON.stringify({ months }),

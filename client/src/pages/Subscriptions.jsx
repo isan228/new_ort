@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { payApi } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import { PublicShell } from '../components/Shells';
@@ -11,6 +11,7 @@ function Plans({ wrap }) {
   const navigate = useNavigate();
   const [plans, setPlans] = useState([]);
   const [error, setError] = useState('');
+  const [busy, setBusy] = useState(false);
 
   useEffect(() => { payApi.plans().then((d) => setPlans(d.plans || [])); }, []);
 
@@ -20,13 +21,24 @@ function Plans({ wrap }) {
       return;
     }
     setError('');
+    setBusy(true);
     try {
       const created = await payApi.create(plan.id);
-      const confirmed = await payApi.confirmDemo(created.payment.id);
-      setUser(confirmed.user);
-      navigate('/app');
+      if (created.paymentUrl) {
+        window.location.href = created.paymentUrl;
+        return;
+      }
+      if (created.demo) {
+        const confirmed = await payApi.confirmDemo(created.payment.id);
+        setUser(confirmed.user);
+        navigate('/app');
+        return;
+      }
+      setError(t('pay.noUrl'));
     } catch (err) {
       setError(err.message);
+    } finally {
+      setBusy(false);
     }
   }
 
@@ -53,7 +65,7 @@ function Plans({ wrap }) {
             <b style={{ fontSize: 32 }}>{plan.price} {t('common.som')}</b>
             {plan.oldPrice && <p className="muted"><s>{plan.oldPrice} {t('common.som')}</s></p>}
             <p className="muted">{t('pay.full')}</p>
-            <button className="btn" type="button" onClick={() => buy(plan)}>{t('pay.start')}</button>
+            <button className="btn" type="button" disabled={busy} onClick={() => buy(plan)}>{t('pay.start')}</button>
           </div>
         ))}
       </div>

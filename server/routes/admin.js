@@ -16,6 +16,7 @@ const {
   TermImage,
   SubscriptionPlan,
   Payment,
+  TestResult,
 } = require('../models');
 const { slugify, normalizeTagName } = require('../utils/ortTagNormalize');
 const { findOrCreateTag } = require('../utils/findOrCreateTag');
@@ -30,18 +31,75 @@ const router = express.Router();
 
 router.use(txtUpload);
 
+async function mergeTagInto(sourceId, targetId) {
+  const maps = await QuestionTagMap.findAll({ where: { tagId: sourceId } });
+  for (const map of maps) {
+    await QuestionTagMap.findOrCreate({
+      where: { questionId: map.questionId, tagId: targetId },
+      defaults: { questionId: map.questionId, tagId: targetId },
+    });
+  }
+  const fmaps = await FlashcardTagMap.findAll({ where: { tagId: sourceId } });
+  for (const map of fmaps) {
+    await FlashcardTagMap.findOrCreate({
+      where: { flashcardId: map.flashcardId, tagId: targetId },
+      defaults: { flashcardId: map.flashcardId, tagId: targetId },
+    });
+  }
+  await QuestionTagMap.destroy({ where: { tagId: sourceId } });
+  await FlashcardTagMap.destroy({ where: { tagId: sourceId } });
+  await QuestionTag.destroy({ where: { id: sourceId } });
+}
+
 router.get('/ort-stats', async (req, res) => {
   const now = new Date();
-  const [users, activeSubs, paid, subjects, tests, questions, flashcards] = await Promise.all([
-    User.count({ where: { role: 'student' } }),
-    User.count({ where: { role: 'student', subscriptionEndDate: { [Op.gt]: now } } }),
+  const student = { role: 'student' };
+  const [
+    users,
+    activeSubs,
+    expired,
+    everSubscribed,
+    paid,
+    revenue,
+    subjects,
+    tests,
+    questions,
+    flashcards,
+    results,
+    recentUsers,
+  ] = await Promise.all([
+    User.count({ where: student }),
+    User.count({ where: { ...student, subscriptionEndDate: { [Op.gt]: now } } }),
+    User.count({ where: { ...student, subscriptionEndDate: { [Op.lte]: now } } }),
+    User.count({ where: { ...student, subscriptionEndDate: { [Op.ne]: null } } }),
     Payment.count({ where: { status: 'paid' } }),
+    Payment.sum('amount', { where: { status: 'paid' } }),
     Subject.count(),
     Test.count(),
     Question.count(),
     Flashcard.count(),
+    TestResult.count(),
+    User.findAll({
+      where: student,
+      attributes: { exclude: ['passwordHash'] },
+      order: [['id', 'DESC']],
+      limit: 8,
+    }),
   ]);
-  res.json({ users, activeSubs, paid, subjects, tests, questions, flashcards });
+  res.json({
+    users,
+    activeSubs,
+    expired,
+    everSubscribed,
+    paid,
+    revenue: Number(revenue || 0),
+    subjects,
+    tests,
+    questions,
+    flashcards,
+    results,
+    recentUsers,
+  });
 });
 
 router.get('/ort-subscription-plans', async (req, res) => {
@@ -108,27 +166,35 @@ router.delete('/question-tags/:id', async (req, res) => {
 
 router.post('/question-tags/merge', async (req, res) => {
   const { sourceId, targetId } = req.body || {};
-  if (!sourceId || !targetId || sourceId === targetId) {
+  if (!sourceId || !targetId || Number(sourceId) === Number(targetId)) {
     return res.status(400).json({ error: 'Укажите sourceId и targetId' });
   }
-  const maps = await QuestionTagMap.findAll({ where: { tagId: sourceId } });
-  for (const map of maps) {
-    await QuestionTagMap.findOrCreate({
-      where: { questionId: map.questionId, tagId: targetId },
-      defaults: { questionId: map.questionId, tagId: targetId },
-    });
-  }
-  const fmaps = await FlashcardTagMap.findAll({ where: { tagId: sourceId } });
-  for (const map of fmaps) {
-    await FlashcardTagMap.findOrCreate({
-      where: { flashcardId: map.flashcardId, tagId: targetId },
-      defaults: { flashcardId: map.flashcardId, tagId: targetId },
-    });
-  }
-  await QuestionTagMap.destroy({ where: { tagId: sourceId } });
-  await FlashcardTagMap.destroy({ where: { tagId: sourceId } });
-  await QuestionTag.destroy({ where: { id: sourceId } });
+  await mergeTagInto(sourceId, targetId);
   res.json({ ok: true });
+});
+
+router.post('/question-tags/merge-duplicates', async (req, res) => {
+  const tags = await QuestionTag.findAll({ order: [['id', 'ASC']] });
+  const groups = new Map();
+  for (const tag of tags) {
+    const key = `${tag.kind}:${tag.slug}`;
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(tag);
+  }
+  let mergedTags = 0;
+  for (const group of groups.values()) {
+    if (group.length < 2) continue;
+    const [keep, ...dupes] = group;
+    for (const dupe of dupes) {
+      await mergeTagInto(dupe.id, keep.id);
+      mergedTags += 1;
+    }
+  }
+  res.json({
+    ok: true,
+    mergedTags,
+    message: mergedTags ? `Слито тегов: ${mergedTags}` : 'Совпадающих тегов нет',
+  });
 });
 
 router.get('/term-images', async (req, res) => {
@@ -163,11 +229,20 @@ router.delete('/term-images/:id', async (req, res) => {
 });
 
 router.get('/subjects', async (req, res) => {
+  const where = {};
+  if (req.query.trackGroup) where.trackGroup = req.query.trackGroup;
   const subjects = await Subject.findAll({
-    include: [Test],
+    where,
+    include: [{ model: Test, attributes: ['id'] }],
     order: [['sortOrder', 'ASC'], ['id', 'ASC']],
   });
-  res.json({ subjects });
+  res.json({
+    subjects: subjects.map((row) => {
+      const subject = row.toJSON();
+      subject.testCount = (subject.Tests || []).length;
+      return subject;
+    }),
+  });
 });
 
 router.post('/subjects', async (req, res) => {
@@ -207,8 +282,19 @@ router.delete('/subjects/:id', async (req, res) => {
 router.get('/tests', async (req, res) => {
   const where = {};
   if (req.query.subjectId) where.subjectId = req.query.subjectId;
-  const tests = await Test.findAll({ where, include: [Subject], order: [['sortOrder', 'ASC']] });
-  res.json({ tests });
+  const tests = await Test.findAll({
+    where,
+    include: [Subject, { model: Question, attributes: ['id'] }],
+    order: [['sortOrder', 'ASC']],
+  });
+  res.json({
+    tests: tests.map((row) => {
+      const test = row.toJSON();
+      test.questionCount = (test.Questions || []).length;
+      delete test.Questions;
+      return test;
+    }),
+  });
 });
 
 router.post('/tests', async (req, res) => {
@@ -295,6 +381,18 @@ router.put('/questions/:id', async (req, res) => {
       });
     }
   }
+  if (Array.isArray(req.body.tags)) {
+    await QuestionTagMap.destroy({ where: { questionId: question.id } });
+    for (const tag of req.body.tags) {
+      const row = await findOrCreateTag(tag.name, tag.kind || 'topic');
+      if (row) {
+        await QuestionTagMap.findOrCreate({
+          where: { questionId: question.id, tagId: row.id },
+          defaults: { questionId: question.id, tagId: row.id },
+        });
+      }
+    }
+  }
   const full = await Question.findByPk(question.id, { include: [Answer, QuestionTag] });
   res.json({ question: publicQuestionWithCorrect(full) });
 });
@@ -336,6 +434,29 @@ router.post('/flashcards', async (req, res) => {
   res.json({ flashcard: card });
 });
 
+router.put('/flashcards/:id', async (req, res) => {
+  const card = await Flashcard.findByPk(req.params.id);
+  if (!card) return res.status(404).json({ error: 'Карточка не найдена' });
+  await card.update({
+    frontText: req.body.frontText ?? card.frontText,
+    backText: req.body.backText ?? card.backText,
+    trackGroup: req.body.trackGroup ?? card.trackGroup,
+    testId: req.body.testId === undefined ? card.testId : (req.body.testId || null),
+    frontImageUrl: req.body.frontImageUrl === undefined ? card.frontImageUrl : req.body.frontImageUrl,
+    backImageUrl: req.body.backImageUrl === undefined ? card.backImageUrl : req.body.backImageUrl,
+    isActive: req.body.isActive ?? card.isActive,
+  });
+  if (req.body.topic !== undefined) {
+    await FlashcardTagMap.destroy({ where: { flashcardId: card.id } });
+    if (req.body.topic) {
+      const tag = await findOrCreateTag(req.body.topic, 'topic');
+      if (tag) await FlashcardTagMap.create({ flashcardId: card.id, tagId: tag.id });
+    }
+  }
+  const full = await Flashcard.findByPk(card.id, { include: [QuestionTag] });
+  res.json({ flashcard: full });
+});
+
 router.delete('/flashcards/:id', async (req, res) => {
   await FlashcardTagMap.destroy({ where: { flashcardId: req.params.id } });
   await Flashcard.destroy({ where: { id: req.params.id } });
@@ -343,12 +464,25 @@ router.delete('/flashcards/:id', async (req, res) => {
 });
 
 router.get('/users', async (req, res) => {
-  const users = await User.findAll({
+  const q = String(req.query.q || '').trim();
+  const page = Math.max(1, Number(req.query.page) || 1);
+  const limit = Math.min(100, Math.max(10, Number(req.query.limit) || 50));
+  const where = { role: 'student' };
+  if (q) {
+    where[Op.or] = [
+      { name: { [Op.iLike]: `%${q}%` } },
+      { login: { [Op.iLike]: `%${q}%` } },
+      { email: { [Op.iLike]: `%${q}%` } },
+    ];
+  }
+  const { count, rows } = await User.findAndCountAll({
+    where,
     attributes: { exclude: ['passwordHash'] },
     order: [['id', 'DESC']],
-    limit: 200,
+    limit,
+    offset: (page - 1) * limit,
   });
-  res.json({ users });
+  res.json({ users: rows, total: count, page, limit });
 });
 
 router.post('/users/:id/grant-subscription', async (req, res) => {

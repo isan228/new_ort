@@ -76,11 +76,16 @@ PORT=4000
 NODE_ENV=production
 DATABASE_URL=postgres://ort:СИЛЬНЫЙ_ПАРОЛЬ@127.0.0.1:5432/ort_2026
 JWT_SECRET=длинная_случайная_строка
-CLIENT_URL=https://твой-домен.kg
+CLIENT_URL=https://ort.kg
 ADMIN_LOGIN=admin
-ADMIN_EMAIL=admin@твой-домен.kg
+ADMIN_EMAIL=admin@ort.kg
 ADMIN_PASSWORD=смени_сразу
+
+FINIK_API_KEY=ключ_от_finik
+FINIK_ACCOUNT_ID=счёт_finik
 ```
+
+Finik: в `.env` только API-ключ и account id. В корне проекта лежат `finik_private.pem` (подпись запросов) и `finik_public.pem` (этот файл один раз отправь в Finik). Вебхук и возврат уже `https://ort.kg/api/payments/webhook` и `https://ort.kg/pay/success`.
 
 Файл `.env` на сервере не коммить и не пушь.
 
@@ -176,10 +181,10 @@ curl http://127.0.0.1/api/health
 Домен можно передать явно:
 
 ```bash
-sudo DOMAIN=example.kg npm run setup:nginx
+sudo DOMAIN=ort.kg npm run setup:nginx
 ```
 
-или прописать `CLIENT_URL=https://example.kg` в `.env`.
+или прописать `CLIENT_URL=https://ort.kg` в `.env`.
 
 Если скрипта на сервере ещё нет — вставь блок ниже как есть:
 
@@ -249,4 +254,4 @@ sudo -u postgres pg_dump ort_2026 > ort_2026_$(date +%F).sql
 
 ## 10. Мобилка позже
 
-Тот же origin: `https://твой-домен.kg/api/...`, заголовок `Authorization: Bearer <JWT>`. CORS смотрит на `CLIENT_URL`; для приложения можно расширить список origin в `server/server.js`.
+Тот же origin: `https://ort.kg/api/...`, заголовок `Authorization: Bearer <JWT>`. CORS уже включает `https://ort.kg`.

@@ -52,7 +52,7 @@ if (!domain && env.CLIENT_URL) {
   }
 }
 if (!domain || domain === 'localhost' || domain === '127.0.0.1') {
-  domain = '_';
+  domain = 'ort.kg';
 }
 
 const names = domain === '_'
@@ -99,5 +99,6 @@ console.log(`server_name: ${names}`);
 console.log('Стандартная заглушка Welcome to nginx отключена.');
 console.log('Проверь: curl -I http://127.0.0.1/ и curl http://127.0.0.1/api/health');
 if (domain !== '_') {
-  console.log(`HTTPS потом: certbot --nginx -d ${domain} -d www.${domain.replace(/^www\./, '')}`);
+  const host = domain.replace(/^www\./, '');
+  console.log(`HTTPS потом: certbot --nginx -d ${host} -d www.${host}`);
 }

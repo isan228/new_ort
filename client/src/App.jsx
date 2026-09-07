@@ -18,6 +18,7 @@ import Ranking from './pages/Ranking';
 import Achievements from './pages/Achievements';
 import Referral from './pages/Referral';
 import Subscriptions, { PricingPublic } from './pages/Subscriptions';
+import PaymentSuccess from './pages/PaymentSuccess';
 import Profile from './pages/Profile';
 import Settings from './pages/Settings';
 import History from './pages/History';
@@ -25,8 +26,6 @@ import AdminLogin from './pages/admin/AdminLogin';
 import AdminHome from './pages/admin/AdminHome';
 import AdminUsers from './pages/admin/AdminUsers';
 import AdminContent from './pages/admin/AdminContent';
-import AdminFlashcards from './pages/admin/AdminFlashcards';
-import AdminPlans from './pages/admin/AdminPlans';
 
 export const ADMIN_PATH = '/админ';
 
@@ -72,8 +71,8 @@ function adminPages() {
       <Route index element={<AdminHome />} />
       <Route path="users" element={<AdminUsers />} />
       <Route path="content" element={<AdminContent />} />
-      <Route path="flashcards" element={<AdminFlashcards />} />
-      <Route path="plans" element={<AdminPlans />} />
+      <Route path="flashcards" element={<Navigate to="../content" replace />} />
+      <Route path="plans" element={<Navigate to="../content" replace />} />
     </>
   );
 }
@@ -90,6 +89,8 @@ export default function App() {
       <Route path="/login" element={<LoggedInRedirect><Login /></LoggedInRedirect>} />
       <Route path="/register" element={<LoggedInRedirect><Register /></LoggedInRedirect>} />
       <Route path="/pricing" element={<PricingPublic />} />
+      <Route path="/pay/success" element={<PaymentSuccess />} />
+      <Route path="/payment/success" element={<PaymentSuccess />} />
 
       <Route path="/app" element={<AppLayout><Home /></AppLayout>} />
       <Route path="/app/tests" element={<AppLayout><Tests /></AppLayout>} />

@@ -59,7 +59,7 @@ npm run dev
 - ученик с подпиской: логин `demo`, пароль `demo123` (страница `/login`)
 - админ: логин `admin`, пароль `admin123` — только по служебной ссылке `/админ` (в меню сайта её нет)
 
-Оплата на `/subscriptions` сейчас демо: создаёт платёж `ort_subscription` и сразу продлевает дату. Позже подключите шлюз к `POST /api/payments/webhook`.
+Оплата — **Finik** на `ort.kg`. В `.env` только `FINIK_API_KEY` и `FINIK_ACCOUNT_ID`. Ключи RSA — `finik_private.pem` и `finik_public.pem` в корне репозитория. Вебхук: `https://ort.kg/api/payments/webhook`. Без ключей локально остаётся демо-оплата.
 
 ## TXT для админки
 
