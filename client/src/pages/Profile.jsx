@@ -18,7 +18,7 @@ export default function Profile() {
         </div>
       </div>
       <div className="grid-4" style={{ marginTop: 16 }}>
-        <div className="card stat"><b>{p.predicted}</b><span className="muted">прогноз</span></div>
+        <div className="card stat"><b>{p.goalScore}+</b><span className="muted">цель</span></div>
         <div className="card stat"><b>1284</b><span className="muted">вопросов</span></div>
         <div className="card stat"><b>{p.streak}</b><span className="muted">streak</span></div>
         <div className="card stat"><b>{ACHIEVEMENTS.filter((a) => a.unlocked).length}</b><span className="muted">достижений</span></div>

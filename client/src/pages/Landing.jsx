@@ -9,7 +9,7 @@ const FEATURES = [
   { title: 'Конструктор теста', text: 'Собери сессию по темам и типу задания: 10, 20 или полный пробник. Тренировка или режим экзамена с таймером.' },
   { title: 'Флеш-карты', text: 'Формулы, правила, аналогии. Интервалы как в Anki: снова, сложно, хорошо, легко.' },
   { title: 'Разбор ошибок', text: 'Свой ответ, верный вариант, объяснение. Повторяй слабые темы, пока точность не вырастет.' },
-  { title: 'Аналитика', text: 'Прогноз балла, точность по разделам, календарь активности и ежедневная цель.' },
+  { title: 'Аналитика', text: 'Точность по разделам, календарь активности и ежедневная цель — видно, что учить дальше.' },
   { title: 'Рейтинг и серия', text: 'Видно, где ты среди других учеников. Серия дней не даёт сорваться за неделю до теста.' },
 ];
 
@@ -84,7 +84,7 @@ export default function Landing() {
             <p className="badge brand">ОРТ 2026 · Кыргызстан</p>
             <h1 className="hero-title">Готовься к ОРТ <em>системно.</em> Каждый день — ближе к баллу.</h1>
             <p className="muted" style={{ fontSize: 18, maxWidth: 540 }}>
-              Банки вопросов, конструктор теста, флеш-карты с интервалами, разбор ошибок и прогноз балла.
+              Банки вопросов, конструктор теста, флеш-карты с интервалами и разбор ошибок.
               Не стопка PDF, а кабинет, в который возвращаешься каждый день.
             </p>
             <div className="row" style={{ marginTop: 20 }}>
@@ -101,12 +101,13 @@ export default function Landing() {
           <div className="mock">
             <div className="row" style={{ justifyContent: 'space-between' }}>
               <div>
-                <div className="muted">Прогноз ОРТ</div>
-                <b style={{ fontSize: 32 }}>214 / 250</b>
+                <div className="muted">Сегодня</div>
+                <b style={{ fontSize: 32 }}>30 / 40</b>
               </div>
-              <span className="badge ok">+12 за 14 дней</span>
+              <span className="badge ok">цель дня</span>
             </div>
-            <div className="progress" style={{ margin: '14px 0' }}><i style={{ width: '78%' }} /></div>
+            <div className="progress" style={{ margin: '14px 0' }}><i style={{ width: '75%' }} /></div>
+            <p className="muted" style={{ fontSize: 13, marginBottom: 10 }}>Дальше: аналогии · 10 вопросов</p>
             <div className="grid-3">
               <div className="card stat" style={{ boxShadow: 'none' }}><b>12</b><span className="muted">дней подряд</span></div>
               <div className="card stat" style={{ boxShadow: 'none' }}><b>1 284</b><span className="muted">вопросов</span></div>

@@ -6,7 +6,6 @@ const defaults = {
   todayQuestions: 30,
   dailyGoal: 40,
   goalScore: 220,
-  predicted: 214,
   favorites: [],
   flagged: [],
   skipped: [],

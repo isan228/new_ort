@@ -28,10 +28,11 @@ export default function Home() {
           </div>
         </div>
         <div className="card">
-          <div className="muted">Прогноз результата</div>
-          <h2 style={{ fontSize: 40 }}>{p.predicted} / 250</h2>
-          <span className="badge ok">+12 баллов за последние 14 дней</span>
-          <p className="muted" style={{ marginTop: 12 }}>До цели {p.goalScore} осталось {Math.max(0, p.goalScore - p.predicted)} баллов.</p>
+          <div className="muted">Следующая тема</div>
+          <h2 style={{ fontSize: 32 }}>Аналогии</h2>
+          <span className="badge">точность 61%</span>
+          <p className="muted" style={{ marginTop: 12 }}>Здесь чаще всего теряются баллы. 10 вопросов сегодня закроют слот дневной цели.</p>
+          <Link className="btn" to="/app/tests">Тренировать аналогии</Link>
         </div>
       </div>
 
