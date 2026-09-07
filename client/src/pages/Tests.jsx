@@ -3,28 +3,22 @@ import { useNavigate } from 'react-router-dom';
 import { ortApi } from '../api/client';
 import { isOrtGate } from '../context/AuthContext';
 import { useBank } from '../context/BankContext';
-
-const CATS = [
-  { id: 'all', title: 'Все' },
-  { id: 'main', title: 'Полный ОРТ / основной' },
-  { id: 'state_lang', title: 'Кыргызский язык' },
-  { id: 'subject', title: 'Предметные' },
-];
-
-const META = {
-  'Математика (основной)': { difficulty: 'Средняя', time: '25 мин', avg: '72%' },
-  'Аналогии и предложения': { difficulty: 'Сложная', time: '20 мин', avg: '61%' },
-  'Чтение и понимание': { difficulty: 'Средняя', time: '30 мин', avg: '74%' },
-  'Практическая грамматика': { difficulty: 'Лёгкая', time: '15 мин', avg: '81%' },
-  'Химия': { difficulty: 'Сложная', time: '40 мин', avg: '68%' },
-};
+import { useLang } from '../context/LangContext';
 
 export default function Tests() {
+  const { t } = useLang();
   const [data, setData] = useState({ main: [], state_lang: [], subject: [] });
   const [cat, setCat] = useState('all');
   const [error, setError] = useState('');
   const { setBank } = useBank();
   const navigate = useNavigate();
+
+  const cats = [
+    { id: 'all', title: t('tests.all') },
+    { id: 'main', title: t('tests.main') },
+    { id: 'state_lang', title: t('tests.ky') },
+    { id: 'subject', title: t('tests.subject') },
+  ];
 
   useEffect(() => {
     ortApi.dashboard()
@@ -53,10 +47,10 @@ export default function Tests() {
 
   return (
     <div>
-      <h1>Тесты</h1>
-      <p className="muted">Выбери банк и собери сессию: тема × навык, режим экзамена или тренировка.</p>
+      <h1>{t('tests.title')}</h1>
+      <p className="muted">{t('tests.lead')}</p>
       <div className="tabs">
-        {CATS.map((c) => (
+        {cats.map((c) => (
           <button key={c.id} type="button" className={cat === c.id ? 'on' : ''} onClick={() => setCat(c.id)}>{c.title}</button>
         ))}
       </div>
@@ -64,19 +58,17 @@ export default function Tests() {
       <div className="cards">
         {list.map((subject) => {
           const tests = subject.Tests || subject.tests || [];
-          const meta = META[subject.name] || { difficulty: 'Средняя', time: '20 мин', avg: '—' };
           return (
             <div key={subject.id} className="card">
               <h3>{subject.name}</h3>
               <p className="muted">{subject.description}</p>
-              <p className="muted">{tests.length ? 'Банк вопросов готов' : 'Банк пока пуст'} · {meta.time} · {meta.difficulty}</p>
-              <p className="muted">Средний результат {meta.avg}</p>
-              <button className="btn" type="button" onClick={() => open(subject)} disabled={!tests.length}>Начать тест</button>
+              <p className="muted">{tests.length ? t('tests.ready') : t('tests.emptyBank')}</p>
+              <button className="btn" type="button" onClick={() => open(subject)} disabled={!tests.length}>{t('tests.start')}</button>
             </div>
           );
         })}
       </div>
-      {!list.length && <div className="empty">В этой категории пока нет банков.</div>}
+      {!list.length && <div className="empty">{t('tests.none')}</div>}
     </div>
   );
 }

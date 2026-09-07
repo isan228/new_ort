@@ -2,10 +2,12 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ortApi } from '../api/client';
 import { useBank } from '../context/BankContext';
+import { useLang } from '../context/LangContext';
 import { bumpToday, loadProgress, saveProgress, toggleFavorite } from '../lib/progress';
 
 export default function TestRunner() {
   const { bank } = useBank();
+  const { t } = useLang();
   const navigate = useNavigate();
   const session = useMemo(() => {
     try { return JSON.parse(sessionStorage.getItem('ortSession') || 'null'); } catch { return null; }
@@ -18,8 +20,8 @@ export default function TestRunner() {
 
   useEffect(() => {
     if (!session?.questions) return undefined;
-    const t = setInterval(() => setLeft((s) => Math.max(0, s - 1)), 1000);
-    return () => clearInterval(t);
+    const timer = setInterval(() => setLeft((s) => Math.max(0, s - 1)), 1000);
+    return () => clearInterval(timer);
   }, [session]);
 
   useEffect(() => {
@@ -27,7 +29,7 @@ export default function TestRunner() {
   }, [left]);
 
   if (!session?.questions?.length) {
-    return <p>Сессия пуста. <Link to="/app/tests">Соберите тест</Link>.</p>;
+    return <p>{t('runner.empty')} <Link to="/app/tests">{t('runner.collect')}</Link>.</p>;
   }
 
   const questions = session.questions;
@@ -65,9 +67,9 @@ export default function TestRunner() {
       <div className="row" style={{ justifyContent: 'space-between' }}>
         <div>
           <div className="muted">{bank?.name || session.test?.name}</div>
-          <b>Вопрос {index + 1} / {questions.length}</b>
+          <b>{t('runner.q', { a: index + 1, b: questions.length })}</b>
         </div>
-        <span className="badge brand">Осталось {mm}:{ss}</span>
+        <span className="badge brand">{t('runner.left', { time: `${mm}:${ss}` })}</span>
       </div>
       <div className="progress" style={{ margin: '12px 0 20px' }}>
         <i style={{ width: `${((index + 1) / questions.length) * 100}%` }} />
@@ -85,17 +87,17 @@ export default function TestRunner() {
           </button>
         ))}
       </div>
-      {!examMode && picked[q.id] && <p className="muted">Ответ записан. В тренировке разбор откроется после сдачи — без спойлера в условии.</p>}
+      {!examMode && picked[q.id] && <p className="muted">{t('runner.saved')}</p>}
       <div className="row test-actions" style={{ marginBottom: 16 }}>
-        <button className="btn ghost" type="button" disabled={index === 0} onClick={() => setIndex(index - 1)}>Назад</button>
-        <button className="btn ghost" type="button" onClick={skip}>Пропустить</button>
+        <button className="btn ghost" type="button" disabled={index === 0} onClick={() => setIndex(index - 1)}>{t('runner.back')}</button>
+        <button className="btn ghost" type="button" onClick={skip}>{t('runner.skip')}</button>
         <button className="btn purple" type="button" onClick={() => setFlagged((f) => ({ ...f, [q.id]: !f[q.id] }))}>
-          {flagged[q.id] ? 'Снять отметку' : 'Отметить'}
+          {flagged[q.id] ? t('runner.unflag') : t('runner.flag')}
         </button>
-        <button className="btn ghost" type="button" onClick={() => toggleFavorite(q.id)}>В избранное</button>
+        <button className="btn ghost" type="button" onClick={() => toggleFavorite(q.id)}>{t('runner.fav')}</button>
         {index < questions.length - 1
-          ? <button className="btn" type="button" onClick={() => setIndex(index + 1)}>Следующий вопрос</button>
-          : <button className="btn" type="button" onClick={finish}>Завершить тест</button>}
+          ? <button className="btn" type="button" onClick={() => setIndex(index + 1)}>{t('runner.next')}</button>
+          : <button className="btn" type="button" onClick={finish}>{t('runner.finish')}</button>}
       </div>
       <div className="q-nav">
         {questions.map((item, i) => {

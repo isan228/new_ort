@@ -1,33 +1,39 @@
-import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
+import { useLang } from '../context/LangContext';
+import { authApi } from '../api/client';
 
 export default function Settings() {
-  const { user } = useAuth();
+  const { user, setUser } = useAuth();
   const { theme, toggle } = useTheme();
-  const [name, setName] = useState(user?.name || '');
-  const [lang, setLang] = useState(user?.language || 'ru');
-  const [notify, setNotify] = useState(true);
+  const { t, lang, setLang } = useLang();
+
+  async function saveName(e) {
+    e.preventDefault();
+    const name = new FormData(e.target).get('name');
+    const data = await authApi.updateMe({ name });
+    setUser(data.user);
+  }
 
   return (
     <div style={{ maxWidth: 560 }}>
-      <h1>Настройки</h1>
-      <div className="card">
-        <label className="field"><span>Имя</span><input value={name} onChange={(e) => setName(e.target.value)} /></label>
-        <label className="field"><span>Логин</span><input value={user?.login || ''} disabled /></label>
-        <label className="field"><span>Пароль</span><input type="password" placeholder="Новый пароль" /></label>
+      <h1>{t('settings.title')}</h1>
+      <form className="card" onSubmit={saveName}>
+        <label className="field"><span>{t('common.name')}</span><input name="name" defaultValue={user?.name || ''} /></label>
+        <label className="field"><span>{t('common.login')}</span><input value={user?.login || ''} disabled /></label>
+        <label className="field"><span>{t('common.password')}</span><input type="password" placeholder={t('settings.newPass')} /></label>
         <label className="field">
-          <span>Язык</span>
+          <span>{t('settings.language')}</span>
           <select value={lang} onChange={(e) => setLang(e.target.value)}>
-            <option value="ru">Русский</option>
-            <option value="ky">Кыргызча</option>
+            <option value="ru">{t('settings.ru')}</option>
+            <option value="ky">{t('settings.ky')}</option>
           </select>
         </label>
-        <label className="field"><span><input type="checkbox" checked={notify} onChange={(e) => setNotify(e.target.checked)} /> Уведомления о серии и ежедневной цели</span></label>
-        <label className="field"><span><input type="checkbox" checked={theme === 'dark'} onChange={toggle} /> Тёмная тема</span></label>
-        <label className="field"><span><input type="checkbox" defaultChecked /> Профиль виден в рейтинге</span></label>
-        <button className="btn" type="button">Сохранить</button>
-      </div>
+        <label className="field"><span><input type="checkbox" defaultChecked /> {t('settings.notify')}</span></label>
+        <label className="field"><span><input type="checkbox" checked={theme === 'dark'} onChange={toggle} /> {t('settings.dark')}</span></label>
+        <label className="field"><span><input type="checkbox" defaultChecked /> {t('settings.publicRank')}</span></label>
+        <button className="btn" type="submit">{t('common.save')}</button>
+      </form>
     </div>
   );
 }

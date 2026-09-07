@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { ortApi } from '../api/client';
 import { isOrtGate } from '../context/AuthContext';
 import { useBank } from '../context/BankContext';
+import { useLang } from '../context/LangContext';
 import { buildFrontHtml } from '../lib/linkify';
 
 const PROG_KEY = 'ortFlashcardProgress';
@@ -14,6 +15,7 @@ function saveCardProgress(data) { localStorage.setItem(PROG_KEY, JSON.stringify(
 
 export default function Flashcards() {
   const { bank } = useBank();
+  const { t } = useLang();
   const navigate = useNavigate();
   const [cards, setCards] = useState([]);
   const [tab, setTab] = useState('all');
@@ -61,7 +63,7 @@ export default function Flashcards() {
     const card = session[idx];
     return (
       <div style={{ maxWidth: 640, margin: '0 auto' }}>
-        <p className="muted">{idx + 1} / {session.length} · интервальное повторение</p>
+        <p className="muted">{t('cards.of', { a: idx + 1, b: session.length })}</p>
         <div className="flip">
           <div className={`flip-inner ${show ? 'show' : ''}`}>
             <div className="flip-face" dangerouslySetInnerHTML={{ __html: buildFrontHtml(card.frontText) }} />
@@ -69,13 +71,13 @@ export default function Flashcards() {
           </div>
         </div>
         {!show ? (
-          <button className="btn lg" style={{ width: '100%', marginTop: 16 }} type="button" onClick={() => setShow(true)}>Показать ответ</button>
+          <button className="btn lg" style={{ width: '100%', marginTop: 16 }} type="button" onClick={() => setShow(true)}>{t('cards.show')}</button>
         ) : (
           <div className="rate-grid" style={{ marginTop: 16 }}>
-            <button className="btn bad" type="button" onClick={() => rate('again')}>Снова</button>
-            <button className="btn warn" type="button" onClick={() => rate('hard')}>Сложно</button>
-            <button className="btn ghost" type="button" onClick={() => rate('good')}>Хорошо</button>
-            <button className="btn ok" type="button" onClick={() => rate('easy')}>Легко</button>
+            <button className="btn bad" type="button" onClick={() => rate('again')}>{t('cards.again')}</button>
+            <button className="btn warn" type="button" onClick={() => rate('hard')}>{t('cards.hardBtn')}</button>
+            <button className="btn ghost" type="button" onClick={() => rate('good')}>{t('cards.good')}</button>
+            <button className="btn ok" type="button" onClick={() => rate('easy')}>{t('cards.easy')}</button>
           </div>
         )}
       </div>
@@ -84,27 +86,27 @@ export default function Flashcards() {
 
   return (
     <div>
-      <h1>Флеш-карты</h1>
-      <p className="muted">Сегодня: {due} карточек. Система сама решает, что повторить — как Anki.</p>
+      <h1>{t('cards.title')}</h1>
+      <p className="muted">{t('cards.today', { n: due })}</p>
       <div className="card" style={{ marginBottom: 16 }}>
-        <h3>Повторение сегодня</h3>
-        <b style={{ fontSize: 28 }}>{due} карточек требуют повторения</b>
-        <p className="muted">Новые → Изучение → Повторение → Выучено</p>
+        <h3>{t('cards.reviewToday')}</h3>
+        <b style={{ fontSize: 28 }}>{t('cards.need', { n: due })}</b>
+        <p className="muted">{t('cards.flow')}</p>
         <div className="progress"><i style={{ width: `${cards.length ? Math.round((buckets.learned.length / cards.length) * 100) : 0}%` }} /></div>
       </div>
       <div className="tabs">
         {[
-          ['all', 'Все'],
-          ['new', 'Новые'],
-          ['review', 'На повторение'],
-          ['hard', 'Сложные'],
-          ['learned', 'Выученные'],
-          ['fav', 'Избранные'],
+          ['all', t('cards.all')],
+          ['new', t('cards.neu')],
+          ['review', t('cards.review')],
+          ['hard', t('cards.hard')],
+          ['learned', t('cards.learned')],
+          ['fav', t('cards.fav')],
         ].map(([id, label]) => (
           <button key={id} type="button" className={tab === id ? 'on' : ''} onClick={() => setTab(id)}>{label} ({id === 'all' ? cards.length : (buckets[id] || []).length})</button>
         ))}
       </div>
-      {!cards.length && <div className="empty">Пока нет карточек. Загрузи их в админке или выбери банк.</div>}
+      {!cards.length && <div className="empty">{t('cards.empty')}</div>}
       <div className="cards">
         {list.map((card) => (
           <div key={card.id} className="card">
@@ -115,10 +117,10 @@ export default function Flashcards() {
       </div>
       {!!list.length && (
         <button className="btn lg" style={{ marginTop: 16 }} type="button" onClick={() => { setSession(list); setIdx(0); setShow(false); }}>
-          Повторить карточки
+          {t('cards.repeat')}
         </button>
       )}
-      {!bank && <p className="muted" style={{ marginTop: 12 }}>Банк не выбран — показаны все карточки. <Link to="/app/tests">Выбрать тест</Link></p>}
+      {!bank && <p className="muted" style={{ marginTop: 12 }}>{t('cards.noBank')} <Link to="/app/tests">{t('cards.pick')}</Link></p>}
     </div>
   );
 }

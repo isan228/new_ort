@@ -38,6 +38,7 @@ export const authApi = {
   adminLogin: (body) => api('/api/auth/admin-login', { method: 'POST', body: JSON.stringify(body) }),
   register: (body) => api('/api/auth/register', { method: 'POST', body: JSON.stringify(body) }),
   me: () => api('/api/auth/me'),
+  updateMe: (body) => api('/api/auth/me', { method: 'PATCH', body: JSON.stringify(body) }),
 };
 
 export const ortApi = {

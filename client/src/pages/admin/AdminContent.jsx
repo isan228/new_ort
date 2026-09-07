@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { adminApi } from '../../api/client';
+import { useLang } from '../../context/LangContext';
 
 const TRACKS = [
   { id: 'main', label: 'Основной' },
@@ -8,6 +9,7 @@ const TRACKS = [
 ];
 
 export default function AdminContent() {
+  const { t } = useLang();
   const [subjects, setSubjects] = useState([]);
   const [tests, setTests] = useState([]);
   const [questions, setQuestions] = useState([]);
@@ -44,7 +46,7 @@ export default function AdminContent() {
 
   return (
     <div>
-      <h1>Тесты и вопросы</h1>
+      <h1>{t('admin.content')}</h1>
       {msg && <p className="ok">{msg}</p>}
       <div className="grid-2">
         <div className="card">

@@ -1,5 +1,6 @@
 import { Navigate, Outlet, Route, Routes, useLocation } from 'react-router-dom';
 import { useAuth } from './context/AuthContext';
+import { useLang } from './context/LangContext';
 import { AppShell, AdminShell } from './components/Shells';
 import Landing from './pages/Landing';
 import Login from './pages/Login';
@@ -35,8 +36,9 @@ function homePath(user) {
 
 function Private({ children }) {
   const { user, ready } = useAuth();
+  const { t } = useLang();
   const location = useLocation();
-  if (!ready) return <p className="muted">Загрузка…</p>;
+  if (!ready) return <p className="muted">{t('common.loading')}</p>;
   if (!user) return <Navigate to="/login" replace state={{ from: location }} />;
   if (user.role === 'admin') return <Navigate to={ADMIN_PATH} replace />;
   return children;
@@ -48,7 +50,8 @@ function AppLayout({ children }) {
 
 function AdminGate() {
   const { user, ready } = useAuth();
-  if (!ready) return <p className="muted">Загрузка…</p>;
+  const { t } = useLang();
+  if (!ready) return <p className="muted">{t('common.loading')}</p>;
   if (user?.role === 'admin') {
     return <AdminShell><Outlet /></AdminShell>;
   }
@@ -57,7 +60,8 @@ function AdminGate() {
 
 function LoggedInRedirect({ children }) {
   const { user, ready } = useAuth();
-  if (!ready) return <p className="muted">Загрузка…</p>;
+  const { t } = useLang();
+  if (!ready) return <p className="muted">{t('common.loading')}</p>;
   if (user) return <Navigate to={homePath(user)} replace />;
   return children;
 }

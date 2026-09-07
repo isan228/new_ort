@@ -83,4 +83,12 @@ router.get('/me', requireAuth, async (req, res) => {
   return res.json({ user: publicUser(req.user) });
 });
 
+router.patch('/me', requireAuth, async (req, res) => {
+  const { name, language } = req.body || {};
+  if (name) req.user.name = String(name).trim();
+  if (language === 'ky' || language === 'ru') req.user.language = language;
+  await req.user.save();
+  return res.json({ user: publicUser(req.user) });
+});
+
 module.exports = router;

@@ -3,9 +3,11 @@ import { Link, useNavigate } from 'react-router-dom';
 import { ortApi } from '../api/client';
 import { isOrtGate } from '../context/AuthContext';
 import { useBank } from '../context/BankContext';
+import { useLang } from '../context/LangContext';
 
 export default function TestBuilder() {
   const { bank } = useBank();
+  const { t } = useLang();
   const navigate = useNavigate();
   const [topics, setTopics] = useState([]);
   const [skills, setSkills] = useState([]);
@@ -62,23 +64,23 @@ export default function TestBuilder() {
   }
 
   if (!bank?.testId) {
-    return <p>Выберите банк на странице <Link to="/app/tests">Тесты</Link>.</p>;
+    return <p>{t('builder.pick')} <Link to="/app/tests">{t('tests.title')}</Link>.</p>;
   }
 
   return (
     <div>
-      <h1>Собрать тест</h1>
-      <p className="muted">{bank.name}. Тема и навык пересекаются. В режиме экзамена ответы не показываются до конца.</p>
-      <h3>Темы</h3>
+      <h1>{t('builder.title')}</h1>
+      <p className="muted">{t('builder.lead', { name: bank.name })}</p>
+      <h3>{t('builder.topics')}</h3>
       <div className="row" style={{ marginBottom: 12 }}>
         {topics.map((t) => (
           <button key={t.id} type="button" className={`chip ${topicIds.includes(t.id) ? 'on' : ''}`} onClick={() => toggle(topicIds, setTopicIds, t.id)}>
             {t.name} ({t.count})
           </button>
         ))}
-        {!topics.length && <span className="muted">Теги появятся после загрузки вопросов</span>}
+        {!topics.length && <span className="muted">{t('builder.noTags')}</span>}
       </div>
-      <h3>Тип задания</h3>
+      <h3>{t('builder.skill')}</h3>
       <div className="row" style={{ marginBottom: 16 }}>
         {skills.map((t) => (
           <button key={t.id} type="button" className={`chip ${skillIds.includes(t.id) ? 'on' : ''}`} onClick={() => toggle(skillIds, setSkillIds, t.id)}>
@@ -87,28 +89,28 @@ export default function TestBuilder() {
         ))}
       </div>
       <div className="grid-3">
-        <label className="field"><span>Число вопросов</span><input type="number" min={1} max={80} value={questionCount} onChange={(e) => setQuestionCount(Number(e.target.value))} /></label>
+        <label className="field"><span>{t('builder.count')}</span><input type="number" min={1} max={80} value={questionCount} onChange={(e) => setQuestionCount(Number(e.target.value))} /></label>
         <label className="field">
-          <span>Режим выборки</span>
+          <span>{t('builder.mode')}</span>
           <select value={questionMode} onChange={(e) => setQuestionMode(e.target.value)}>
-            <option value="all">Все</option>
-            <option value="unsolved">Не решённые</option>
-            <option value="incorrect">Ошибки</option>
+            <option value="all">{t('builder.all')}</option>
+            <option value="unsolved">{t('builder.unsolved')}</option>
+            <option value="incorrect">{t('builder.incorrect')}</option>
           </select>
         </label>
         <label className="field">
-          <span>Формат</span>
+          <span>{t('builder.format')}</span>
           <select value={examMode ? 'exam' : 'practice'} onChange={(e) => setExamMode(e.target.value === 'exam')}>
-            <option value="practice">Тренировка</option>
-            <option value="exam">Режим экзамена</option>
+            <option value="practice">{t('builder.practice')}</option>
+            <option value="exam">{t('builder.exam')}</option>
           </select>
         </label>
       </div>
       <label className="field">
-        <span><input type="checkbox" checked={randomizeAnswers} onChange={(e) => setRandomizeAnswers(e.target.checked)} /> Перемешать варианты</span>
+        <span><input type="checkbox" checked={randomizeAnswers} onChange={(e) => setRandomizeAnswers(e.target.checked)} /> {t('builder.shuffle')}</span>
       </label>
       {error && <p className="err">{error}</p>}
-      <button className="btn lg" type="button" onClick={start}>Начать тест</button>
+      <button className="btn lg" type="button" onClick={start}>{t('builder.start')}</button>
     </div>
   );
 }

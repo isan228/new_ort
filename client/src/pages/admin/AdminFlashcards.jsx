@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react';
 import { adminApi } from '../../api/client';
+import { useLang } from '../../context/LangContext';
 
 export default function AdminFlashcards() {
+  const { t } = useLang();
   const [cards, setCards] = useState([]);
   const [msg, setMsg] = useState('');
   useEffect(() => { adminApi.flashcards().then((d) => setCards(d.flashcards || [])); }, []);
@@ -22,7 +24,7 @@ export default function AdminFlashcards() {
 
   return (
     <div>
-      <h1>Флеш-карты</h1>
+      <h1>{t('nav.flashcards')}</h1>
       {msg && <p className="ok">{msg}</p>}
       <div className="row">
         <button className="btn ghost" type="button" onClick={upload}>TXT flashcards</button>

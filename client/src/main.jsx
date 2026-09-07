@@ -5,6 +5,7 @@ import App from './App';
 import { AuthProvider } from './context/AuthContext';
 import { BankProvider } from './context/BankContext';
 import { ThemeProvider } from './context/ThemeContext';
+import { LangProvider } from './context/LangContext';
 import './index.css';
 
 ReactDOM.createRoot(document.getElementById('root')).render(
@@ -12,9 +13,11 @@ ReactDOM.createRoot(document.getElementById('root')).render(
     <BrowserRouter>
       <ThemeProvider>
         <AuthProvider>
-          <BankProvider>
-            <App />
-          </BankProvider>
+          <LangProvider>
+            <BankProvider>
+              <App />
+            </BankProvider>
+          </LangProvider>
         </AuthProvider>
       </ThemeProvider>
     </BrowserRouter>
