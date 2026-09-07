@@ -6,7 +6,7 @@ import { PublicShell } from '../components/Shells';
 export default function Register() {
   const { register } = useAuth();
   const navigate = useNavigate();
-  const [form, setForm] = useState({ name: '', email: '', password: '', grade: 11, language: 'ru' });
+  const [form, setForm] = useState({ name: '', login: '', password: '', grade: 11, language: 'ru' });
   const [error, setError] = useState('');
 
   async function onSubmit(e) {
@@ -25,11 +25,11 @@ export default function Register() {
       <div className="page" style={{ maxWidth: 440 }}>
         <div className="card">
           <h1>Регистрация</h1>
-          <p className="muted">Начни подготовку сегодня — бесплатный доступ к базовым тестам.</p>
+          <p className="muted">Логин и пароль — ими входишь в кабинет.</p>
           <form onSubmit={onSubmit}>
             <label className="field"><span>Имя</span><input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required /></label>
-            <label className="field"><span>Email</span><input value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} type="email" required /></label>
-            <label className="field"><span>Пароль</span><input value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} type="password" required /></label>
+            <label className="field"><span>Логин</span><input value={form.login} onChange={(e) => setForm({ ...form, login: e.target.value })} autoComplete="username" required /></label>
+            <label className="field"><span>Пароль</span><input value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} type="password" autoComplete="new-password" required /></label>
             <label className="field">
               <span>Класс</span>
               <select value={form.grade} onChange={(e) => setForm({ ...form, grade: Number(e.target.value) })}>

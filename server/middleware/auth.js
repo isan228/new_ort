@@ -47,6 +47,7 @@ function publicUser(user) {
   return {
     id: user.id,
     name: user.name,
+    login: user.login,
     email: user.email,
     phone: user.phone,
     role: user.role,

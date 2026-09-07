@@ -43,31 +43,56 @@ async function upsertQuestions(testId, parsed) {
 }
 
 async function seedDemoContent() {
+  const { normalizeLogin } = require('./userLogin');
+  const adminLogin = normalizeLogin(process.env.ADMIN_LOGIN || 'admin');
   const adminEmail = process.env.ADMIN_EMAIL || 'admin@ort.kg';
   const adminPass = process.env.ADMIN_PASSWORD || 'admin123';
-  const existingAdmin = await User.findOne({ where: { email: adminEmail } });
+  let existingAdmin = await User.findOne({
+    where: { role: 'admin' },
+  });
   if (!existingAdmin) {
-    await User.create({
+    existingAdmin = await User.create({
       name: 'Админ ОРТ',
+      login: adminLogin,
       email: adminEmail,
       passwordHash: await bcrypt.hash(adminPass, 10),
       role: 'admin',
     });
+  } else if (!existingAdmin.login) {
+    existingAdmin.login = adminLogin;
+    await existingAdmin.save();
   }
 
+  const demoLogin = 'demo';
   const demoEmail = 'demo@ort.kg';
-  let demo = await User.findOne({ where: { email: demoEmail } });
+  let demo = await User.findOne({ where: { login: demoLogin } })
+    || await User.findOne({ where: { email: demoEmail } });
   if (!demo) {
     const end = new Date();
     end.setMonth(end.getMonth() + 3);
     demo = await User.create({
       name: 'Демо ученик',
+      login: demoLogin,
       email: demoEmail,
       passwordHash: await bcrypt.hash('demo123', 10),
       role: 'student',
       grade: 11,
       subscriptionEndDate: end,
     });
+  } else if (!demo.login) {
+    demo.login = demoLogin;
+    await demo.save();
+  }
+
+  const all = await User.findAll();
+  const taken = new Set(all.map((row) => row.login).filter(Boolean));
+  for (const row of all) {
+    if (row.login) continue;
+    let candidate = normalizeLogin(row.email.split('@')[0]) || `user${row.id}`;
+    if (taken.has(candidate)) candidate = `user${row.id}`;
+    row.login = candidate;
+    taken.add(candidate);
+    await row.save();
   }
 
   if (await Subject.count() > 0) return;

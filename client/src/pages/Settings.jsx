@@ -14,7 +14,7 @@ export default function Settings() {
       <h1>Настройки</h1>
       <div className="card">
         <label className="field"><span>Имя</span><input value={name} onChange={(e) => setName(e.target.value)} /></label>
-        <label className="field"><span>Email</span><input value={user?.email || ''} disabled /></label>
+        <label className="field"><span>Логин</span><input value={user?.login || ''} disabled /></label>
         <label className="field"><span>Пароль</span><input type="password" placeholder="Новый пароль" /></label>
         <label className="field">
           <span>Язык</span>

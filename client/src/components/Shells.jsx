@@ -24,6 +24,14 @@ const BOTTOM = [
   ['/app/profile', 'Профиль'],
 ];
 
+export function BrandLogo({ to = '/', className = '' }) {
+  return (
+    <Link to={to} className={`logo ${className}`.trim()}>
+      <img src="/logo.png" alt="ORT.KG" className="logo-img" />
+    </Link>
+  );
+}
+
 export function AppShell({ children }) {
   const { user, logout } = useAuth();
   const { toggle, theme } = useTheme();
@@ -33,15 +41,12 @@ export function AppShell({ children }) {
   return (
     <div className="app-shell">
       <aside className="sidebar">
-        <Link to="/app" className="logo" style={{ margin: '4px 10px 18px' }}>
-          <span className="logo-mark">ORT</span> ORT.KG
-        </Link>
+        <BrandLogo to="/app" />
         {SIDE.map(([to, label]) => (
           <NavLink key={to} to={to} end={to === '/app'} className={({ isActive }) => `side-link ${isActive ? 'active' : ''}`}>
             {label}
           </NavLink>
         ))}
-        {user?.role === 'admin' && <NavLink to="/admin" className="side-link">Админка</NavLink>}
       </aside>
       <div className="app-main">
         <div className="app-top">
@@ -76,7 +81,7 @@ export function PublicShell({ children }) {
   return (
     <>
       <header className="public-header">
-        <Link to="/" className="logo"><span className="logo-mark">ORT</span> ORT.KG</Link>
+        <BrandLogo to="/" />
         <nav className="nav-links">
           <NavLink to="/">Главная</NavLink>
           <a href="/#programma">Программа</a>
@@ -102,19 +107,17 @@ export function PublicShell({ children }) {
 export function AdminShell({ children }) {
   const { logout } = useAuth();
   const navigate = useNavigate();
+  const root = '/админ';
   return (
     <div className="app-shell">
       <aside className="sidebar">
-        <Link to="/admin" className="logo" style={{ margin: '4px 10px 18px' }}>
-          <span className="logo-mark">A</span> Админ
-        </Link>
-        <NavLink to="/admin" end className={({ isActive }) => `side-link ${isActive ? 'active' : ''}`}>Dashboard</NavLink>
-        <NavLink to="/admin/users" className={({ isActive }) => `side-link ${isActive ? 'active' : ''}`}>Пользователи</NavLink>
-        <NavLink to="/admin/content" className={({ isActive }) => `side-link ${isActive ? 'active' : ''}`}>Тесты и вопросы</NavLink>
-        <NavLink to="/admin/flashcards" className={({ isActive }) => `side-link ${isActive ? 'active' : ''}`}>Флеш-карты</NavLink>
-        <NavLink to="/admin/plans" className={({ isActive }) => `side-link ${isActive ? 'active' : ''}`}>Подписки</NavLink>
-        <NavLink to="/app" className="side-link">К кабинету</NavLink>
-        <button type="button" className="side-link" style={{ width: '100%', background: 'none', border: 0, cursor: 'pointer' }} onClick={() => { logout(); navigate('/'); }}>Выйти</button>
+        <BrandLogo to={root} />
+        <NavLink to={root} end className={({ isActive }) => `side-link ${isActive ? 'active' : ''}`}>Dashboard</NavLink>
+        <NavLink to={`${root}/users`} className={({ isActive }) => `side-link ${isActive ? 'active' : ''}`}>Пользователи</NavLink>
+        <NavLink to={`${root}/content`} className={({ isActive }) => `side-link ${isActive ? 'active' : ''}`}>Тесты и вопросы</NavLink>
+        <NavLink to={`${root}/flashcards`} className={({ isActive }) => `side-link ${isActive ? 'active' : ''}`}>Флеш-карты</NavLink>
+        <NavLink to={`${root}/plans`} className={({ isActive }) => `side-link ${isActive ? 'active' : ''}`}>Подписки</NavLink>
+        <button type="button" className="side-link" style={{ width: '100%', background: 'none', border: 0, cursor: 'pointer' }} onClick={() => { logout(); navigate(root); }}>Выйти</button>
       </aside>
       <div className="app-main">
         <div className="admin-top"><b>ORT.KG · управление</b></div>

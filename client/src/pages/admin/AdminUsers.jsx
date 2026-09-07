@@ -8,12 +8,12 @@ export default function AdminUsers() {
     <div>
       <h1>Пользователи</h1>
       <table className="table">
-        <thead><tr><th>Имя</th><th>Email</th><th>Подписка</th><th></th></tr></thead>
+        <thead><tr><th>Имя</th><th>Логин</th><th>Подписка</th><th></th></tr></thead>
         <tbody>
           {users.map((u) => (
             <tr key={u.id}>
               <td>{u.name}</td>
-              <td>{u.email}</td>
+              <td>{u.login || '—'}</td>
               <td>{u.subscriptionEndDate ? new Date(u.subscriptionEndDate).toLocaleDateString('ru-KG') : 'нет'}</td>
               <td>
                 <button className="btn sm ghost" type="button" onClick={async () => {

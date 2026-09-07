@@ -6,7 +6,7 @@ import { PublicShell } from '../components/Shells';
 export default function Login() {
   const { login } = useAuth();
   const navigate = useNavigate();
-  const [email, setEmail] = useState('demo@ort.kg');
+  const [ident, setIdent] = useState('demo');
   const [password, setPassword] = useState('demo123');
   const [error, setError] = useState('');
 
@@ -14,8 +14,8 @@ export default function Login() {
     e.preventDefault();
     setError('');
     try {
-      const user = await login({ email, password });
-      navigate(user.role === 'admin' ? '/admin' : '/app');
+      await login({ login: ident, password });
+      navigate('/app');
     } catch (err) {
       setError(err.message);
     }
@@ -26,10 +26,10 @@ export default function Login() {
       <div className="page" style={{ maxWidth: 440 }}>
         <div className="card">
           <h1>Вход</h1>
-          <p className="muted">Демо: demo@ort.kg / demo123</p>
+          <p className="muted">Демо ученик: demo / demo123</p>
           <form onSubmit={onSubmit}>
-            <label className="field"><span>Email</span><input value={email} onChange={(e) => setEmail(e.target.value)} type="email" required /></label>
-            <label className="field"><span>Пароль</span><input value={password} onChange={(e) => setPassword(e.target.value)} type="password" required /></label>
+            <label className="field"><span>Логин</span><input value={ident} onChange={(e) => setIdent(e.target.value)} autoComplete="username" required /></label>
+            <label className="field"><span>Пароль</span><input value={password} onChange={(e) => setPassword(e.target.value)} type="password" autoComplete="current-password" required /></label>
             {error && <p className="err">{error}</p>}
             <button className="btn lg" type="submit" style={{ width: '100%' }}>Войти</button>
           </form>

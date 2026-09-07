@@ -28,6 +28,12 @@ export function AuthProvider({ children }) {
       setUser(data.user);
       return data.user;
     },
+    async adminLogin(payload) {
+      const data = await authApi.adminLogin(payload);
+      setToken(data.token);
+      setUser(data.user);
+      return data.user;
+    },
     async register(payload) {
       const data = await authApi.register(payload);
       setToken(data.token);

@@ -81,6 +81,7 @@ export default function Landing() {
       <div className="page page-wide">
         <section className="hero">
           <Reveal>
+            <img src="/logo.png" alt="ORT.KG — твой путь к высоким баллам ОРТ" className="logo-hero" />
             <p className="badge brand">ОРТ 2026 · Кыргызстан</p>
             <h1 className="hero-title">Готовься к ОРТ <em>системно.</em> Каждый день — ближе к баллу.</h1>
             <p className="muted" style={{ fontSize: 18, maxWidth: 540 }}>
@@ -267,7 +268,10 @@ export default function Landing() {
 
         <footer className="site-footer">
           <div className="row" style={{ justifyContent: 'space-between' }}>
-            <span>ORT.KG · подготовка к Общереспубликанскому тестированию</span>
+            <span className="row">
+              <img src="/logo.png" alt="" className="logo-img" style={{ height: 40 }} />
+              <span>Подготовка к Общереспубликанскому тестированию</span>
+            </span>
             <span>Не является сайтом ЦООМО</span>
           </div>
         </footer>

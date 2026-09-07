@@ -1,4 +1,4 @@
-import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
+import { Navigate, Outlet, Route, Routes, useLocation } from 'react-router-dom';
 import { useAuth } from './context/AuthContext';
 import { AppShell, AdminShell } from './components/Shells';
 import Landing from './pages/Landing';
@@ -20,18 +20,25 @@ import Subscriptions, { PricingPublic } from './pages/Subscriptions';
 import Profile from './pages/Profile';
 import Settings from './pages/Settings';
 import History from './pages/History';
+import AdminLogin from './pages/admin/AdminLogin';
 import AdminHome from './pages/admin/AdminHome';
 import AdminUsers from './pages/admin/AdminUsers';
 import AdminContent from './pages/admin/AdminContent';
 import AdminFlashcards from './pages/admin/AdminFlashcards';
 import AdminPlans from './pages/admin/AdminPlans';
 
-function Private({ children, adminOnly }) {
+export const ADMIN_PATH = '/админ';
+
+function homePath(user) {
+  return user?.role === 'admin' ? ADMIN_PATH : '/app';
+}
+
+function Private({ children }) {
   const { user, ready } = useAuth();
   const location = useLocation();
   if (!ready) return <p className="muted">Загрузка…</p>;
   if (!user) return <Navigate to="/login" replace state={{ from: location }} />;
-  if (adminOnly && user.role !== 'admin') return <Navigate to="/app" replace />;
+  if (user.role === 'admin') return <Navigate to={ADMIN_PATH} replace />;
   return children;
 }
 
@@ -39,8 +46,32 @@ function AppLayout({ children }) {
   return <Private><AppShell>{children}</AppShell></Private>;
 }
 
-function AdminLayout({ children }) {
-  return <Private adminOnly><AdminShell>{children}</AdminShell></Private>;
+function AdminGate() {
+  const { user, ready } = useAuth();
+  if (!ready) return <p className="muted">Загрузка…</p>;
+  if (user?.role === 'admin') {
+    return <AdminShell><Outlet /></AdminShell>;
+  }
+  return <AdminLogin />;
+}
+
+function LoggedInRedirect({ children }) {
+  const { user, ready } = useAuth();
+  if (!ready) return <p className="muted">Загрузка…</p>;
+  if (user) return <Navigate to={homePath(user)} replace />;
+  return children;
+}
+
+function adminPages() {
+  return (
+    <>
+      <Route index element={<AdminHome />} />
+      <Route path="users" element={<AdminUsers />} />
+      <Route path="content" element={<AdminContent />} />
+      <Route path="flashcards" element={<AdminFlashcards />} />
+      <Route path="plans" element={<AdminPlans />} />
+    </>
+  );
 }
 
 export default function App() {
@@ -48,9 +79,12 @@ export default function App() {
 
   return (
     <Routes>
-      <Route path="/" element={ready && user ? <Navigate to="/app" replace /> : <Landing />} />
-      <Route path="/login" element={user ? <Navigate to="/app" replace /> : <Login />} />
-      <Route path="/register" element={user ? <Navigate to="/app" replace /> : <Register />} />
+      <Route
+        path="/"
+        element={ready && user ? <Navigate to={homePath(user)} replace /> : <Landing />}
+      />
+      <Route path="/login" element={<LoggedInRedirect><Login /></LoggedInRedirect>} />
+      <Route path="/register" element={<LoggedInRedirect><Register /></LoggedInRedirect>} />
       <Route path="/pricing" element={<PricingPublic />} />
 
       <Route path="/app" element={<AppLayout><Home /></AppLayout>} />
@@ -70,11 +104,8 @@ export default function App() {
       <Route path="/app/settings" element={<AppLayout><Settings /></AppLayout>} />
       <Route path="/app/history" element={<AppLayout><History /></AppLayout>} />
 
-      <Route path="/admin" element={<AdminLayout><AdminHome /></AdminLayout>} />
-      <Route path="/admin/users" element={<AdminLayout><AdminUsers /></AdminLayout>} />
-      <Route path="/admin/content" element={<AdminLayout><AdminContent /></AdminLayout>} />
-      <Route path="/admin/flashcards" element={<AdminLayout><AdminFlashcards /></AdminLayout>} />
-      <Route path="/admin/plans" element={<AdminLayout><AdminPlans /></AdminLayout>} />
+      <Route path={ADMIN_PATH} element={<AdminGate />}>{adminPages()}</Route>
+      <Route path="/admin" element={<AdminGate />}>{adminPages()}</Route>
 
       <Route path="/ort" element={<Navigate to="/app/tests" replace />} />
       <Route path="/ort-home" element={<Navigate to="/app/tests" replace />} />
