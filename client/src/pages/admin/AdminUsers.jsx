@@ -7,6 +7,7 @@ export default function AdminUsers() {
   return (
     <div>
       <h1>Пользователи</h1>
+      <div className="table-scroll">
       <table className="table">
         <thead><tr><th>Имя</th><th>Логин</th><th>Подписка</th><th></th></tr></thead>
         <tbody>
@@ -25,6 +26,7 @@ export default function AdminUsers() {
           ))}
         </tbody>
       </table>
+      </div>
     </div>
   );
 }

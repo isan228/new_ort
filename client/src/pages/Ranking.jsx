@@ -19,6 +19,7 @@ export default function Ranking() {
           <button key={id} type="button" className={tab === id ? 'on' : ''} onClick={() => setTab(id)}>{label}</button>
         ))}
       </div>
+      <div className="table-scroll">
       <table className="table">
         <thead><tr><th>#</th><th>Ученик</th><th>Баллы</th><th>Прогресс</th><th>Streak</th></tr></thead>
         <tbody>
@@ -33,6 +34,7 @@ export default function Ranking() {
           ))}
         </tbody>
       </table>
+      </div>
     </div>
   );
 }

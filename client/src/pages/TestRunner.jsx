@@ -86,7 +86,7 @@ export default function TestRunner() {
         ))}
       </div>
       {!examMode && picked[q.id] && <p className="muted">Ответ записан. В тренировке разбор откроется после сдачи — без спойлера в условии.</p>}
-      <div className="row" style={{ marginBottom: 16 }}>
+      <div className="row test-actions" style={{ marginBottom: 16 }}>
         <button className="btn ghost" type="button" disabled={index === 0} onClick={() => setIndex(index - 1)}>Назад</button>
         <button className="btn ghost" type="button" onClick={skip}>Пропустить</button>
         <button className="btn purple" type="button" onClick={() => setFlagged((f) => ({ ...f, [q.id]: !f[q.id] }))}>

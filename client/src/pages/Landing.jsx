@@ -88,7 +88,7 @@ export default function Landing() {
               Банки вопросов, конструктор теста, флеш-карты с интервалами и разбор ошибок.
               Не стопка PDF, а кабинет, в который возвращаешься каждый день.
             </p>
-            <div className="row" style={{ marginTop: 20 }}>
+            <div className="row hero-cta">
               <Link className="btn lg" to="/register">Начать подготовку</Link>
               <Link className="btn ghost lg" to="/pricing">Смотреть тарифы</Link>
             </div>
@@ -109,7 +109,7 @@ export default function Landing() {
             </div>
             <div className="progress" style={{ margin: '14px 0' }}><i style={{ width: '75%' }} /></div>
             <p className="muted" style={{ fontSize: 13, marginBottom: 10 }}>Дальше: аналогии · 10 вопросов</p>
-            <div className="grid-3">
+            <div className="stats-compact">
               <div className="card stat" style={{ boxShadow: 'none' }}><b>12</b><span className="muted">дней подряд</span></div>
               <div className="card stat" style={{ boxShadow: 'none' }}><b>1 284</b><span className="muted">вопросов</span></div>
               <div className="card stat" style={{ boxShadow: 'none' }}><b>81%</b><span className="muted">точность</span></div>
@@ -267,7 +267,7 @@ export default function Landing() {
         </div>
 
         <footer className="site-footer">
-          <div className="row" style={{ justifyContent: 'space-between' }}>
+          <div className="row site-footer-inner">
             <span className="row">
               <img src="/logo.png" alt="" className="logo-img" style={{ height: 40 }} />
               <span>Подготовка к Общереспубликанскому тестированию</span>

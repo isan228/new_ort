@@ -71,7 +71,7 @@ export default function Flashcards() {
         {!show ? (
           <button className="btn lg" style={{ width: '100%', marginTop: 16 }} type="button" onClick={() => setShow(true)}>Показать ответ</button>
         ) : (
-          <div className="grid-4" style={{ marginTop: 16 }}>
+          <div className="rate-grid" style={{ marginTop: 16 }}>
             <button className="btn bad" type="button" onClick={() => rate('again')}>Снова</button>
             <button className="btn warn" type="button" onClick={() => rate('hard')}>Сложно</button>
             <button className="btn ghost" type="button" onClick={() => rate('good')}>Хорошо</button>
