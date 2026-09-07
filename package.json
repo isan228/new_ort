@@ -1,0 +1,17 @@
+{
+  "name": "ort-2026",
+  "private": true,
+  "description": "Подготовка к ОРТ Кыргызстана — банки вопросов, конструктор тестов, flashcards",
+  "scripts": {
+    "install:all": "npm install --prefix server && npm install --prefix client",
+    "dev": "concurrently -n server,client -c blue,magenta \"npm run dev --prefix server\" \"npm run dev --prefix client\"",
+    "server": "npm run dev --prefix server",
+    "client": "npm run dev --prefix client",
+    "build": "npm run build --prefix client",
+    "start": "npm start --prefix server",
+    "push": "node scripts/push.js"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  }
+}

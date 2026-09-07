@@ -1,0 +1,10 @@
+node_modules/
+dist/
+.env
+uploads/
+*.log
+.DS_Store
+Thumbs.db
+client/dist/
+server/uploads/*
+!server/uploads/.gitkeep
