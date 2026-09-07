@@ -33,8 +33,7 @@ export default function Tests() {
     ? [...(data.main || []), ...(data.state_lang || []), ...(data.subject || [])]
     : (data[cat] || []);
 
-  function open(subject) {
-    const test = (subject.Tests || subject.tests || [])[0];
+  function open(subject, test) {
     setBank({
       subjectId: subject.id,
       testId: test?.id || null,
@@ -63,7 +62,13 @@ export default function Tests() {
               <h3>{subject.name}</h3>
               <p className="muted">{subject.description}</p>
               <p className="muted">{tests.length ? t('tests.ready') : t('tests.emptyBank')}</p>
-              <button className="btn" type="button" onClick={() => open(subject)} disabled={!tests.length}>{t('tests.start')}</button>
+              <div className="row" style={{ flexWrap: 'wrap' }}>
+                {tests.map((test) => (
+                  <button key={test.id} className="btn" type="button" onClick={() => open(subject, test)}>
+                    {test.name || t('tests.start')}
+                  </button>
+                ))}
+              </div>
             </div>
           );
         })}

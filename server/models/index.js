@@ -16,6 +16,9 @@ const { Payment } = require('./Payment');
 Subject.hasMany(Test, { foreignKey: 'subjectId' });
 Test.belongsTo(Subject, { foreignKey: 'subjectId' });
 
+Subject.hasMany(QuestionTag, { foreignKey: 'subjectId' });
+QuestionTag.belongsTo(Subject, { foreignKey: 'subjectId' });
+
 Test.hasMany(Question, { foreignKey: 'testId' });
 Question.belongsTo(Test, { foreignKey: 'testId' });
 

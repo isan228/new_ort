@@ -132,15 +132,18 @@ router.put('/ort-subscription-plans', async (req, res) => {
 });
 
 router.get('/question-tags', async (req, res) => {
-  const tags = await QuestionTag.findAll({ order: [['kind', 'ASC'], ['name', 'ASC']] });
+  const where = {};
+  if (req.query.subjectId) where.subjectId = req.query.subjectId;
+  const tags = await QuestionTag.findAll({ where, order: [['name', 'ASC']] });
   res.json({ tags });
 });
 
 router.post('/question-tags', async (req, res) => {
   const name = normalizeTagName(req.body.name);
-  const kind = req.body.kind === 'skill' ? 'skill' : 'topic';
   if (!name) return res.status(400).json({ error: 'Название обязательно' });
-  const tag = await findOrCreateTag(name, kind);
+  const subjectId = req.body.subjectId ? Number(req.body.subjectId) : null;
+  if (!subjectId) return res.status(400).json({ error: 'Укажите предмет' });
+  const tag = await findOrCreateTag(name, req.body.kind === 'skill' ? 'skill' : 'topic', subjectId);
   res.json({ tag });
 });
 
@@ -148,9 +151,11 @@ router.put('/question-tags/:id', async (req, res) => {
   const tag = await QuestionTag.findByPk(req.params.id);
   if (!tag) return res.status(404).json({ error: 'Тег не найден' });
   const name = normalizeTagName(req.body.name || tag.name);
+  const subjectId = tag.subjectId;
+  const slug = subjectId ? `${slugify(name)}-${subjectId}` : slugify(name);
   await tag.update({
     name,
-    slug: slugify(name),
+    slug,
     kind: req.body.kind || tag.kind,
     isActive: req.body.isActive !== false,
   });
@@ -233,21 +238,28 @@ router.get('/subjects', async (req, res) => {
   if (req.query.trackGroup) where.trackGroup = req.query.trackGroup;
   const subjects = await Subject.findAll({
     where,
-    include: [{ model: Test, attributes: ['id'] }],
+    include: [
+      { model: Test, attributes: ['id', 'name', 'sortOrder'], separate: true, order: [['sortOrder', 'ASC'], ['id', 'ASC']] },
+      { model: QuestionTag, attributes: ['id', 'name', 'kind'], separate: true, order: [['name', 'ASC']] },
+    ],
     order: [['sortOrder', 'ASC'], ['id', 'ASC']],
   });
   res.json({
     subjects: subjects.map((row) => {
       const subject = row.toJSON();
-      subject.testCount = (subject.Tests || []).length;
+      subject.sections = subject.Tests || [];
+      subject.tags = subject.QuestionTags || [];
+      subject.testCount = subject.sections.length;
       return subject;
     }),
   });
 });
 
 router.post('/subjects', async (req, res) => {
+  const name = String(req.body.name || '').trim();
+  if (!name) return res.status(400).json({ error: 'Название обязательно' });
   const subject = await Subject.create({
-    name: req.body.name,
+    name,
     description: req.body.description || '',
     trackGroup: req.body.trackGroup || 'main',
     language: req.body.language || 'ru',
@@ -260,7 +272,12 @@ router.post('/subjects', async (req, res) => {
 router.put('/subjects/:id', async (req, res) => {
   const subject = await Subject.findByPk(req.params.id);
   if (!subject) return res.status(404).json({ error: 'Предмет не найден' });
-  await subject.update(req.body);
+  const patch = { ...req.body };
+  if (patch.name != null) {
+    patch.name = String(patch.name).trim();
+    if (!patch.name) return res.status(400).json({ error: 'Название обязательно' });
+  }
+  await subject.update(patch);
   res.json({ subject });
 });
 
@@ -275,6 +292,12 @@ router.delete('/subjects/:id', async (req, res) => {
     await Question.destroy({ where: { testId: test.id } });
   }
   await Test.destroy({ where: { subjectId: req.params.id } });
+  const tags = await QuestionTag.findAll({ where: { subjectId: req.params.id } });
+  for (const tag of tags) {
+    await QuestionTagMap.destroy({ where: { tagId: tag.id } });
+    await FlashcardTagMap.destroy({ where: { tagId: tag.id } });
+  }
+  await QuestionTag.destroy({ where: { subjectId: req.params.id } });
   await Subject.destroy({ where: { id: req.params.id } });
   res.json({ ok: true });
 });
@@ -298,10 +321,14 @@ router.get('/tests', async (req, res) => {
 });
 
 router.post('/tests', async (req, res) => {
+  const name = String(req.body.name || '').trim();
+  const subjectId = Number(req.body.subjectId);
+  if (!name) return res.status(400).json({ error: 'Название обязательно' });
+  if (!subjectId) return res.status(400).json({ error: 'Укажите предмет' });
   const test = await Test.create({
-    name: req.body.name,
+    name,
     description: req.body.description || '',
-    subjectId: req.body.subjectId,
+    subjectId,
     hasExplanations: req.body.hasExplanations !== false,
     isActive: req.body.isActive !== false,
     sortOrder: req.body.sortOrder || 0,
@@ -312,7 +339,12 @@ router.post('/tests', async (req, res) => {
 router.put('/tests/:id', async (req, res) => {
   const test = await Test.findByPk(req.params.id);
   if (!test) return res.status(404).json({ error: 'Тест не найден' });
-  await test.update(req.body);
+  const patch = { ...req.body };
+  if (patch.name != null) {
+    patch.name = String(patch.name).trim();
+    if (!patch.name) return res.status(400).json({ error: 'Название обязательно' });
+  }
+  await test.update(patch);
   res.json({ test });
 });
 
@@ -354,8 +386,9 @@ router.post('/questions', async (req, res) => {
       sortOrder: answer.sortOrder ?? idx + 1,
     });
   }
+  const parentTest = await Test.findByPk(question.testId);
   for (const tag of req.body.tags || []) {
-    const row = await findOrCreateTag(tag.name, tag.kind || 'topic');
+    const row = await findOrCreateTag(tag.name, tag.kind || 'topic', parentTest?.subjectId || null);
     if (row) await QuestionTagMap.create({ questionId: question.id, tagId: row.id });
   }
   const full = await Question.findByPk(question.id, { include: [Answer, QuestionTag] });
@@ -383,8 +416,9 @@ router.put('/questions/:id', async (req, res) => {
   }
   if (Array.isArray(req.body.tags)) {
     await QuestionTagMap.destroy({ where: { questionId: question.id } });
+    const parentTest = await Test.findByPk(question.testId);
     for (const tag of req.body.tags) {
-      const row = await findOrCreateTag(tag.name, tag.kind || 'topic');
+      const row = await findOrCreateTag(tag.name, tag.kind || 'topic', parentTest?.subjectId || null);
       if (row) {
         await QuestionTagMap.findOrCreate({
           where: { questionId: question.id, tagId: row.id },
@@ -428,7 +462,8 @@ router.post('/flashcards', async (req, res) => {
     externalId: req.body.externalId || null,
   });
   if (req.body.topic) {
-    const tag = await findOrCreateTag(req.body.topic, 'topic');
+    const parentTest = card.testId ? await Test.findByPk(card.testId) : null;
+    const tag = await findOrCreateTag(req.body.topic, 'topic', parentTest?.subjectId || null);
     if (tag) await FlashcardTagMap.create({ flashcardId: card.id, tagId: tag.id });
   }
   res.json({ flashcard: card });
@@ -449,7 +484,8 @@ router.put('/flashcards/:id', async (req, res) => {
   if (req.body.topic !== undefined) {
     await FlashcardTagMap.destroy({ where: { flashcardId: card.id } });
     if (req.body.topic) {
-      const tag = await findOrCreateTag(req.body.topic, 'topic');
+      const parentTest = card.testId ? await Test.findByPk(card.testId) : null;
+      const tag = await findOrCreateTag(req.body.topic, 'topic', parentTest?.subjectId || null);
       if (tag) await FlashcardTagMap.create({ flashcardId: card.id, tagId: tag.id });
     }
   }

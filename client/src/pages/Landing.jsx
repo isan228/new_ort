@@ -13,7 +13,7 @@ export default function Landing() {
       <div className="page page-wide">
         <section className="hero">
           <Reveal>
-            <img src="/logo.png" alt="ORT.KG" className="logo-hero" />
+            <img src="/logo-icon.png" alt="ORT.KG" className="logo-hero" />
             <p className="badge brand">{t('land.badge')}</p>
             <h1 className="hero-title">{t('land.h1a')}<em>{t('land.h1em')}</em>{t('land.h1b')}</h1>
             <p className="muted" style={{ fontSize: 18, maxWidth: 540 }}>{t('land.lead')}</p>
@@ -189,7 +189,7 @@ export default function Landing() {
         <footer className="site-footer">
           <div className="row site-footer-inner">
             <span className="row">
-              <img src="/logo.png" alt="" className="logo-img" style={{ height: 40 }} />
+              <img src="/logo-icon.png" alt="" className="logo-img" />
               <span>{t('land.footer')}</span>
             </span>
             <span>{t('land.notOfficial')}</span>

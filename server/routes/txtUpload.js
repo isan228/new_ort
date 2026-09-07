@@ -40,10 +40,10 @@ async function replaceAnswers(questionId, answers) {
   }
 }
 
-async function attachTags(questionId, tags) {
+async function attachTags(questionId, tags, subjectId = null) {
   await QuestionTagMap.destroy({ where: { questionId } });
   for (const tag of tags) {
-    const row = await findOrCreateTag(tag.name, tag.kind);
+    const row = await findOrCreateTag(tag.name, tag.kind, subjectId);
     if (row) {
       await QuestionTagMap.findOrCreate({
         where: { questionId, tagId: row.id },
@@ -53,7 +53,8 @@ async function attachTags(questionId, tags) {
   }
 }
 
-async function upsertQuestions(testId, parsed) {
+async function upsertQuestions(test, parsed) {
+  const testId = test.id;
   let created = 0;
   let updated = 0;
   for (const item of parsed) {
@@ -75,7 +76,7 @@ async function upsertQuestions(testId, parsed) {
       created += 1;
     }
     await replaceAnswers(question.id, item.answers);
-    await attachTags(question.id, item.tags);
+    await attachTags(question.id, item.tags, test.subjectId);
   }
   return { created, updated, total: parsed.length };
 }
@@ -86,7 +87,7 @@ router.post('/upload-txt-explained', fileField, async (req, res) => {
   const raw = readUploaded(req);
   if (!raw) return res.status(400).json({ error: 'Файл не получен. Поле: pdf или file' });
   const parsed = parseExplainedQuestions(raw, { linked: false });
-  const stats = await upsertQuestions(test.id, parsed);
+  const stats = await upsertQuestions(test, parsed);
   res.json(stats);
 });
 
@@ -96,7 +97,7 @@ router.post('/upload-txt-linked', fileField, async (req, res) => {
   const raw = readUploaded(req);
   if (!raw) return res.status(400).json({ error: 'Файл не получен. Поле: pdf или file' });
   const parsed = parseExplainedQuestions(raw, { linked: true });
-  const stats = await upsertQuestions(test.id, parsed);
+  const stats = await upsertQuestions(test, parsed);
   res.json(stats);
 });
 
@@ -132,7 +133,8 @@ router.post('/upload-txt-flashcards', fileField, async (req, res) => {
       created += 1;
     }
     if (card.topic) {
-      const tag = await findOrCreateTag(card.topic, 'topic');
+      const parentTest = testId ? await Test.findByPk(testId) : null;
+      const tag = await findOrCreateTag(card.topic, 'topic', parentTest?.subjectId || null);
       if (tag) {
         await FlashcardTagMap.findOrCreate({
           where: { flashcardId: row.id, tagId: tag.id },
