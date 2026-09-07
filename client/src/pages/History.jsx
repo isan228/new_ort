@@ -13,39 +13,27 @@ export default function History() {
     if (!bank?.testId) return;
     ortApi.history(bank.testId)
       .then((d) => setRows(d.history || []))
-      .catch((err) => {
-        if (isOrtGate(err)) navigate('/subscriptions');
-      });
+      .catch((err) => { if (isOrtGate(err)) navigate('/app/premium'); });
   }, [bank, navigate]);
-
-  if (!bank?.testId) return <p>Выберите банк на <Link to="/ort">главной</Link>.</p>;
 
   return (
     <div>
-      <h1 className="serif">История · {bank.name}</h1>
-      {!rows.length && <p className="muted">Попыток ещё нет.</p>}
+      <h1>История</h1>
+      {!bank?.testId && <p className="muted">Выбери банк в <Link to="/app/tests">тестах</Link>.</p>}
       <table className="table">
-        <thead>
-          <tr>
-            <th>Дата</th>
-            <th>Балл</th>
-            <th>Точность</th>
-            <th>Режим</th>
-            <th>Время</th>
-          </tr>
-        </thead>
+        <thead><tr><th>Дата</th><th>Балл</th><th>Точность</th><th>Режим</th></tr></thead>
         <tbody>
           {rows.map((r) => (
             <tr key={r.id}>
               <td>{new Date(r.createdAt).toLocaleString('ru-KG')}</td>
               <td>{r.score}/{r.total}</td>
               <td>{r.accuracy}%</td>
-              <td>{r.questionMode || 'all'}</td>
-              <td>{r.durationSec ? `${Math.round(r.durationSec / 60)} мин` : '—'}</td>
+              <td>{r.questionMode}</td>
             </tr>
           ))}
         </tbody>
       </table>
+      {!rows.length && <div className="empty">Попыток ещё нет.</div>}
     </div>
   );
 }

@@ -13,8 +13,8 @@ export default function TestBuilder() {
   const [skillIds, setSkillIds] = useState([]);
   const [questionCount, setQuestionCount] = useState(10);
   const [questionMode, setQuestionMode] = useState('all');
+  const [examMode, setExamMode] = useState(false);
   const [randomizeAnswers, setRandomizeAnswers] = useState(true);
-  const [instantFeedbackMode, setInstantFeedbackMode] = useState(false);
   const [error, setError] = useState('');
 
   useEffect(() => {
@@ -25,7 +25,7 @@ export default function TestBuilder() {
         setSkills(data.skills || []);
       })
       .catch((err) => {
-        if (isOrtGate(err)) navigate('/subscriptions');
+        if (isOrtGate(err)) navigate('/app/premium');
         else setError(err.message);
       });
   }, [bank, navigate]);
@@ -44,30 +44,33 @@ export default function TestBuilder() {
         questionCount,
         questionMode,
         randomizeAnswers,
-        instantFeedbackMode,
+        instantFeedbackMode: !examMode,
       });
       sessionStorage.setItem('ortSession', JSON.stringify({
         ...data,
-        instantFeedbackMode,
+        examMode,
+        instantFeedbackMode: !examMode,
         startedAt: Date.now(),
         questionMode,
+        minutes: Math.max(8, questionCount * 1.2),
       }));
-      navigate('/test');
+      navigate('/app/test');
     } catch (err) {
-      if (isOrtGate(err)) navigate('/subscriptions');
+      if (isOrtGate(err)) navigate('/app/premium');
       else setError(err.message);
     }
   }
 
-  if (!bank?.testId) return <p>Выберите банк на <Link to="/ort">главной</Link>.</p>;
+  if (!bank?.testId) {
+    return <p>Выберите банк на странице <Link to="/app/tests">Тесты</Link>.</p>;
+  }
 
   return (
     <div>
-      <h1 className="serif">Конструктор теста</h1>
-      <p className="muted">{bank.name}. Тема и навык пересекаются: если выбраны оба фильтра, вопрос должен попасть в оба.</p>
-
+      <h1>Собрать тест</h1>
+      <p className="muted">{bank.name}. Тема и навык пересекаются. В режиме экзамена ответы не показываются до конца.</p>
       <h3>Темы</h3>
-      <div className="tag-wrap">
+      <div className="row" style={{ marginBottom: 12 }}>
         {topics.map((t) => (
           <button key={t.id} type="button" className={`chip ${topicIds.includes(t.id) ? 'on' : ''}`} onClick={() => toggle(topicIds, setTopicIds, t.id)}>
             {t.name} ({t.count})
@@ -75,23 +78,18 @@ export default function TestBuilder() {
         ))}
         {!topics.length && <span className="muted">Теги появятся после загрузки вопросов</span>}
       </div>
-
       <h3>Тип задания</h3>
-      <div className="tag-wrap">
+      <div className="row" style={{ marginBottom: 16 }}>
         {skills.map((t) => (
           <button key={t.id} type="button" className={`chip ${skillIds.includes(t.id) ? 'on' : ''}`} onClick={() => toggle(skillIds, setSkillIds, t.id)}>
             {t.name} ({t.count})
           </button>
         ))}
       </div>
-
-      <div className="grid-3" style={{ marginTop: 24 }}>
+      <div className="grid-3">
+        <label className="field"><span>Число вопросов</span><input type="number" min={1} max={80} value={questionCount} onChange={(e) => setQuestionCount(Number(e.target.value))} /></label>
         <label className="field">
-          <span>Число вопросов</span>
-          <input type="number" min={1} max={80} value={questionCount} onChange={(e) => setQuestionCount(Number(e.target.value))} />
-        </label>
-        <label className="field">
-          <span>Режим</span>
+          <span>Режим выборки</span>
           <select value={questionMode} onChange={(e) => setQuestionMode(e.target.value)}>
             <option value="all">Все</option>
             <option value="unsolved">Не решённые</option>
@@ -99,21 +97,18 @@ export default function TestBuilder() {
           </select>
         </label>
         <label className="field">
-          <span>Варианты</span>
-          <select value={randomizeAnswers ? '1' : '0'} onChange={(e) => setRandomizeAnswers(e.target.value === '1')}>
-            <option value="1">Перемешать</option>
-            <option value="0">Как в банке</option>
+          <span>Формат</span>
+          <select value={examMode ? 'exam' : 'practice'} onChange={(e) => setExamMode(e.target.value === 'exam')}>
+            <option value="practice">Тренировка</option>
+            <option value="exam">Режим экзамена</option>
           </select>
         </label>
       </div>
       <label className="field">
-        <span>
-          <input type="checkbox" checked={instantFeedbackMode} onChange={(e) => setInstantFeedbackMode(e.target.checked)} />
-          {' '}Сразу показывать верный ответ
-        </span>
+        <span><input type="checkbox" checked={randomizeAnswers} onChange={(e) => setRandomizeAnswers(e.target.checked)} /> Перемешать варианты</span>
       </label>
       {error && <p className="err">{error}</p>}
-      <button className="btn" type="button" onClick={start}>Начать</button>
+      <button className="btn lg" type="button" onClick={start}>Начать тест</button>
     </div>
   );
 }

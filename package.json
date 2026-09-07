@@ -12,7 +12,8 @@
     "push": "node scripts/push.js",
     "setup:db": "node server/scripts/setupDb.js",
     "setup:service": "node scripts/setupService.js",
-    "setup:nginx": "node scripts/setupNginx.js"
+    "setup:nginx": "node scripts/setupNginx.js",
+    "update": "node scripts/update.js"
   },
   "devDependencies": {
     "concurrently": "^9.1.2"

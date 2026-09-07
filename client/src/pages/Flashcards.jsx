@@ -7,28 +7,20 @@ import { buildFrontHtml } from '../lib/linkify';
 
 const PROG_KEY = 'ortFlashcardProgress';
 
-function loadProgress() {
-  try {
-    return JSON.parse(localStorage.getItem(PROG_KEY) || '{}');
-  } catch {
-    return {};
-  }
+function loadCardProgress() {
+  try { return JSON.parse(localStorage.getItem(PROG_KEY) || '{}'); } catch { return {}; }
 }
-
-function saveProgress(data) {
-  localStorage.setItem(PROG_KEY, JSON.stringify(data));
-}
+function saveCardProgress(data) { localStorage.setItem(PROG_KEY, JSON.stringify(data)); }
 
 export default function Flashcards() {
   const { bank } = useBank();
   const navigate = useNavigate();
   const [cards, setCards] = useState([]);
-  const [mode, setMode] = useState('browse');
-  const [topicId, setTopicId] = useState(null);
-  const [session, setSession] = useState([]);
+  const [tab, setTab] = useState('all');
+  const [session, setSession] = useState(null);
   const [idx, setIdx] = useState(0);
-  const [showBack, setShowBack] = useState(false);
-  const [progress, setProgress] = useState(loadProgress);
+  const [show, setShow] = useState(false);
+  const [progress, setProgress] = useState(loadCardProgress);
 
   useEffect(() => {
     const params = {};
@@ -36,132 +28,97 @@ export default function Flashcards() {
     if (bank?.trackGroup) params.trackGroup = bank.trackGroup;
     ortApi.flashcards(params)
       .then((d) => setCards(d.flashcards || []))
-      .catch((err) => {
-        if (isOrtGate(err)) navigate('/subscriptions');
-      });
+      .catch((err) => { if (isOrtGate(err)) navigate('/app/premium'); });
   }, [bank, navigate]);
 
-  const groups = useMemo(() => {
-    const map = new Map();
+  const buckets = useMemo(() => {
+    const b = { new: [], review: [], hard: [], learned: [], fav: [] };
     for (const card of cards) {
-      const tag = (card.tags && card.tags[0]) || { id: 0, name: 'Без темы' };
-      if (!map.has(tag.id)) map.set(tag.id, { tag, cards: [] });
-      map.get(tag.id).cards.push(card);
+      const p = progress[card.id];
+      if (!p) b.new.push(card);
+      else if (p.status === 'again' || p.status === 'hard') b.hard.push(card);
+      else if (p.status === 'easy') b.learned.push(card);
+      else b.review.push(card);
+      if (p?.fav) b.fav.push(card);
     }
-    return [...map.values()];
-  }, [cards]);
+    return b;
+  }, [cards, progress]);
 
-  const visible = topicId == null ? cards : cards.filter((c) => (c.tags || []).some((t) => t.id === topicId));
+  const due = buckets.new.length + buckets.review.length + buckets.hard.length;
+  const list = tab === 'all' ? cards : buckets[tab] || cards;
 
   function rate(status) {
     const card = session[idx];
-    const next = {
-      ...progress,
-      [card.id]: { status, lastUsed: Date.now() },
-    };
+    const next = { ...progress, [card.id]: { status, lastUsed: Date.now() } };
     setProgress(next);
-    saveProgress(next);
-    setShowBack(false);
+    saveCardProgress(next);
+    setShow(false);
     if (idx + 1 < session.length) setIdx(idx + 1);
-    else setMode('study');
+    else setSession(null);
   }
 
-  function startSession(list) {
-    setSession(list);
-    setIdx(0);
-    setShowBack(false);
-    setMode('session');
+  if (session?.[idx]) {
+    const card = session[idx];
+    return (
+      <div style={{ maxWidth: 640, margin: '0 auto' }}>
+        <p className="muted">{idx + 1} / {session.length} · интервальное повторение</p>
+        <div className="flip">
+          <div className={`flip-inner ${show ? 'show' : ''}`}>
+            <div className="flip-face" dangerouslySetInnerHTML={{ __html: buildFrontHtml(card.frontText) }} />
+            <div className="flip-face back">{card.backText}</div>
+          </div>
+        </div>
+        {!show ? (
+          <button className="btn lg" style={{ width: '100%', marginTop: 16 }} type="button" onClick={() => setShow(true)}>Показать ответ</button>
+        ) : (
+          <div className="grid-4" style={{ marginTop: 16 }}>
+            <button className="btn bad" type="button" onClick={() => rate('again')}>Снова</button>
+            <button className="btn warn" type="button" onClick={() => rate('hard')}>Сложно</button>
+            <button className="btn ghost" type="button" onClick={() => rate('good')}>Хорошо</button>
+            <button className="btn ok" type="button" onClick={() => rate('easy')}>Легко</button>
+          </div>
+        )}
+      </div>
+    );
   }
-
-  const studyRows = groups.map((g) => {
-    const stats = { new: 0, learning: 0, review: 0, last: 0 };
-    for (const card of g.cards) {
-      const p = progress[card.id];
-      if (!p) stats.new += 1;
-      else if (p.status === 'again') stats.learning += 1;
-      else stats.review += 1;
-      if (p?.lastUsed) stats.last = Math.max(stats.last, p.lastUsed);
-    }
-    return { ...g, stats };
-  });
 
   return (
     <div>
-      <h1 className="serif">Карточки</h1>
-      {!bank && <p className="muted">Банк не выбран — показаны все доступные карточки. <Link to="/ort">Выбрать банк</Link></p>}
-      <div className="tabs">
-        <button type="button" className={mode === 'browse' ? 'on' : ''} onClick={() => setMode('browse')}>Обзор</button>
-        <button type="button" className={mode === 'study' || mode === 'session' ? 'on' : ''} onClick={() => setMode('study')}>Учёба</button>
+      <h1>Флеш-карты</h1>
+      <p className="muted">Сегодня: {due} карточек. Система сама решает, что повторить — как Anki.</p>
+      <div className="card" style={{ marginBottom: 16 }}>
+        <h3>Повторение сегодня</h3>
+        <b style={{ fontSize: 28 }}>{due} карточек требуют повторения</b>
+        <p className="muted">Новые → Изучение → Повторение → Выучено</p>
+        <div className="progress"><i style={{ width: `${cards.length ? Math.round((buckets.learned.length / cards.length) * 100) : 0}%` }} /></div>
       </div>
-
-      {mode === 'browse' && (
-        <>
-          <div className="tag-wrap" style={{ marginBottom: 16 }}>
-            <button type="button" className={`chip ${topicId == null ? 'on' : ''}`} onClick={() => setTopicId(null)}>Все</button>
-            {groups.map((g) => (
-              <button key={g.tag.id} type="button" className={`chip ${topicId === g.tag.id ? 'on' : ''}`} onClick={() => setTopicId(g.tag.id)}>
-                {g.tag.name} ({g.cards.length})
-              </button>
-            ))}
+      <div className="tabs">
+        {[
+          ['all', 'Все'],
+          ['new', 'Новые'],
+          ['review', 'На повторение'],
+          ['hard', 'Сложные'],
+          ['learned', 'Выученные'],
+          ['fav', 'Избранные'],
+        ].map(([id, label]) => (
+          <button key={id} type="button" className={tab === id ? 'on' : ''} onClick={() => setTab(id)}>{label} ({id === 'all' ? cards.length : (buckets[id] || []).length})</button>
+        ))}
+      </div>
+      {!cards.length && <div className="empty">Пока нет карточек. Загрузи их в админке или выбери банк.</div>}
+      <div className="cards">
+        {list.map((card) => (
+          <div key={card.id} className="card">
+            <div dangerouslySetInnerHTML={{ __html: buildFrontHtml(card.frontText) }} />
+            <p className="muted">{(card.tags || []).map((t) => t.name).join(', ')}</p>
           </div>
-          <div className="bank-list">
-            {visible.map((card) => (
-              <div key={card.id} className="card">
-                <div dangerouslySetInnerHTML={{ __html: buildFrontHtml(card.frontText) }} />
-                <p className="muted" style={{ marginTop: 8 }}>{(card.tags || []).map((t) => t.name).join(', ')}</p>
-              </div>
-            ))}
-          </div>
-          {!!visible.length && <button className="btn" style={{ marginTop: 16 }} type="button" onClick={() => startSession(visible)}>Учить эти карточки</button>}
-        </>
+        ))}
+      </div>
+      {!!list.length && (
+        <button className="btn lg" style={{ marginTop: 16 }} type="button" onClick={() => { setSession(list); setIdx(0); setShow(false); }}>
+          Повторить карточки
+        </button>
       )}
-
-      {mode === 'study' && (
-        <table className="table">
-          <thead>
-            <tr>
-              <th>Колода</th>
-              <th>Новые</th>
-              <th>Учу</th>
-              <th>Повтор</th>
-              <th>Последний раз</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            {studyRows.map((row) => (
-              <tr key={row.tag.id}>
-                <td>{row.tag.name}</td>
-                <td>{row.stats.new}</td>
-                <td>{row.stats.learning}</td>
-                <td>{row.stats.review}</td>
-                <td>{row.stats.last ? new Date(row.stats.last).toLocaleDateString('ru-KG') : '—'}</td>
-                <td><button className="btn" type="button" onClick={() => startSession(row.cards)}>Play</button></td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
-
-      {mode === 'session' && session[idx] && (
-        <div className="card">
-          <p className="muted">{idx + 1} / {session.length}</p>
-          {!showBack ? (
-            <div className="q-text" dangerouslySetInnerHTML={{ __html: buildFrontHtml(session[idx].frontText) }} />
-          ) : (
-            <div className="q-text">{session[idx].backText}</div>
-          )}
-          {!showBack ? (
-            <button className="btn" type="button" onClick={() => setShowBack(true)}>Показать ответ</button>
-          ) : (
-            <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
-              <button className="btn danger" type="button" onClick={() => rate('again')}>Again</button>
-              <button className="btn ghost" type="button" onClick={() => rate('good')}>Good</button>
-              <button className="btn gold" type="button" onClick={() => rate('easy')}>Easy</button>
-            </div>
-          )}
-        </div>
-      )}
+      {!bank && <p className="muted" style={{ marginTop: 12 }}>Банк не выбран — показаны все карточки. <Link to="/app/tests">Выбрать тест</Link></p>}
     </div>
   );
 }

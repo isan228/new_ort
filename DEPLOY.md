@@ -218,26 +218,23 @@ certbot --nginx -d твой-домен.kg -d www.твой-домен.kg
 
 ## 8. Обновление после правок
 
-На своём компьютере:
+С компьютера:
 
 ```bash
 npm run push -- "что изменилось"
 ```
 
-На сервере репозиторий обычно принадлежит `www-data`, а ты заходишь как `root`. Из‑за этого Git пишет `dubious ownership`. Не вызывай `git config --global`. Делай так:
+На сервере одной командой:
 
 ```bash
 cd /var/www/ort-2026
-git -c safe.directory=/var/www/ort-2026 pull origin main
-chown -R www-data:www-data /var/www/ort-2026
-chmod 640 /var/www/ort-2026/.env
-npm install
-npm run install:all
-npm run build
-systemctl restart ort-2026
+sudo npm run update
 ```
 
-`-c safe.directory=...` действует только на эту команду, глобальный git config не меняется. `.env` не затирай.
+Скрипт сам делает `git pull` (без `git config --global`), ставит зависимости, при необходимости обновляет БД, собирает React, выставляет права `www-data` и перезапускает `ort-2026`. Файл `.env` не трогает.
+
+Без pull (если код уже залит вручную): `sudo npm run update -- --skip-pull`  
+Без `setup:db`: `sudo npm run update -- --skip-db`
 
 ## 9. Файлы загрузок
 
