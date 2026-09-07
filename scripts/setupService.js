@@ -54,8 +54,8 @@ Type=simple
 User=www-data
 Group=www-data
 WorkingDirectory=${workDir}
-Environment=NODE_ENV=production
 EnvironmentFile=${envFile}
+Environment=NODE_ENV=production
 ExecStart=${nodePath} ${serverJs}
 Restart=on-failure
 RestartSec=5

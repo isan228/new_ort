@@ -8,8 +8,8 @@ Type=simple
 User=www-data
 Group=www-data
 WorkingDirectory=/var/www/ort-2026/server
-Environment=NODE_ENV=production
 EnvironmentFile=/var/www/ort-2026/.env
+Environment=NODE_ENV=production
 ExecStart=/usr/bin/node /var/www/ort-2026/server/server.js
 Restart=on-failure
 RestartSec=5

@@ -140,8 +140,8 @@ Type=simple
 User=www-data
 Group=www-data
 WorkingDirectory=/var/www/ort-2026/server
-Environment=NODE_ENV=production
 EnvironmentFile=/var/www/ort-2026/.env
+Environment=NODE_ENV=production
 ExecStart=/usr/bin/node /var/www/ort-2026/server/server.js
 Restart=on-failure
 RestartSec=5
@@ -151,7 +151,7 @@ WantedBy=multi-user.target
 EOF
 
 sudo chown -R www-data:www-data /var/www/ort-2026
-sudo chmod 640 /var/www/ort-2026/.env
+sudo chown -R www-data:www-data /var/www/ort-2026
 sudo systemctl daemon-reload
 sudo systemctl enable --now ort-2026
 sudo systemctl status ort-2026
@@ -161,14 +161,34 @@ sudo systemctl status ort-2026
 
 ## 7. nginx + HTTPS
 
-`sudo apt-get install -y nginx certbot python3-certbot-nginx`
+Сейчас по домену открывается «Welcome to nginx», пока включён сайт `default`. Его надо снять и поставить прокси на приложение.
 
-`sudo nano /etc/nginx/sites-available/ort-2026`
-
+```bash
+sudo apt-get install -y nginx
+sudo npm run setup:nginx
+curl -I http://127.0.0.1/
+curl http://127.0.0.1/api/health
 ```
+
+Скрипт пишет `/etc/nginx/sites-available/ort-2026`, удаляет `sites-enabled/default` и делает `listen 80 default_server`, чтобы любой заход на IP/домен шёл в Node на порт 4000.
+
+Домен можно передать явно:
+
+```bash
+sudo DOMAIN=example.kg npm run setup:nginx
+```
+
+или прописать `CLIENT_URL=https://example.kg` в `.env`.
+
+Если скрипта на сервере ещё нет — вставь блок ниже как есть:
+
+```bash
+rm -f /etc/nginx/sites-enabled/default
+tee /etc/nginx/sites-available/ort-2026 >/dev/null <<'EOF'
 server {
-    listen 80;
-    server_name твой-домен.kg www.твой-домен.kg;
+    listen 80 default_server;
+    listen [::]:80 default_server;
+    server_name _;
 
     client_max_body_size 20m;
 
@@ -181,16 +201,20 @@ server {
         proxy_set_header X-Forwarded-Proto $scheme;
     }
 }
+EOF
+ln -sfn /etc/nginx/sites-available/ort-2026 /etc/nginx/sites-enabled/ort-2026
+nginx -t
+systemctl reload nginx
 ```
+
+Приложение должно быть запущено: `systemctl status ort-2026` и `curl http://127.0.0.1:4000/api/health`.
+
+HTTPS:
 
 ```bash
-sudo ln -s /etc/nginx/sites-available/ort-2026 /etc/nginx/sites-enabled/ort-2026
-sudo nginx -t
-sudo systemctl reload nginx
-sudo certbot --nginx -d твой-домен.kg -d www.твой-домен.kg
+apt-get install -y certbot python3-certbot-nginx
+certbot --nginx -d твой-домен.kg -d www.твой-домен.kg
 ```
-
-После этого сайт и `/api/*` идут на один порт 4000. React уже внутри `client/dist`.
 
 ## 8. Обновление после правок
 
@@ -200,18 +224,20 @@ sudo certbot --nginx -d твой-домен.kg -d www.твой-домен.kg
 npm run push -- "что изменилось"
 ```
 
-На сервере:
+На сервере репозиторий обычно принадлежит `www-data`, а ты заходишь как `root`. Из‑за этого Git пишет `dubious ownership`. Не вызывай `git config --global`. Делай так:
 
 ```bash
 cd /var/www/ort-2026
-sudo -u www-data git pull origin main
+git -c safe.directory=/var/www/ort-2026 pull origin main
+chown -R www-data:www-data /var/www/ort-2026
+chmod 640 /var/www/ort-2026/.env
 npm install
 npm run install:all
 npm run build
-sudo systemctl restart ort-2026
+systemctl restart ort-2026
 ```
 
-Если `git pull` ругается на права — `sudo chown -R www-data:www-data /var/www/ort-2026`, `.env` не затирай.
+`-c safe.directory=...` действует только на эту команду, глобальный git config не меняется. `.env` не затирай.
 
 ## 9. Файлы загрузок
 
