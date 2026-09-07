@@ -79,9 +79,8 @@ export function PublicShell({ children }) {
         <Link to="/" className="logo"><span className="logo-mark">ORT</span> ORT.KG</Link>
         <nav className="nav-links">
           <NavLink to="/">Главная</NavLink>
-          <NavLink to="/app/tests">Тесты</NavLink>
-          <NavLink to="/app/flashcards">Флеш-карты</NavLink>
-          <NavLink to="/app/ranking">Рейтинг</NavLink>
+          <a href="/#programma">Программа</a>
+          <a href="/#kak">Как это работает</a>
           <NavLink to="/pricing">Тарифы</NavLink>
         </nav>
         <div className="row">

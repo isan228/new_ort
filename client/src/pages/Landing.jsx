@@ -2,12 +2,73 @@ import { Link } from 'react-router-dom';
 import { PublicShell } from '../components/Shells';
 
 const FEATURES = [
-  { title: 'Тесты', text: 'Тысячи вопросов для подготовки: основной тест, госязык и предметные.' },
-  { title: 'Флеш-карты', text: 'Запоминай сложные темы быстрее — с интервальным повторением.' },
-  { title: 'Аналитика', text: 'Понимай сильные и слабые стороны по темам и типам заданий.' },
-  { title: 'Рейтинг', text: 'Сравнивай свой результат с другими учениками ORT.KG.' },
-  { title: 'Персональный прогресс', text: 'Система показывает, что изучать дальше и где ты теряешь баллы.' },
-  { title: 'Разбор ошибок', text: 'Возвращайся к вопросам, которые решил неправильно, пока не закроешь тему.' },
+  { title: 'Банки вопросов', text: 'Основной тест, государственный язык и предметные: математика, физика, химия, биология, история, английский.' },
+  { title: 'Конструктор теста', text: 'Собери сессию по темам и типу задания: 10, 20 или полный пробник. Тренировка или режим экзамена с таймером.' },
+  { title: 'Флеш-карты', text: 'Формулы, правила, аналогии. Интервалы как в Anki: снова, сложно, хорошо, легко.' },
+  { title: 'Разбор ошибок', text: 'Свой ответ, верный вариант, объяснение. Повторяй слабые темы, пока точность не вырастет.' },
+  { title: 'Аналитика', text: 'Прогноз балла, точность по разделам, календарь активности и ежедневная цель.' },
+  { title: 'Рейтинг и серия', text: 'Видно, где ты среди других учеников. Серия дней не даёт сорваться за неделю до теста.' },
+];
+
+const TRACKS = [
+  {
+    title: 'Основной тест',
+    tag: 'Обязателен всем',
+    text: 'Математика, словесно-логический блок (аналогии и дополнение предложений), чтение и понимание, практическая грамматика родного языка. Это ядро сертификата ОРТ.',
+    items: ['Математика', 'Аналогии', 'Дополнение предложений', 'Чтение', 'Грамматика'],
+  },
+  {
+    title: 'Государственный язык',
+    tag: 'Обязателен с 2024',
+    text: 'Без теста по кыргызскому языку сертификат не выдают. Лексика, грамматика и чтение. На конкурс в вуз этот балл обычно не идёт, но сдать нужно.',
+    items: ['Лексика и грамматика', 'Чтение текстов', '50 вопросов'],
+  },
+  {
+    title: 'Предметные тесты',
+    tag: 'По специальности',
+    text: 'Нужны не всем. Медицина — химия и биология. IT и инженерия — математика и физика. Гуманитарии — история и язык. Сдавай только то, что требует факультет.',
+    items: ['Химия', 'Биология', 'Физика', 'Математика', 'История', 'Английский'],
+  },
+];
+
+const STEPS = [
+  { n: '1', title: 'Выбери банк', text: 'Основной, госязык или предмет. Одна подписка открывает весь раздел, не отдельный предмет.' },
+  { n: '2', title: 'Собери сессию', text: 'Тема × навык, число вопросов, «все / нерешённые / ошибки». Включи экзамен, если хочешь без подсказок.' },
+  { n: '3', title: 'Разбери результат', text: 'Балл, точность, слабые темы. Ошибки уходят в разбор и могут стать карточками.' },
+  { n: '4', title: 'Повтори завтра', text: 'Ежедневная цель, streak и очередь карточек на повторение. Система сама говорит, что учить дальше.' },
+];
+
+const WEAK = [
+  { name: 'Аналогии', v: 61, hint: 'Чаще всего роняют балл: путают отношение «часть–целое» и синоним.' },
+  { name: 'Математика', v: 68, hint: 'Проценты, текстовые задачи и геометрия без чертежа.' },
+  { name: 'Чтение', v: 74, hint: 'Связанные вопросы по одному тексту — нельзя вырывать одно задание.' },
+];
+
+const FAQ = [
+  {
+    q: 'Это официальный тест ЦООМО?',
+    a: 'Нет. ORT.KG — тренажёр для подготовки. Формат близок к ОРТ: варианты ответа, тексты с группой вопросов, тематические банки. Сам экзамен сдаётся через testing.kg.',
+  },
+  {
+    q: 'С чего начать, если до теста мало времени?',
+    a: 'Основной тест каждый день: математика + аналогии. Вечером — 20–30 карточек. Раз в неделю полный пробник в режиме экзамена. Предметные подключай только если они нужны факультету.',
+  },
+  {
+    q: 'Чем тренировка отличается от экзамена?',
+    a: 'В тренировке после сдачи сразу виден разбор. В режиме экзамена правильный ответ скрыт до конца, есть таймер и навигация по вопросам — как на настоящем бланке.',
+  },
+  {
+    q: 'Нужна ли отдельная подписка на химию или физику?',
+    a: 'Нет. Подписка одна на весь ORT.KG: основной, госязык и все предметные банки, плюс карточки и статистика.',
+  },
+  {
+    q: 'Можно ли готовиться с телефона?',
+    a: 'Да. Кабинет адаптивный: нижнее меню, крупные варианты ответа, карточки листаются одним касанием. Удобнее с экрана побольше, но ежедневная серия с телефона нормальна.',
+  },
+  {
+    q: 'Есть ли демо без оплаты?',
+    a: 'Да. Регистрация бесплатная. Часть тестов и карточек доступна сразу. Premium снимает лимиты и открывает полный разбор и аналитику.',
+  },
 ];
 
 export default function Landing() {
@@ -16,14 +77,21 @@ export default function Landing() {
       <div className="page page-wide">
         <section className="hero">
           <div>
-            <p className="badge brand">Платформа подготовки к ОРТ</p>
-            <h1 style={{ fontSize: 44, marginTop: 14 }}>Готовься к ОРТ системно. Повышай свой результат каждый день.</h1>
-            <p className="muted" style={{ fontSize: 18, maxWidth: 520 }}>
-              Тесты, флеш-карты, статистика и персональный план подготовки — всё в одном месте.
+            <p className="badge brand">ОРТ 2026 · Кыргызстан</p>
+            <h1 style={{ fontSize: 42, marginTop: 14 }}>Готовься к ОРТ системно. Повышай результат каждый день.</h1>
+            <p className="muted" style={{ fontSize: 18, maxWidth: 540 }}>
+              Банки вопросов, конструктор теста, флеш-карты с интервалами, разбор ошибок и прогноз балла.
+              Не стопка PDF, а кабинет, в который возвращаешься каждый день.
             </p>
             <div className="row" style={{ marginTop: 20 }}>
               <Link className="btn lg" to="/register">Начать подготовку</Link>
-              <Link className="btn ghost lg" to="/register">Попробовать бесплатно</Link>
+              <Link className="btn ghost lg" to="/pricing">Смотреть тарифы</Link>
+            </div>
+            <div className="row" style={{ marginTop: 18 }}>
+              <span className="badge">Основной тест</span>
+              <span className="badge">Госязык</span>
+              <span className="badge">Предметные</span>
+              <span className="badge">Карточки</span>
             </div>
           </div>
           <div className="mock">
@@ -36,27 +104,160 @@ export default function Landing() {
             </div>
             <div className="progress" style={{ margin: '14px 0' }}><i style={{ width: '78%' }} /></div>
             <div className="grid-3">
-              <div className="card stat" style={{ boxShadow: 'none' }}><b>12</b><span className="muted">дней streak</span></div>
+              <div className="card stat" style={{ boxShadow: 'none' }}><b>12</b><span className="muted">дней подряд</span></div>
               <div className="card stat" style={{ boxShadow: 'none' }}><b>1 284</b><span className="muted">вопросов</span></div>
               <div className="card stat" style={{ boxShadow: 'none' }}><b>81%</b><span className="muted">точность</span></div>
             </div>
-            <div style={{ height: 88, marginTop: 16, borderRadius: 12, background: 'linear-gradient(180deg, var(--brand-soft), transparent)', position: 'relative', overflow: 'hidden' }}>
-              <svg viewBox="0 0 320 88" width="100%" height="88" preserveAspectRatio="none">
-                <polyline fill="none" stroke="var(--brand)" strokeWidth="3" points="0,70 40,62 80,58 120,40 160,48 200,28 240,32 280,18 320,22" />
-              </svg>
+            <p className="muted" style={{ marginTop: 12, fontSize: 13 }}>Аналогии 61% · Математика 68% · Чтение 74% · Грамматика 91%</p>
+          </div>
+        </section>
+
+        <div className="grid-4" style={{ marginTop: 36 }}>
+          <div className="card stat"><b>3</b><span className="muted">трека ОРТ в одном кабинете</span></div>
+          <div className="card stat"><b>2 режима</b><span className="muted">тренировка и экзамен с таймером</span></div>
+          <div className="card stat"><b>Тема × навык</b><span className="muted">фильтр как на банке вопросов</span></div>
+          <div className="card stat"><b>SRS</b><span className="muted">повторение карточек по интервалам</span></div>
+        </div>
+
+        <section className="section" id="programma">
+          <p className="kicker">Программа ОРТ</p>
+          <h2>ОРТ — это не один тест</h2>
+          <p className="lead">
+            В 2026 году обязательны основной тест и государственный язык. Предметные берутся только под выбранную специальность.
+            ORT.KG повторяет эту структуру: три трека, отдельные банки, общая подписка.
+          </p>
+          <div className="cards" style={{ marginTop: 20 }}>
+            {TRACKS.map((t) => (
+              <div key={t.title} className="card">
+                <span className="badge brand">{t.tag}</span>
+                <h3 style={{ marginTop: 10 }}>{t.title}</h3>
+                <p className="muted">{t.text}</p>
+                <div className="row">
+                  {t.items.map((item) => <span key={item} className="badge">{item}</span>)}
+                </div>
+              </div>
+            ))}
+          </div>
+          <p className="muted" style={{ marginTop: 16, fontSize: 14 }}>
+            Ориентир: медицина — химия + биология; IT и инженерия — математика + физика; экономика — чаще профильная математика.
+            Официальная регистрация — на testing.kg, здесь — подготовка.
+          </p>
+        </section>
+
+        <section className="section">
+          <p className="kicker">Платформа</p>
+          <h2>Что внутри кабинета</h2>
+          <p className="lead">Каждый экран отвечает на вопрос: что делать дальше и где теряются баллы.</p>
+          <div className="cards" style={{ marginTop: 20 }}>
+            {FEATURES.map((f) => (
+              <div key={f.title} className="card">
+                <h3>{f.title}</h3>
+                <p className="muted">{f.text}</p>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <section className="section" id="kak">
+          <p className="kicker">Сценарий</p>
+          <h2>Как готовиться на ORT.KG</h2>
+          <div className="grid-2" style={{ marginTop: 20 }}>
+            <div className="card">
+              {STEPS.map((s) => (
+                <div key={s.n} className="step" style={{ marginBottom: 18 }}>
+                  <span className="step-num">{s.n}</span>
+                  <div>
+                    <h3>{s.title}</h3>
+                    <p className="muted">{s.text}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="card">
+              <h3>Слабые места, с которых начинают</h3>
+              <p className="muted">Типичная картина после первых пробников. Кабинет подсвечивает это в статистике.</p>
+              {WEAK.map((w) => (
+                <div key={w.name} style={{ marginBottom: 14 }}>
+                  <div className="bar-row"><span>{w.name}</span><div className="progress"><i style={{ width: `${w.v}%` }} /></div><b>{w.v}%</b></div>
+                  <p className="muted" style={{ fontSize: 13 }}>{w.hint}</p>
+                </div>
+              ))}
+              <Link className="btn" to="/register">Закрыть слабые темы</Link>
             </div>
           </div>
         </section>
 
-        <h2 style={{ marginTop: 48 }}>Почему ORT.KG</h2>
-        <div className="cards">
-          {FEATURES.map((f) => (
-            <div key={f.title} className="card">
-              <h3>{f.title}</h3>
-              <p className="muted">{f.text}</p>
+        <section className="section">
+          <p className="kicker">День подготовки</p>
+          <h2>45–70 минут, если заниматься каждый день</h2>
+          <div className="grid-3" style={{ marginTop: 20 }}>
+            <div className="card">
+              <span className="badge">25 мин</span>
+              <h3>Тест по банку</h3>
+              <p className="muted">20–40 вопросов. Режим «нерешённые» или «ошибки», чтобы не топтаться на уже закрытом.</p>
             </div>
-          ))}
+            <div className="card">
+              <span className="badge purple">15 мин</span>
+              <h3>Карточки</h3>
+              <p className="muted">Очередь на сегодня: новые + повторение. Формулы и правила аналогий запоминаются быстрее, чем в конспекте.</p>
+            </div>
+            <div className="card">
+              <span className="badge ok">10 мин</span>
+              <h3>Разбор</h3>
+              <p className="muted">Только ошибки. Если объяснение не зашло — в избранное и на повтор через день.</p>
+            </div>
+          </div>
+        </section>
+
+        <section className="section">
+          <p className="kicker">Для кого</p>
+          <h2>11 класс, повторная сдача, целевой факультет</h2>
+          <div className="grid-3" style={{ marginTop: 20 }}>
+            <div className="card">
+              <h3>Сдаю ОРТ впервые</h3>
+              <p className="muted">Начни с основного теста. Не бери все предметные «на всякий случай»: лишние тесты на конкурсе не помогают, а время отнимают.</p>
+            </div>
+            <div className="card">
+              <h3>Нужна медицина / IT</h3>
+              <p className="muted">Основной + профильные банки. Для медицины химия и биология обязательны парой. Для техники — математика и физика.</p>
+            </div>
+            <div className="card">
+              <h3>Мало времени</h3>
+              <p className="muted">Ежедневная цель и streak важнее марафона раз в неделю. Платформа показывает, сколько вопросов осталось сегодня.</p>
+            </div>
+          </div>
+        </section>
+
+        <section className="section" id="faq">
+          <p className="kicker">Вопросы</p>
+          <h2>Коротко по делу</h2>
+          <div className="faq" style={{ marginTop: 16 }}>
+            {FAQ.map((item) => (
+              <details key={item.q}>
+                <summary>{item.q}</summary>
+                <p>{item.a}</p>
+              </details>
+            ))}
+          </div>
+        </section>
+
+        <div className="cta-band">
+          <div>
+            <h2>Начни с демо сегодня</h2>
+            <p className="muted" style={{ margin: 0 }}>Регистрация за минуту. Кабинет, банки и карточки — сразу. Premium можно подключить, когда станет тесно.</p>
+          </div>
+          <div className="row">
+            <Link className="btn lg" to="/register">Создать аккаунт</Link>
+            <Link className="btn ghost lg" to="/login">Уже есть вход</Link>
+          </div>
         </div>
+
+        <footer className="site-footer">
+          <div className="row" style={{ justifyContent: 'space-between' }}>
+            <span>ORT.KG · подготовка к Общереспубликанскому тестированию</span>
+            <span>Не является сайтом ЦООМО</span>
+          </div>
+        </footer>
       </div>
     </PublicShell>
   );

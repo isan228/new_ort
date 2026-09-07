@@ -364,6 +364,54 @@ p { margin: 0 0 12px; }
 .bar-row { display: grid; grid-template-columns: 110px 1fr 40px; gap: 8px; align-items: center; font-size: 13px; margin-bottom: 8px; }
 .empty { text-align: center; padding: 40px 16px; color: var(--muted); }
 
+.section { margin-top: 72px; }
+.kicker { font-size: 13px; font-weight: 700; color: var(--brand); letter-spacing: 0.04em; text-transform: uppercase; margin-bottom: 8px; }
+.lead { font-size: 17px; max-width: 640px; color: var(--muted); }
+.step {
+  display: grid;
+  grid-template-columns: 40px 1fr;
+  gap: 12px;
+  align-items: start;
+}
+.step-num {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: var(--brand-soft);
+  color: var(--brand);
+  display: grid;
+  place-items: center;
+  font-weight: 800;
+}
+.faq details {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 14px 16px;
+  margin-bottom: 8px;
+}
+.faq summary { cursor: pointer; font-weight: 700; }
+.faq p { margin: 10px 0 0; color: var(--muted); }
+.site-footer {
+  margin-top: 72px;
+  padding: 28px 0 12px;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 14px;
+}
+.cta-band {
+  margin-top: 72px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  padding: 32px;
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
 @media (max-width: 980px) {
   .app-shell { grid-template-columns: 1fr; }
   .sidebar { display: none; }
