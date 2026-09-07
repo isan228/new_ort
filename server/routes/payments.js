@@ -3,7 +3,7 @@ const express = require('express');
 const { Op } = require('sequelize');
 const { SubscriptionPlan, Payment, User } = require('../models');
 const { requireAuth, publicUser } = require('../middleware/auth');
-const { createPayment, isFinikConfigured, webhookUrl, redirectUrl } = require('../utils/finikClient');
+const { createPayment, isFinikConfigured, webhookUrl, redirectUrl, trimEnv } = require('../utils/finikClient');
 const {
   parseWebhookBody,
   validateFinikSignature,
@@ -99,16 +99,16 @@ router.post('/create', requireAuth, async (req, res) => {
       paymentId,
       redirectUrl: originRedirect.toString(),
       webhookUrl: webhookUrl(),
-      accountId: process.env.FINIK_ACCOUNT_ID,
-      nameEn: 'ORT.KG',
+      accountId: trimEnv('FINIK_ACCOUNT_ID'),
+      nameEn: 'ORT KG',
       description: `ОРТ подписка ${plan.months} мес. · ${plan.title}`,
       lang: req.user.language === 'ky' ? 'ky' : 'ru',
-      additionalData: [
-        { fieldId: 'localPaymentId', name: 'localPaymentId', isHidden: true, value: String(payment.id) },
-        { fieldId: 'userId', name: 'userId', isHidden: true, value: String(req.user.id) },
-        { fieldId: 'planId', name: 'planId', isHidden: true, value: String(plan.id) },
-        { fieldId: 'paymentType', name: 'paymentType', isHidden: true, value: 'ort_subscription' },
-      ],
+      extraData: {
+        localPaymentId: String(payment.id),
+        userId: String(req.user.id),
+        planId: String(plan.id),
+        paymentType: 'ort_subscription',
+      },
     });
 
     if (!result.paymentUrl) {
