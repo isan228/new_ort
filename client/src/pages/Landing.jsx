@@ -1,5 +1,8 @@
 import { Link } from 'react-router-dom';
 import { PublicShell } from '../components/Shells';
+import { Reveal } from '../components/Reveal';
+
+const TICKER = ['Математика', 'Аналогии', 'Чтение', 'Грамматика', 'Госязык', 'Химия', 'Биология', 'Физика', 'История', 'Английский'];
 
 const FEATURES = [
   { title: 'Банки вопросов', text: 'Основной тест, государственный язык и предметные: математика, физика, химия, биология, история, английский.' },
@@ -72,13 +75,14 @@ const FAQ = [
 ];
 
 export default function Landing() {
+  const ticker = [...TICKER, ...TICKER];
   return (
     <PublicShell>
       <div className="page page-wide">
         <section className="hero">
-          <div>
+          <Reveal>
             <p className="badge brand">ОРТ 2026 · Кыргызстан</p>
-            <h1 style={{ fontSize: 42, marginTop: 14 }}>Готовься к ОРТ системно. Повышай результат каждый день.</h1>
+            <h1 className="hero-title">Готовься к ОРТ <em>системно.</em> Каждый день — ближе к баллу.</h1>
             <p className="muted" style={{ fontSize: 18, maxWidth: 540 }}>
               Банки вопросов, конструктор теста, флеш-карты с интервалами, разбор ошибок и прогноз балла.
               Не стопка PDF, а кабинет, в который возвращаешься каждый день.
@@ -93,7 +97,7 @@ export default function Landing() {
               <span className="badge">Предметные</span>
               <span className="badge">Карточки</span>
             </div>
-          </div>
+          </Reveal>
           <div className="mock">
             <div className="row" style={{ justifyContent: 'space-between' }}>
               <div>
@@ -112,21 +116,29 @@ export default function Landing() {
           </div>
         </section>
 
-        <div className="grid-4" style={{ marginTop: 36 }}>
+        <div className="marquee" aria-hidden="true">
+          <div className="marquee-track">
+            {ticker.map((item, i) => (
+              <span key={`${item}-${i}`}>{item} <b>·</b></span>
+            ))}
+          </div>
+        </div>
+
+        <Reveal className="grid-4" style={{ marginTop: 36 }} delay={80}>
           <div className="card stat"><b>3</b><span className="muted">трека ОРТ в одном кабинете</span></div>
           <div className="card stat"><b>2 режима</b><span className="muted">тренировка и экзамен с таймером</span></div>
           <div className="card stat"><b>Тема × навык</b><span className="muted">фильтр как на банке вопросов</span></div>
           <div className="card stat"><b>SRS</b><span className="muted">повторение карточек по интервалам</span></div>
-        </div>
+        </Reveal>
 
-        <section className="section" id="programma">
+        <Reveal as="section" className="section" id="programma" delay={40}>
           <p className="kicker">Программа ОРТ</p>
           <h2>ОРТ — это не один тест</h2>
           <p className="lead">
             В 2026 году обязательны основной тест и государственный язык. Предметные берутся только под выбранную специальность.
             ORT.KG повторяет эту структуру: три трека, отдельные банки, общая подписка.
           </p>
-          <div className="cards" style={{ marginTop: 20 }}>
+          <div className="tracks" style={{ marginTop: 20 }}>
             {TRACKS.map((t) => (
               <div key={t.title} className="card">
                 <span className="badge brand">{t.tag}</span>
@@ -142,13 +154,13 @@ export default function Landing() {
             Ориентир: медицина — химия + биология; IT и инженерия — математика + физика; экономика — чаще профильная математика.
             Официальная регистрация — на testing.kg, здесь — подготовка.
           </p>
-        </section>
+        </Reveal>
 
         <section className="section">
           <p className="kicker">Платформа</p>
           <h2>Что внутри кабинета</h2>
           <p className="lead">Каждый экран отвечает на вопрос: что делать дальше и где теряются баллы.</p>
-          <div className="cards" style={{ marginTop: 20 }}>
+          <div className="cards stagger" style={{ marginTop: 20 }}>
             {FEATURES.map((f) => (
               <div key={f.title} className="card">
                 <h3>{f.title}</h3>
