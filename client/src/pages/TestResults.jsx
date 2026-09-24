@@ -74,7 +74,7 @@ export default function TestResults() {
       {!items.length && <p className="empty">—</p>}
       {!!items.length && item && (
         <div className="card review-lab" style={{ padding: 0, overflow: 'hidden' }}>
-          <div className="exam-top" style={{ position: 'relative' }}>
+          <div className="exam-top">
             <div className="exam-meta">
               <b>{t('runner.item', { a: index + 1, b: items.length })}</b>
               <span>{t('runner.qid', { id: item.questionId })}</span>
@@ -89,7 +89,7 @@ export default function TestResults() {
               </button>
             </div>
           </div>
-          <div className="exam-body" style={{ minHeight: 360 }}>
+          <div className="exam-body">
             <aside className="exam-side">
               {items.map((row, i) => (
                 <button
@@ -98,30 +98,32 @@ export default function TestResults() {
                   className={`exam-num ${i === index ? 'on' : ''} ${row.correct ? 'done' : 'flag'}`}
                   onClick={() => setIndex(i)}
                 >
-                  <span>{i + 1}</span>
+                  <em>{i + 1}</em>
                   <i className={`exam-dot ${row.answerId ? '' : 'empty'}`} />
                 </button>
               ))}
             </aside>
             <main className="exam-main">
-              <p className="exam-stem">{item.question?.text}</p>
-              <div className="exam-opts">
-                {answers.map((a, i) => {
-                  let cls = 'exam-opt';
-                  if (a.isCorrect) cls += ' good';
-                  else if (item.answerId === a.id) cls += ' bad';
-                  if (item.answerId === a.id) cls += ' on';
-                  return (
-                    <div key={a.id} className={cls}>
-                      <i className="exam-radio" />
-                      <span><b>({LETTERS[i]})</b> {a.text}</span>
-                    </div>
-                  );
-                })}
+              <div className="exam-content">
+                <p className="exam-stem">{item.question?.text}</p>
+                <div className="exam-opts">
+                  {answers.map((a, i) => {
+                    let cls = 'exam-opt';
+                    if (a.isCorrect) cls += ' good';
+                    else if (item.answerId === a.id) cls += ' bad';
+                    if (item.answerId === a.id) cls += ' on';
+                    return (
+                      <div key={a.id} className={cls}>
+                        <i className="exam-radio" />
+                        <span><b>({LETTERS[i]})</b> {a.text}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+                {item.question?.explanation && (
+                  <p style={{ marginTop: 16 }}>{linkifyMedicalTerms(item.question.explanation, [], () => {})}</p>
+                )}
               </div>
-              {item.question?.explanation && (
-                <p style={{ marginTop: 16, maxWidth: 860 }}>{linkifyMedicalTerms(item.question.explanation, [], () => {})}</p>
-              )}
             </main>
           </div>
         </div>

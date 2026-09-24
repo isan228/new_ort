@@ -238,21 +238,20 @@ export default function TestRunner() {
   return (
     <div className="exam-lab">
       <header className="exam-top">
-        <button type="button" className="exam-ico" title={t('runner.exit')} onClick={() => navigate('/app/tests')}>←</button>
-        <div className="exam-meta">
+        <div className="exam-top-l">
+          <button type="button" className="exam-ico" title={t('runner.exit')} onClick={() => navigate('/app/tests')}>←</button>
           <b>{t('runner.item', { a: localIndex + 1, b: total })}</b>
-          <span>{t('runner.qid', { id: q.id })}</span>
+          <span className="exam-qid">{t('runner.qid', { id: q.id })}</span>
           {simulation && section && <span className="exam-top-sec">{section.title}</span>}
+          <button
+            type="button"
+            className={`exam-mark ${flagged[q.id] ? 'on' : ''}`}
+            onClick={() => setFlagged((f) => ({ ...f, [q.id]: !f[q.id] }))}
+          >
+            ⚑ {flagged[q.id] ? t('runner.unflag') : t('runner.mark')}
+          </button>
         </div>
-        <button
-          type="button"
-          className={`exam-tool ${flagged[q.id] ? 'on' : ''}`}
-          onClick={() => setFlagged((f) => ({ ...f, [q.id]: !f[q.id] }))}
-        >
-          <span className="exam-tool-ico">⚑</span>
-          <span>{flagged[q.id] ? t('runner.unflag') : t('runner.mark')}</span>
-        </button>
-        <div className="exam-nav">
+        <div className="exam-top-c">
           <button type="button" className="exam-nav-btn" disabled={index <= sectionStart} onClick={() => goInSection(index - 1)}>
             ‹ {t('runner.prev')}
           </button>
@@ -265,21 +264,12 @@ export default function TestRunner() {
             {t('runner.next')} ›
           </button>
         </div>
-        <div className="exam-tools">
+        <div className="exam-top-r">
           {!simulation && (
-            <button type="button" className="exam-tool" onClick={() => toggleFavorite(q.id)}>
-              <span className="exam-tool-ico">★</span>
-              <span>{t('runner.fav')}</span>
-            </button>
+            <button type="button" className="exam-tool" onClick={() => toggleFavorite(q.id)}>{t('runner.fav')}</button>
           )}
-          <button type="button" className="exam-tool" onClick={skip}>
-            <span className="exam-tool-ico">↷</span>
-            <span>{t('runner.skip')}</span>
-          </button>
-          <button type="button" className="exam-tool" onClick={toggleFullscreen}>
-            <span className="exam-tool-ico">⛶</span>
-            <span>{t('runner.fullscreen')}</span>
-          </button>
+          <button type="button" className="exam-tool" onClick={skip}>{t('runner.skip')}</button>
+          <button type="button" className="exam-tool" onClick={toggleFullscreen}>{t('runner.fullscreen')}</button>
         </div>
       </header>
 
@@ -293,49 +283,49 @@ export default function TestRunner() {
             if (flagged[item.id]) cls += ' flag';
             return (
               <button key={item.id} type="button" className={cls} onClick={() => goInSection(abs)}>
-                <span>{i + 1}</span>
-                {picked[item.id] ? <i className="exam-dot" /> : <i className="exam-dot empty" />}
+                <em>{i + 1}</em>
+                <i className={picked[item.id] ? 'exam-dot' : 'exam-dot empty'} />
               </button>
             );
           })}
         </aside>
         <main className="exam-main">
           {error && <p className="err">{error}</p>}
-          <p className="exam-stem">{q.text}</p>
-          <div className="exam-opts">
-            {q.answers.map((a, i) => (
-              <button
-                key={a.id}
-                type="button"
-                className={`exam-opt ${picked[q.id] === a.id ? 'on' : ''}`}
-                onClick={() => setPicked((prev) => ({ ...prev, [q.id]: a.id }))}
-              >
-                <i className="exam-radio" />
-                <span><b>({LETTERS[i]})</b> {a.text}</span>
-              </button>
-            ))}
+          <div className="exam-content">
+            <p className="exam-stem">{q.text}</p>
+            <div className="exam-opts">
+              {q.answers.map((a, i) => (
+                <button
+                  key={a.id}
+                  type="button"
+                  className={`exam-opt ${picked[q.id] === a.id ? 'on' : ''}`}
+                  onClick={() => setPicked((prev) => ({ ...prev, [q.id]: a.id }))}
+                >
+                  <i className="exam-radio" />
+                  <span><b>({LETTERS[i]})</b> {a.text}</span>
+                </button>
+              ))}
+            </div>
+            <button className="exam-submit" type="button" onClick={submitCurrent}>
+              {lastInSection
+                ? (simulation && sectionIdx < sections.length - 1 ? t('sim.endSection') : t('runner.end'))
+                : t('runner.submit')}
+            </button>
           </div>
-          <button className="exam-submit" type="button" onClick={submitCurrent}>
-            {lastInSection
-              ? (simulation && sectionIdx < sections.length - 1 ? t('sim.endSection') : t('runner.end'))
-              : t('runner.submit')}
-          </button>
         </main>
       </div>
 
       <footer className="exam-bot">
         <div className="exam-bot-left">
-          <div>
+          <strong className={warn ? 'warn' : ''}>
             {timed
-              ? <span className={warn ? 'warn' : ''}>{t('runner.blockTime', { time: formatClock(left) })}</span>
-              : <span>{t('runner.blockElapsed', { time: formatClock(elapsed) })}</span>}
-          </div>
+              ? t('runner.blockTime', { time: formatClock(left) })
+              : t('runner.blockElapsed', { time: formatClock(elapsed) })}
+          </strong>
           <small>{modeLabel}</small>
         </div>
-        <span className="exam-bot-spacer" />
-        <button type="button" className="exam-tool" onClick={() => (simulation ? closeSection() : finish())}>
-          <span className="exam-tool-ico">⏻</span>
-          <span>{simulation ? t('sim.endSection') : t('runner.end')}</span>
+        <button type="button" className="exam-end" onClick={() => (simulation ? closeSection() : finish())}>
+          {simulation ? t('sim.endSection') : t('runner.end')}
         </button>
       </footer>
     </div>
