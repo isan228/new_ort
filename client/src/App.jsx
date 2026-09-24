@@ -7,6 +7,7 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import Home from './pages/Home';
 import Tests from './pages/Tests';
+import ExamBriefing from './pages/ExamBriefing';
 import TestBuilder from './pages/TestBuilder';
 import TestRunner from './pages/TestRunner';
 import TestResults from './pages/TestResults';
@@ -98,6 +99,7 @@ export default function App() {
 
       <Route path="/app" element={<AppLayout><Home /></AppLayout>} />
       <Route path="/app/tests" element={<AppLayout><Tests /></AppLayout>} />
+      <Route path="/app/exam" element={<AppLayout><ExamBriefing /></AppLayout>} />
       <Route path="/app/create" element={<AppLayout><TestBuilder /></AppLayout>} />
       <Route path="/app/test" element={<AppLayout><TestRunner /></AppLayout>} />
       <Route path="/app/results" element={<AppLayout><TestResults /></AppLayout>} />

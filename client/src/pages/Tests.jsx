@@ -10,7 +10,6 @@ export default function Tests() {
   const [data, setData] = useState({ main: [], state_lang: [], subject: [], mainExam: null });
   const [cat, setCat] = useState('all');
   const [error, setError] = useState('');
-  const [starting, setStarting] = useState(false);
   const { setBank } = useBank();
   const navigate = useNavigate();
 
@@ -47,33 +46,8 @@ export default function Tests() {
     navigate(test ? `/app/create?bank=${test.id}` : '/app/create');
   }
 
-  async function startMainExam() {
-    setError('');
-    setStarting(true);
-    try {
-      const session = await ortApi.mainExam();
-      setBank({
-        name: t('tests.mainExam'),
-        testName: t('tests.mainExam'),
-        testId: session.test?.id || null,
-        trackGroup: 'main',
-      });
-      sessionStorage.setItem('ortSession', JSON.stringify({
-        ...session,
-        examType: 'main',
-        examMode: true,
-        instantFeedbackMode: false,
-        startedAt: Date.now(),
-        questionMode: 'main_exam',
-        minutes: session.minutes || 210,
-      }));
-      navigate('/app/test');
-    } catch (err) {
-      if (isOrtGate(err)) navigate('/app/premium');
-      else setError(err.message);
-    } finally {
-      setStarting(false);
-    }
+  function openSimulation() {
+    navigate('/app/exam');
   }
 
   return (
@@ -90,24 +64,31 @@ export default function Tests() {
         <div className="card ort-exam-card">
           <div className="row" style={{ justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 12 }}>
             <div>
-              <span className="badge brand">{t('tests.mainExamBadge')}</span>
-              <h2 style={{ margin: '8px 0 6px' }}>{t('tests.mainExam')}</h2>
-              <p className="muted" style={{ margin: 0 }}>{t('tests.mainExamLead')}</p>
+              <span className="badge brand">{t('sim.badge')}</span>
+              <h2 style={{ margin: '8px 0 6px' }}>{t('sim.title')}</h2>
+              <p className="muted" style={{ margin: 0 }}>{t('sim.cardLead')}</p>
             </div>
-            <button className="btn" type="button" disabled={!exam.ready || starting} onClick={startMainExam}>
-              {starting ? t('common.loading') : t('tests.mainExamStart')}
+            <button className="btn" type="button" disabled={!exam.ready} onClick={openSimulation}>
+              {t('sim.open')}
             </button>
           </div>
           <div className="ort-exam-parts">
             {(exam.parts || []).map((part) => (
               <div key={part.key} className="ort-exam-part">
                 <b>{part.title}</b>
-                <span className="muted">{t('tests.mainExamParts', { have: part.picked ?? part.have, need: part.needed })}</span>
+                <span className="muted">
+                  {t('tests.mainExamParts', { have: part.picked ?? part.have, need: part.needed })}
+                  {part.officialMinutes ? ` · ${t('sim.minutes', { n: part.officialMinutes })}` : ''}
+                </span>
               </div>
             ))}
           </div>
           <p className="muted" style={{ margin: 0 }}>
-            {t('tests.mainExamShort', { n: exam.questionCount || 0 })} · {t('results.max', { n: exam.maxScore || 245 })}
+            {t('tests.mainExamShort', { n: exam.questionCount || 0 })}
+            {' · '}
+            {t('sim.minutes', { n: exam.officialMinutes || 215 })}
+            {' · '}
+            {t('results.max', { n: exam.maxScore || 245 })}
           </p>
         </div>
       )}

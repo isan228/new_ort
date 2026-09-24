@@ -334,7 +334,7 @@ router.get('/ort/main-exam', async (req, res) => {
 });
 
 router.post('/ort/main-exam', async (req, res) => {
-  const { questions, preview, anchor } = await assembleMainExam();
+  const { questions, preview, sections, anchor } = await assembleMainExam();
   if (!questions.length) {
     return res.status(400).json({ error: 'В основном тесте пока нет вопросов. Загрузите разделы в админке.' });
   }
@@ -346,12 +346,14 @@ router.post('/ort/main-exam', async (req, res) => {
   });
   res.json({
     examType: 'main',
+    simulation: true,
     test: {
       id: anchor?.id || null,
       name: 'Основной тест ОРТ',
       hasExplanations: true,
     },
     questions: payload,
+    sections,
     ...preview,
   });
 });

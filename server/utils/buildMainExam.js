@@ -3,14 +3,44 @@ const { Test, Question, Answer, QuestionTag, Subject } = require('../models');
 const { pickQuestionsKeepingLinkedOrder } = require('./ortLinkedQuestions');
 const { ORT_PARTS, MAIN_MAX } = require('./ortScoring');
 
-const MAIN_SLOTS = [
-  { key: 'analogies', parts: ['analogies'], fallback: ['sentence', 'reading'], count: 20 },
-  { key: 'sentence', parts: ['sentence'], fallback: ['analogies', 'reading'], count: 10 },
-  { key: 'reading', parts: ['reading'], fallback: ['analogies', 'sentence'], count: 30 },
-  { key: 'grammar', parts: ['grammar'], fallback: [], count: 30 },
-  { key: 'math1', parts: ['math1'], fallback: ['math', 'math2'], count: 30 },
-  { key: 'math2', parts: ['math2'], fallback: ['math', 'math1'], count: 30 },
+const SIMULATION_SECTIONS = [
+  {
+    key: 'math',
+    title: 'Математика',
+    count: 60,
+    minutes: 90,
+    slots: [
+      { parts: ['math1'], fallback: ['math', 'math2'], count: 30 },
+      { parts: ['math2'], fallback: ['math', 'math1'], count: 30 },
+    ],
+  },
+  {
+    key: 'reading',
+    title: 'Чтение и понимание на родном языке',
+    count: 30,
+    minutes: 60,
+    slots: [{ parts: ['reading'], fallback: [], count: 30 }],
+  },
+  {
+    key: 'verbal',
+    title: 'Аналогии и дополнение предложений',
+    count: 30,
+    minutes: 30,
+    slots: [
+      { parts: ['analogies'], fallback: ['sentence'], count: 20 },
+      { parts: ['sentence'], fallback: ['analogies'], count: 10 },
+    ],
+  },
+  {
+    key: 'grammar',
+    title: 'Практическая грамматика родного языка',
+    count: 30,
+    minutes: 35,
+    slots: [{ parts: ['grammar'], fallback: [], count: 30 }],
+  },
 ];
+
+const OFFICIAL_MINUTES = 215;
 
 function shuffle(list) {
   const arr = [...list];
@@ -26,6 +56,12 @@ function take(pool, count, used) {
   const picked = pickQuestionsKeepingLinkedOrder(shuffle(available), count);
   picked.forEach((q) => used.add(q.id));
   return picked;
+}
+
+function sectionMinutes(official, picked, needed) {
+  if (!picked) return 0;
+  if (picked >= needed) return official;
+  return Math.max(1, Math.round((official * picked) / needed));
 }
 
 async function loadQuestionsByPart() {
@@ -57,40 +93,48 @@ function poolFor(byPart, keys) {
 
 function assembleFromPools(byPart) {
   const used = new Set();
-  const blocks = [];
-
-  for (const slot of MAIN_SLOTS) {
-    let picked = take(poolFor(byPart, slot.parts), slot.count, used);
-    if (picked.length < slot.count && slot.fallback.length) {
-      picked = picked.concat(take(poolFor(byPart, slot.fallback), slot.count - picked.length, used));
+  return SIMULATION_SECTIONS.map((spec) => {
+    const questions = [];
+    for (const slot of spec.slots) {
+      let picked = take(poolFor(byPart, slot.parts), slot.count, used);
+      if (picked.length < slot.count && slot.fallback.length) {
+        picked = picked.concat(take(poolFor(byPart, slot.fallback), slot.count - picked.length, used));
+      }
+      questions.push(...picked);
     }
-    blocks.push({
-      key: slot.key,
-      title: ORT_PARTS[slot.key]?.title || slot.key,
-      needed: slot.count,
-      have: poolFor(byPart, slot.parts).length,
-      questions: picked,
-    });
-  }
-
-  return blocks;
+    const have = spec.slots.reduce((sum, slot) => sum + poolFor(byPart, slot.parts).length, 0);
+    return {
+      key: spec.key,
+      title: spec.title,
+      needed: spec.count,
+      officialMinutes: spec.minutes,
+      minutes: sectionMinutes(spec.minutes, questions.length, spec.count),
+      have,
+      questions,
+    };
+  });
 }
 
-function previewFromBlocks(blocks) {
-  const questionCount = blocks.reduce((sum, block) => sum + block.questions.length, 0);
+function toPreview(sections) {
+  const parts = sections.map((section) => ({
+    key: section.key,
+    title: section.title,
+    needed: section.needed,
+    have: section.have,
+    picked: section.questions?.length ?? section.picked ?? 0,
+    minutes: section.minutes,
+    officialMinutes: section.officialMinutes,
+  }));
+  const questionCount = parts.reduce((sum, part) => sum + part.picked, 0);
+  const minutes = parts.reduce((sum, part) => sum + (part.picked ? part.minutes : 0), 0);
   return {
     questionCount,
     maxQuestions: 150,
     maxScore: MAIN_MAX,
+    minutes: minutes || OFFICIAL_MINUTES,
+    officialMinutes: OFFICIAL_MINUTES,
     ready: questionCount > 0,
-    minutes: Math.max(20, Math.round((questionCount / 150) * 210)),
-    parts: blocks.map((block) => ({
-      key: block.key,
-      title: block.title,
-      needed: block.needed,
-      have: block.have,
-      picked: block.questions.length,
-    })),
+    parts,
   };
 }
 
@@ -118,46 +162,77 @@ function estimatePreview(counts) {
     return got;
   }
 
-  const parts = MAIN_SLOTS.map((slot) => {
-    const have = slot.parts.reduce((sum, key) => sum + (counts[key] || 0), 0);
-    const picked = takeKeys([...slot.parts, ...slot.fallback], slot.count);
+  const sections = SIMULATION_SECTIONS.map((spec) => {
+    const have = spec.slots.reduce((sum, slot) => (
+      sum + slot.parts.reduce((inner, key) => inner + (counts[key] || 0), 0)
+    ), 0);
+    const picked = spec.slots.reduce((sum, slot) => (
+      sum + takeKeys([...slot.parts, ...slot.fallback], slot.count)
+    ), 0);
     return {
-      key: slot.key,
-      title: ORT_PARTS[slot.key]?.title || slot.key,
-      needed: slot.count,
+      key: spec.key,
+      title: spec.title,
+      needed: spec.count,
       have,
       picked,
+      officialMinutes: spec.minutes,
+      minutes: sectionMinutes(spec.minutes, picked, spec.count),
     };
   });
-  const questionCount = parts.reduce((sum, part) => sum + part.picked, 0);
-  return {
-    questionCount,
-    maxQuestions: 150,
-    maxScore: MAIN_MAX,
-    ready: questionCount > 0,
-    minutes: Math.max(20, Math.round((questionCount / 150) * 210)),
-    parts,
-  };
+  return toPreview(sections);
 }
 
 async function previewMainExam() {
   return estimatePreview(await countByPart());
 }
 
+function sectionMeta(sections) {
+  let offset = 0;
+  return sections
+    .filter((section) => section.questions.length)
+    .map((section) => {
+      const meta = {
+        key: section.key,
+        title: section.title,
+        needed: section.needed,
+        minutes: section.minutes,
+        officialMinutes: section.officialMinutes,
+        start: offset,
+        count: section.questions.length,
+      };
+      offset += section.questions.length;
+      return meta;
+    });
+}
+
 async function assembleMainExam() {
   const { tests, byPart } = await loadQuestionsByPart();
-  const blocks = assembleFromPools(byPart);
-  const questions = blocks.flatMap((block) => block.questions);
-  const preview = previewFromBlocks(blocks);
+  const assembled = assembleFromPools(byPart);
+  const questions = assembled.flatMap((section) => section.questions);
+  const preview = toPreview(assembled);
 
-  let anchor = tests.find((row) => row.ortPart === 'analogies');
+  let anchor = tests.find((row) => row.ortPart === 'math' || row.ortPart === 'math1');
   if (!anchor) {
     const main = await Subject.findOne({ where: { name: 'Основной тест ОРТ' } });
-    if (main) anchor = tests.find((row) => row.subjectId === main.id) || await Test.findOne({ where: { subjectId: main.id } });
+    if (main) {
+      anchor = tests.find((row) => row.subjectId === main.id)
+        || await Test.findOne({ where: { subjectId: main.id } });
+    }
   }
   if (!anchor) anchor = tests[0] || null;
 
-  return { questions, preview, anchor, tests };
+  return {
+    questions,
+    preview,
+    sections: sectionMeta(assembled),
+    anchor,
+    tests,
+  };
 }
 
-module.exports = { previewMainExam, assembleMainExam, MAIN_SLOTS };
+module.exports = {
+  previewMainExam,
+  assembleMainExam,
+  SIMULATION_SECTIONS,
+  ORT_PARTS,
+};

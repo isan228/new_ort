@@ -1040,6 +1040,44 @@ p { margin: 0 0 12px; }
   align-items: baseline;
   flex-wrap: wrap;
 }
+.exam-brief { max-width: 860px; }
+.exam-brief h1 { margin: 8px 0 8px; }
+.exam-time-table { width: 100%; }
+.exam-rules-grid { margin: 16px 0; }
+.exam-rules {
+  margin: 0;
+  padding-left: 18px;
+  display: grid;
+  gap: 8px;
+  color: var(--text);
+}
+.exam-accept {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  margin: 16px 0;
+  font-weight: 650;
+}
+.exam-accept input { margin-top: 4px; }
+.exam-section-name { font-weight: 750; margin: 4px 0; }
+.exam-section-pips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+.exam-pip {
+  font-size: 12px;
+  font-weight: 700;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: var(--bg-soft);
+  color: var(--muted);
+}
+.exam-pip.on { background: var(--brand-soft); color: var(--brand); }
+.exam-pip.done { background: var(--ok-soft); color: var(--ok); }
+.exam-gate { max-width: 560px; margin-top: 12px; }
+.exam-gate h1 { margin: 8px 0 10px; }
 .admin-optional-block { margin-top: 4px; }
 .admin-optional-block .admin-list { margin-bottom: 8px; }
 .admin-upload-block { margin-top: 14px; }
