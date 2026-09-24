@@ -34,7 +34,13 @@ function IconFull() {
   return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 4H4v4M16 4h4v4M8 20H4v-4M16 20h4v-4" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></svg>;
 }
 function IconEnd() {
-  return <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" strokeWidth="1.8" /><path d="M9 12h6" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" /></svg>;
+  return <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="currentColor" /><rect x="8.2" y="8.2" width="7.6" height="7.6" rx="1" fill="#fff" /></svg>;
+}
+function IconFlag() {
+  return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 21V4h1.2l.4 1.2A3.2 3.2 0 0 0 9.6 7H19v8h-8.4a3.2 3.2 0 0 0-2.9 1.8L7.2 18H5" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" /></svg>;
+}
+function IconExit() {
+  return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 5H6a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h4M14 16l5-4-5-4M19 12H10" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" /></svg>;
 }
 
 export default function TestRunner() {
@@ -283,8 +289,18 @@ export default function TestRunner() {
             className={`uworld-tb-mark ${flagged[q.id] ? 'is-active' : ''}`}
             onClick={() => setFlagged((f) => ({ ...f, [q.id]: !f[q.id] }))}
           >
-            <span className="uworld-tb-mark-icon">⚑</span>
+            <IconFlag />
             <span className="uworld-tb-mark-text">{flagged[q.id] ? t('runner.unflag') : t('runner.mark')}</span>
+          </button>
+        </div>
+        <div className="uworld-tb-nav">
+          <button type="button" className="uworld-tb-nav-btn" disabled={index <= sectionStart} onClick={() => goInSection(index - 1)}>
+            <IconPrev />
+            <span>{t('runner.prev')}</span>
+          </button>
+          <button type="button" className="uworld-tb-nav-btn" onClick={goNext}>
+            <IconNext />
+            <span>{nextLabel}</span>
           </button>
         </div>
         <div className="uworld-tb-tools">
@@ -302,16 +318,6 @@ export default function TestRunner() {
           <button type="button" className="uworld-tb-tool" onClick={skip}>
             <span className="uworld-tb-mark-icon">↷</span>
             <span>{t('runner.skip')}</span>
-          </button>
-        </div>
-        <div className="uworld-tb-nav">
-          <button type="button" className="uworld-tb-nav-btn" disabled={index <= sectionStart} onClick={() => goInSection(index - 1)}>
-            <IconPrev />
-            <span>{t('runner.prev')}</span>
-          </button>
-          <button type="button" className="uworld-tb-nav-btn" onClick={goNext}>
-            <IconNext />
-            <span>{nextLabel}</span>
           </button>
         </div>
       </header>
@@ -342,21 +348,40 @@ export default function TestRunner() {
           <div className="test-content">
             {error && <p className="err">{error}</p>}
             {simulation && section && (
-              <p className="muted" style={{ marginBottom: 8, fontSize: 13 }}>{section.title}</p>
+              <p className="usmle-section-label">{section.title}</p>
             )}
-            <p className="usmle-question-stem">{q.text}</p>
-            <div className="answers-list">
-              {q.answers.map((a, i) => (
-                <button
-                  key={a.id}
-                  type="button"
-                  className={`answer-item ${picked[q.id] === a.id ? 'selected' : ''}`}
-                  onClick={() => setPicked((prev) => ({ ...prev, [q.id]: a.id }))}
-                >
-                  <span className="answer-option-letter">{LETTERS[i]}</span>
-                  <span className="answer-option-text">{a.text}</span>
-                </button>
-              ))}
+            <div className="usmle-question-stem">{q.text}</div>
+            <div className="answers-list" role="radiogroup" aria-label={t('runner.items')}>
+              {q.answers.map((a, i) => {
+                const selected = picked[q.id] === a.id;
+                return (
+                  <button
+                    key={a.id}
+                    type="button"
+                    role="radio"
+                    aria-checked={selected}
+                    className={`answer-item ${selected ? 'selected' : ''}`}
+                    onClick={() => setPicked((prev) => ({ ...prev, [q.id]: a.id }))}
+                  >
+                    <span className="answer-radio" aria-hidden="true" />
+                    <span className="answer-option-text">
+                      <span className="answer-option-letter">{LETTERS[i]}.</span>
+                      {' '}
+                      {a.text}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+            <div className="usmle-submit-row">
+              <button
+                type="button"
+                className="usmle-submit-btn"
+                disabled={!picked[q.id]}
+                onClick={goNext}
+              >
+                {t('runner.submit')}
+              </button>
             </div>
           </div>
         </div>
@@ -364,10 +389,6 @@ export default function TestRunner() {
 
       <footer className="uworld-session-footer">
         <div className="uworld-sf-left">
-          <div className="uworld-sf-meta">
-            <span className="uworld-sf-k">{modeLabel}</span>
-            {simulation && section && <span className="uworld-sf-v">{section.title}</span>}
-          </div>
           <div className="uworld-sf-meta">
             {timed ? (
               <>
@@ -383,10 +404,14 @@ export default function TestRunner() {
               </>
             )}
           </div>
+          <div className="uworld-sf-meta">
+            <span className="uworld-sf-k">{modeLabel}</span>
+            {simulation && section && <span className="uworld-sf-v">{section.title}</span>}
+          </div>
         </div>
         <div className="uworld-sf-tools">
           <button type="button" className="uworld-sf-tool" onClick={() => navigate('/app/tests')}>
-            <span>←</span>
+            <IconExit />
             <span>{t('runner.exit')}</span>
           </button>
           <button
@@ -395,7 +420,8 @@ export default function TestRunner() {
             onClick={() => (simulation ? closeSection() : finish())}
           >
             <IconEnd />
-            <span>{simulation ? t('sim.endSection') : t('runner.end')}</span>
+            <span className="uworld-sf-tool-full">{simulation ? t('sim.endSection') : t('runner.end')}</span>
+            <span className="uworld-sf-tool-short">{t('runner.end')}</span>
           </button>
         </div>
       </footer>
