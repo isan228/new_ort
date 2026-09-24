@@ -5,6 +5,8 @@ const TestResult = sequelize.define('TestResult', {
   userId: { type: DataTypes.INTEGER, allowNull: false },
   testId: { type: DataTypes.INTEGER, allowNull: false },
   score: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 0 },
+  officialScore: { type: DataTypes.FLOAT, allowNull: true },
+  scoreBreakdown: { type: DataTypes.JSONB, allowNull: true },
   total: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 0 },
   questionMode: { type: DataTypes.STRING, allowNull: true },
   answers: { type: DataTypes.JSONB, allowNull: false, defaultValue: [] },

@@ -45,7 +45,56 @@ export function NameForm({ initial = '', onSubmit, onClose }) {
   );
 }
 
-export function InlineAdd({ value, placeholder, onChange, onSubmit, onCancel }) {
+export const ORT_PART_OPTIONS = [
+  { value: '', key: 'none' },
+  { value: 'analogies', key: 'analogies' },
+  { value: 'sentence', key: 'sentence' },
+  { value: 'reading', key: 'reading' },
+  { value: 'grammar', key: 'grammar' },
+  { value: 'math1', key: 'math1' },
+  { value: 'math2', key: 'math2' },
+  { value: 'math', key: 'math' },
+  { value: 'subject', key: 'subject' },
+];
+
+export function ortPartLabel(t, part) {
+  if (!part) return t('admin.ortPartNone');
+  return t(`admin.ortParts.${part}`);
+}
+
+export function SectionForm({ initialName = '', initialOrtPart = '', onSubmit, onClose }) {
+  const { t } = useLang();
+  const [name, setName] = useState(initialName);
+  const [ortPart, setOrtPart] = useState(initialOrtPart || '');
+
+  return (
+    <form onSubmit={(e) => {
+      e.preventDefault();
+      const value = name.trim();
+      if (!value) return;
+      onSubmit({ name: value, ortPart: ortPart || null });
+    }}>
+      <label className="field">
+        <span>{t('admin.name')}</span>
+        <input autoFocus value={name} onChange={(e) => setName(e.target.value)} />
+      </label>
+      <label className="field">
+        <span>{t('admin.ortPart')}</span>
+        <select value={ortPart} onChange={(e) => setOrtPart(e.target.value)}>
+          {ORT_PART_OPTIONS.map((opt) => (
+            <option key={opt.key} value={opt.value}>{ortPartLabel(t, opt.value)}</option>
+          ))}
+        </select>
+      </label>
+      <div className="row">
+        <button className="btn" type="submit">{t('common.save')}</button>
+        <button className="btn ghost" type="button" onClick={onClose}>{t('common.cancel')}</button>
+      </div>
+    </form>
+  );
+}
+
+export function InlineAdd({ value, placeholder, onChange, onSubmit, onCancel, extra }) {
   const { t } = useLang();
   return (
     <form
@@ -58,6 +107,7 @@ export function InlineAdd({ value, placeholder, onChange, onSubmit, onCancel }) 
       }}
     >
       <input autoFocus value={value || ''} placeholder={placeholder} onChange={(e) => onChange(e.target.value)} />
+      {extra}
       <button className="btn sm" type="submit">{t('common.add')}</button>
       <button className="btn ghost sm" type="button" onClick={onCancel}>{t('common.cancel')}</button>
     </form>

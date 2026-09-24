@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { adminApi } from '../../api/client';
 import { useLang } from '../../context/LangContext';
-import { Crumbs, InlineAdd, Modal, NameForm, confirmDelete, contentPath } from './adminUi';
+import { Crumbs, InlineAdd, Modal, NameForm, SectionForm, ORT_PART_OPTIONS, ortPartLabel, confirmDelete, contentPath } from './adminUi';
 
 export default function AdminSubject() {
   const { t } = useLang();
@@ -15,6 +15,7 @@ export default function AdminSubject() {
   const [tagDraft, setTagDraft] = useState('');
   const [addingTag, setAddingTag] = useState(false);
   const [sectionDraft, setSectionDraft] = useState('');
+  const [sectionPart, setSectionPart] = useState('');
   const [addingSection, setAddingSection] = useState(false);
 
   async function reload() {
@@ -146,10 +147,18 @@ export default function AdminSubject() {
           value={sectionDraft}
           placeholder={t('admin.sectionName')}
           onChange={setSectionDraft}
-          onCancel={() => { setAddingSection(false); setSectionDraft(''); }}
+          onCancel={() => { setAddingSection(false); setSectionDraft(''); setSectionPart(''); }}
+          extra={(
+            <select className="admin-inline-select" value={sectionPart} onChange={(e) => setSectionPart(e.target.value)}>
+              {ORT_PART_OPTIONS.map((opt) => (
+                <option key={opt.key} value={opt.value}>{ortPartLabel(t, opt.value)}</option>
+              ))}
+            </select>
+          )}
           onSubmit={(name) => run(async () => {
-            await adminApi.createTest({ name, subjectId: subject.id });
+            await adminApi.createTest({ name, subjectId: subject.id, ortPart: sectionPart || null });
             setSectionDraft('');
+            setSectionPart('');
             setAddingSection(false);
           })}
         />
@@ -162,6 +171,7 @@ export default function AdminSubject() {
               <h4>{section.name}</h4>
               <p className="muted" style={{ margin: '4px 0 0' }}>
                 {t('admin.questionsCount', { n: section.questionCount || 0 })}
+                {section.ortPart ? ` · ${ortPartLabel(t, section.ortPart)}` : ''}
               </p>
             </div>
             <div className="row" style={{ flexWrap: 'wrap' }}>
@@ -216,12 +226,13 @@ export default function AdminSubject() {
       )}
       {modal?.type === 'section' && (
         <Modal title={t('common.edit')} onClose={() => setModal(null)}>
-          <NameForm
-            initial={modal.item?.name || ''}
+          <SectionForm
+            initialName={modal.item?.name || ''}
+            initialOrtPart={modal.item?.ortPart || ''}
             onClose={() => setModal(null)}
-            onSubmit={(name) => {
+            onSubmit={({ name, ortPart }) => {
               run(async () => {
-                await adminApi.updateTest(modal.item.id, { name });
+                await adminApi.updateTest(modal.item.id, { name, ortPart });
                 setModal(null);
               });
             }}

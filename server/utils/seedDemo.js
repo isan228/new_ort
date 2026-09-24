@@ -11,6 +11,7 @@ const {
 const { parseExplainedQuestions } = require('./parseQuestionsTxt');
 const { parseFlashcardsTxt } = require('./parseFlashcardsTxt');
 const { findOrCreateTag } = require('./findOrCreateTag');
+const { inferOrtPart } = require('./ortScoring');
 const { Answer, QuestionTagMap, FlashcardTagMap } = require('../models');
 
 async function upsertQuestions(testId, parsed) {
@@ -212,6 +213,7 @@ async function seedDemoContent() {
         name: spec.name,
         subjectId: subject.id,
         hasExplanations: true,
+        ortPart: inferOrtPart(spec.name, bank.trackGroup),
       });
       if (!spec.file) continue;
       const raw = fs.readFileSync(path.join(__dirname, '..', 'data', spec.file), 'utf8');

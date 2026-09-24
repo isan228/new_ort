@@ -42,13 +42,22 @@ export default function TestRunner() {
       questionId: item.id,
       answerId: picked[item.id] || null,
     }));
-    const data = await ortApi.check(session.test.id, {
+    const body = {
       answers,
       questionMode: session.questionMode,
       durationSec: Math.round((Date.now() - session.startedAt) / 1000),
-    });
+      examType: session.examType,
+      testId: session.test?.id,
+    };
+    const data = session.examType === 'main' || !session.test?.id
+      ? await ortApi.checkExam(body)
+      : await ortApi.check(session.test.id, body);
     bumpToday(answers.filter((a) => a.answerId).length);
-    sessionStorage.setItem('ortResult', JSON.stringify({ ...data, examMode, bank: bank?.name }));
+    sessionStorage.setItem('ortResult', JSON.stringify({
+      ...data,
+      examMode,
+      bank: bank?.name || session.test?.name,
+    }));
     const p = loadProgress();
     p.lastResultId = data.resultId;
     saveProgress(p);

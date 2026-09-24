@@ -18,6 +18,7 @@ const {
   Payment,
   TestResult,
 } = require('../models');
+const { inferOrtPart, normalizeOrtPart } = require('../utils/ortScoring');
 const { slugify, normalizeTagName } = require('../utils/ortTagNormalize');
 const { findOrCreateTag } = require('../utils/findOrCreateTag');
 const { publicQuestionWithCorrect } = require('../utils/ortLinkedQuestions');
@@ -241,7 +242,7 @@ router.get('/subjects', async (req, res) => {
     include: [
       {
         model: Test,
-        attributes: ['id', 'name', 'sortOrder'],
+        attributes: ['id', 'name', 'sortOrder', 'ortPart'],
         separate: true,
         order: [['sortOrder', 'ASC'], ['id', 'ASC']],
         include: [{ model: Question, attributes: ['id'] }],
@@ -342,6 +343,7 @@ router.post('/tests', async (req, res) => {
     hasExplanations: req.body.hasExplanations !== false,
     isActive: req.body.isActive !== false,
     sortOrder: req.body.sortOrder || 0,
+    ortPart: normalizeOrtPart(req.body.ortPart) || inferOrtPart(name),
   });
   res.json({ test });
 });
@@ -353,6 +355,9 @@ router.put('/tests/:id', async (req, res) => {
   if (patch.name != null) {
     patch.name = String(patch.name).trim();
     if (!patch.name) return res.status(400).json({ error: 'Название обязательно' });
+  }
+  if (patch.ortPart !== undefined) {
+    patch.ortPart = normalizeOrtPart(patch.ortPart);
   }
   await test.update(patch);
   res.json({ test });

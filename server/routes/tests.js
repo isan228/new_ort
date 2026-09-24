@@ -17,6 +17,8 @@ const {
   publicQuestionShape,
   publicQuestionWithCorrect,
 } = require('../utils/ortLinkedQuestions');
+const { scoreAnswers } = require('../utils/ortScoring');
+const { previewMainExam, assembleMainExam } = require('../utils/buildMainExam');
 
 const router = express.Router();
 
@@ -53,19 +55,108 @@ async function loadQuestionsForTest(testId, extraWhere = {}) {
   });
 }
 
+function serializeSubjectForStudent(subject) {
+  const json = subject.toJSON();
+  const tests = (json.Tests || [])
+    .map((test) => {
+      const questionCount = (test.Questions || []).length;
+      const { Questions, ...rest } = test;
+      return { ...rest, questionCount };
+    })
+    .filter((test) => test.questionCount > 0);
+  delete json.Tests;
+  delete json.tests;
+  return { ...json, Tests: tests };
+}
+
+async function gradeSubmission({ userId, testId, answers, durationSec, questionMode, examType }) {
+  const ids = (answers || []).map((item) => item.questionId).filter(Boolean);
+  const questions = await Question.findAll({
+    where: { id: { [Op.in]: ids.length ? ids : [0] }, isActive: true },
+    include: [
+      { model: Answer },
+      { model: QuestionTag },
+    ],
+    order: [['sortOrder', 'ASC'], ['id', 'ASC'], [Answer, 'sortOrder', 'ASC']],
+  });
+  const tests = await Test.findAll({
+    where: { id: [...new Set(questions.map((q) => q.testId))] },
+  });
+  const testById = new Map(tests.map((row) => [row.id, row]));
+  const byId = new Map(questions.map((q) => [q.id, q]));
+
+  let score = 0;
+  const reviewed = (answers || []).map((item) => {
+    const q = byId.get(item.questionId);
+    const correct = q
+      ? (q.Answers || []).some((a) => a.id === item.answerId && a.isCorrect)
+      : false;
+    if (correct) score += 1;
+    const part = q ? testById.get(q.testId)?.ortPart : null;
+    return {
+      questionId: item.questionId,
+      answerId: item.answerId,
+      correct,
+      ortPart: part || null,
+      question: q ? publicQuestionWithCorrect(q) : null,
+    };
+  });
+
+  const scoring = scoreAnswers(reviewed, examType);
+  const result = await TestResult.create({
+    userId,
+    testId,
+    score,
+    officialScore: scoring.officialScore,
+    scoreBreakdown: {
+      examType: examType || scoring.examType,
+      maxScore: scoring.maxScore,
+      blocks: scoring.breakdown,
+    },
+    total: reviewed.length,
+    questionMode: questionMode || 'all',
+    answers: reviewed.map((row) => ({
+      questionId: row.questionId,
+      answerId: row.answerId,
+      correct: row.correct,
+      ortPart: row.ortPart,
+    })),
+    durationSec: durationSec || null,
+  });
+
+  return {
+    resultId: result.id,
+    score,
+    officialScore: scoring.officialScore,
+    maxScore: scoring.maxScore,
+    breakdown: scoring.breakdown,
+    examType: examType || scoring.examType,
+    total: reviewed.length,
+    accuracy: reviewed.length ? Math.round((score / reviewed.length) * 100) : 0,
+    items: reviewed,
+  };
+}
+
 router.get('/ort/dashboard', async (req, res) => {
   const subjects = await Subject.findAll({
     where: { isActive: true },
-    include: [{ model: Test, where: { isActive: true }, required: false }],
+    include: [{
+      model: Test,
+      where: { isActive: true },
+      required: false,
+      include: [{ model: Question, attributes: ['id'], where: { isActive: true }, required: false }],
+    }],
     order: [['sortOrder', 'ASC'], ['id', 'ASC'], [Test, 'sortOrder', 'ASC']],
   });
 
   const grouped = { main: [], state_lang: [], subject: [] };
   for (const subject of subjects) {
-    const bucket = grouped[subject.trackGroup] || grouped.subject;
-    bucket.push(subject);
+    const row = serializeSubjectForStudent(subject);
+    if (!row.Tests.length) continue;
+    const bucket = grouped[row.trackGroup] || grouped.subject;
+    bucket.push(row);
   }
-  res.json(grouped);
+  res.json({ ...grouped, mainExam: await previewMainExam() });
 });
 
 router.get('/ort/welcome-stats', async (req, res) => {
@@ -114,6 +205,8 @@ router.get('/ort/history', async (req, res) => {
     history: rows.map((r) => ({
       id: r.id,
       score: r.score,
+      officialScore: r.officialScore,
+      maxScore: r.scoreBreakdown?.maxScore || null,
       total: r.total,
       accuracy: r.total ? Math.round((r.score / r.total) * 100) : 0,
       questionMode: r.questionMode,
@@ -231,9 +324,55 @@ router.post('/ort/custom-test/questions', async (req, res) => {
   });
 
   res.json({
-    test: { id: test.id, name: test.name, hasExplanations: test.hasExplanations },
+    test: { id: test.id, name: test.name, hasExplanations: test.hasExplanations, ortPart: test.ortPart },
     questions: payload,
   });
+});
+
+router.get('/ort/main-exam', async (req, res) => {
+  res.json(await previewMainExam());
+});
+
+router.post('/ort/main-exam', async (req, res) => {
+  const { questions, preview, anchor } = await assembleMainExam();
+  if (!questions.length) {
+    return res.status(400).json({ error: 'В основном тесте пока нет вопросов. Загрузите разделы в админке.' });
+  }
+  const randomize = req.body?.randomizeAnswers !== false;
+  const payload = questions.map((q) => {
+    const shaped = publicQuestionShape(q);
+    if (randomize) shaped.answers = shuffle(shaped.answers);
+    return shaped;
+  });
+  res.json({
+    examType: 'main',
+    test: {
+      id: anchor?.id || null,
+      name: 'Основной тест ОРТ',
+      hasExplanations: true,
+    },
+    questions: payload,
+    ...preview,
+  });
+});
+
+router.post('/ort/check', async (req, res) => {
+  const { answers = [], durationSec, questionMode, testId, examType } = req.body || {};
+  const ids = answers.map((item) => item.questionId).filter(Boolean);
+  const first = ids.length
+    ? await Question.findOne({ where: { id: ids[0] } })
+    : null;
+  const resolvedTestId = Number(testId) || first?.testId;
+  if (!resolvedTestId) return res.status(400).json({ error: 'Нет вопросов для проверки' });
+  const payload = await gradeSubmission({
+    userId: req.user.id,
+    testId: resolvedTestId,
+    answers,
+    durationSec,
+    questionMode: questionMode || (examType === 'main' ? 'main_exam' : 'all'),
+    examType,
+  });
+  res.json(payload);
 });
 
 router.get('/ort/flashcards', async (req, res) => {
@@ -273,48 +412,16 @@ router.get('/tests/:id/questions', requireOrtSubscription, async (req, res) => {
 });
 
 router.post('/tests/:id/check', requireOrtSubscription, async (req, res) => {
-  const { answers = [], durationSec, questionMode } = req.body || {};
-  const questions = await loadQuestionsForTest(req.params.id, {
-    id: { [Op.in]: answers.map((a) => a.questionId).filter(Boolean) },
-  });
-  const byId = new Map(questions.map((q) => [q.id, q]));
-
-  let score = 0;
-  const reviewed = answers.map((item) => {
-    const q = byId.get(item.questionId);
-    const correct = q
-      ? (q.Answers || []).some((a) => a.id === item.answerId && a.isCorrect)
-      : false;
-    if (correct) score += 1;
-    return {
-      questionId: item.questionId,
-      answerId: item.answerId,
-      correct,
-      question: q ? publicQuestionWithCorrect(q) : null,
-    };
-  });
-
-  const result = await TestResult.create({
+  const { answers = [], durationSec, questionMode, examType } = req.body || {};
+  const payload = await gradeSubmission({
     userId: req.user.id,
     testId: Number(req.params.id),
-    score,
-    total: reviewed.length,
-    questionMode: questionMode || 'all',
-    answers: reviewed.map((r) => ({
-      questionId: r.questionId,
-      answerId: r.answerId,
-      correct: r.correct,
-    })),
-    durationSec: durationSec || null,
+    answers,
+    durationSec,
+    questionMode,
+    examType,
   });
-
-  res.json({
-    resultId: result.id,
-    score,
-    total: reviewed.length,
-    accuracy: reviewed.length ? Math.round((score / reviewed.length) * 100) : 0,
-    items: reviewed,
-  });
+  res.json(payload);
 });
 
 module.exports = router;

@@ -29,7 +29,11 @@ export default function History() {
             {rows.map((r) => (
               <tr key={r.id}>
                 <td>{new Date(r.createdAt).toLocaleString(locale)}</td>
-                <td>{r.score}/{r.total}</td>
+                <td>
+                  {r.officialScore != null
+                    ? `${String(r.officialScore).replace('.', ',')}${r.maxScore ? ` / ${r.maxScore}` : ''}`
+                    : `${r.score}/${r.total}`}
+                </td>
                 <td>{r.accuracy}%</td>
                 <td>{r.questionMode}</td>
               </tr>

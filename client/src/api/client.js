@@ -59,6 +59,15 @@ export const ortApi = {
     method: 'POST',
     body: JSON.stringify(body),
   }),
+  mainExamPreview: () => api('/api/tests/ort/main-exam'),
+  mainExam: (body = {}) => api('/api/tests/ort/main-exam', {
+    method: 'POST',
+    body: JSON.stringify(body),
+  }),
+  checkExam: (body) => api('/api/tests/ort/check', {
+    method: 'POST',
+    body: JSON.stringify(body),
+  }),
 };
 
 export const payApi = {

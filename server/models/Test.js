@@ -8,6 +8,7 @@ const Test = sequelize.define('Test', {
   hasExplanations: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: true },
   isActive: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: true },
   sortOrder: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 0 },
+  ortPart: { type: DataTypes.STRING, allowNull: true },
 });
 
 module.exports = { Test };
