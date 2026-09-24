@@ -1,47 +1,60 @@
 import { useEffect, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { ortApi } from '../api/client';
-import { isOrtGate } from '../context/AuthContext';
-import { useBank } from '../context/BankContext';
+import { Link } from 'react-router-dom';
+import { authApi } from '../api/client';
 import { useLang } from '../context/LangContext';
 
+function formatOrt(value) {
+  if (value == null || Number.isNaN(Number(value))) return '—';
+  return String(value).replace('.', ',');
+}
+
 export default function History() {
-  const { bank } = useBank();
   const { t, locale } = useLang();
-  const navigate = useNavigate();
   const [rows, setRows] = useState([]);
+  const [error, setError] = useState('');
 
   useEffect(() => {
-    if (!bank?.testId) return;
-    ortApi.history(bank.testId)
+    authApi.stats()
       .then((d) => setRows(d.history || []))
-      .catch((err) => { if (isOrtGate(err)) navigate('/app/premium'); });
-  }, [bank, navigate]);
+      .catch((err) => setError(err.message));
+  }, []);
 
   return (
     <div>
       <h1>{t('history.title')}</h1>
-      {!bank?.testId && <p className="muted">{t('history.pick')} <Link to="/app/tests">{t('history.tests')}</Link>.</p>}
+      <p className="muted">{t('stats.pastLead')}</p>
+      {error && <p className="err">{error}</p>}
       <div className="table-scroll">
         <table className="table">
-          <thead><tr><th>{t('history.date')}</th><th>{t('history.score')}</th><th>{t('history.acc')}</th><th>{t('history.mode')}</th></tr></thead>
+          <thead>
+            <tr>
+              <th>{t('history.date')}</th>
+              <th>{t('history.score')}</th>
+              <th>{t('history.acc')}</th>
+              <th>{t('stats.kind')}</th>
+            </tr>
+          </thead>
           <tbody>
             {rows.map((r) => (
               <tr key={r.id}>
                 <td>{new Date(r.createdAt).toLocaleString(locale)}</td>
                 <td>
                   {r.officialScore != null
-                    ? `${String(r.officialScore).replace('.', ',')}${r.maxScore ? ` / ${r.maxScore}` : ''}`
+                    ? `${formatOrt(r.officialScore)}${r.maxScore ? ` / ${r.maxScore}` : ''}`
                     : `${r.score}/${r.total}`}
                 </td>
                 <td>{r.accuracy}%</td>
-                <td>{r.questionMode}</td>
+                <td>{r.examType === 'main' ? t('sim.title') : (r.testName || t('results.session'))}</td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
-      {!rows.length && <div className="empty">{t('history.empty')}</div>}
+      {!rows.length && (
+        <div className="empty">
+          {t('history.empty')} <Link to="/app/tests">{t('tests.start')}</Link>
+        </div>
+      )}
     </div>
   );
 }

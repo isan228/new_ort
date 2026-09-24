@@ -3,6 +3,7 @@ const express = require('express');
 const { Op } = require('sequelize');
 const { SubscriptionPlan, Payment, User } = require('../models');
 const { requireAuth, publicUserWithPlan } = require('../middleware/auth');
+const { maybeGrantReferralBonus } = require('../utils/referral');
 const { createPayment, isFinikConfigured, webhookUrl, redirectUrl, trimEnv } = require('../utils/finikClient');
 const {
   parseWebhookBody,
@@ -34,6 +35,7 @@ async function applyPaidSubscription(payment) {
   await user.save();
   payment.status = 'paid';
   await payment.save();
+  await maybeGrantReferralBonus(user);
   return user;
 }
 

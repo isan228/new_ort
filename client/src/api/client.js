@@ -39,6 +39,9 @@ export const authApi = {
   register: (body) => api('/api/auth/register', { method: 'POST', body: JSON.stringify(body) }),
   me: () => api('/api/auth/me'),
   updateMe: (body) => api('/api/auth/me', { method: 'PATCH', body: JSON.stringify(body) }),
+  referral: () => api('/api/auth/referral'),
+  stats: () => api('/api/auth/stats'),
+  ranking: (period = 'week') => api(`/api/auth/ranking?period=${period}`),
 };
 
 export const ortApi = {

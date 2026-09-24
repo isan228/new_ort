@@ -1,24 +1,24 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { payApi } from '../api/client';
+import { authApi, payApi } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import { useLang } from '../context/LangContext';
 import PlanPicker from '../components/PlanPicker';
 import { startCheckout } from '../lib/checkout';
-import { ACHIEVEMENTS, loadProgress } from '../lib/progress';
 
 export default function Profile() {
   const { user, setUser } = useAuth();
   const { t, locale } = useLang();
-  const p = loadProgress();
   const initial = (user?.name || 'У')[0];
   const [plans, setPlans] = useState([]);
+  const [stats, setStats] = useState(null);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const [selectedId, setSelectedId] = useState(user?.subscriptionPlanId || null);
 
   useEffect(() => {
     payApi.plans().then((d) => setPlans(d.plans || [])).catch((err) => setError(err.message));
+    authApi.stats().then(setStats).catch(() => setStats(null));
   }, []);
 
   const end = user?.subscriptionEndDate ? new Date(user.subscriptionEndDate) : null;
@@ -70,10 +70,10 @@ export default function Profile() {
       </div>
 
       <div className="grid-4" style={{ marginTop: 16 }}>
-        <div className="card stat"><b>{p.goalScore}+</b><span className="muted">{t('profile.goal')}</span></div>
-        <div className="card stat"><b>1284</b><span className="muted">{t('profile.questions')}</span></div>
-        <div className="card stat"><b>{p.streak}</b><span className="muted">{t('home.streak')}</span></div>
-        <div className="card stat"><b>{ACHIEVEMENTS.filter((a) => a.unlocked).length}</b><span className="muted">{t('profile.ach')}</span></div>
+        <div className="card stat"><b>{stats?.bestOfficial || 0}</b><span className="muted">{t('profile.best')}</span></div>
+        <div className="card stat"><b>{stats?.questions || 0}</b><span className="muted">{t('profile.questions')}</span></div>
+        <div className="card stat"><b>{stats?.streak || 0}</b><span className="muted">{t('home.streak')}</span></div>
+        <div className="card stat"><b>{stats?.achievementsOpen || 0}</b><span className="muted">{t('profile.ach')}</span></div>
       </div>
       <div style={{ marginTop: 16 }}><Link className="btn" to="/app/settings">{t('profile.settings')}</Link></div>
     </div>

@@ -14,16 +14,18 @@ export default function Register() {
   const [params] = useSearchParams();
   const [plans, setPlans] = useState([]);
   const [planId, setPlanId] = useState(() => Number(params.get('plan')) || null);
+  const ref = params.get('ref') || (typeof sessionStorage !== 'undefined' ? sessionStorage.getItem('ortRef') : '') || '';
   const [step, setStep] = useState(() => (params.get('plan') ? 'form' : 'plan'));
   const [form, setForm] = useState({ name: '', login: '', password: '', grade: 11, language: lang });
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
+    if (params.get('ref')) sessionStorage.setItem('ortRef', params.get('ref'));
     payApi.plans()
       .then((data) => setPlans(data.plans || []))
       .catch((err) => setError(err.message));
-  }, []);
+  }, [params]);
 
   const selected = plans.find((plan) => plan.id === planId) || null;
 
@@ -42,7 +44,7 @@ export default function Register() {
     setError('');
     setBusy(true);
     try {
-      await register({ ...form, language: lang, planId: selected.id });
+      await register({ ...form, language: lang, planId: selected.id, ref: ref || undefined });
       const result = await startCheckout(selected, { setUser });
       if (result === 'demo') navigate('/app');
     } catch (err) {

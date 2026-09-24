@@ -12,6 +12,9 @@ const User = sequelize.define('User', {
   grade: { type: DataTypes.INTEGER, allowNull: true },
   subscriptionEndDate: { type: DataTypes.DATE, allowNull: true },
   subscriptionPlanId: { type: DataTypes.INTEGER, allowNull: true },
+  referralCode: { type: DataTypes.STRING, allowNull: true, unique: true },
+  referredById: { type: DataTypes.INTEGER, allowNull: true },
+  referralBonusGranted: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },
 });
 
 module.exports = { User };

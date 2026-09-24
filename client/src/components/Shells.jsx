@@ -12,6 +12,7 @@ const SIDE = [
   ['/app/errors', 'nav.errors'],
   ['/app/favorites', 'nav.favorites'],
   ['/app/stats', 'nav.stats'],
+  ['/app/history', 'nav.history'],
   ['/app/ranking', 'nav.ranking'],
   ['/app/achievements', 'nav.achievements'],
   ['/app/referral', 'nav.referral'],
