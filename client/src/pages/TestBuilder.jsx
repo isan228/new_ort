@@ -113,20 +113,16 @@ export default function TestBuilder() {
   return (
     <div className="builder-page">
       <div className="builder-head">
-        <div>
-          <h1>{t('builder.title')}</h1>
-          <p className="muted">{t('builder.leadNew')}</p>
-        </div>
-        <Link className="btn ghost" to="/app/tests">{t('tests.title')}</Link>
-      </div>
-
-      <div className="card builder-card">
-        <h3>{t('builder.format')}</h3>
+        <h1>{t('builder.title')}</h1>
         <div className="builder-switch">
           <button type="button" className={!timed ? 'on' : ''} onClick={() => setTimed(false)}>{t('builder.practice')}</button>
           <button type="button" className={timed ? 'on' : ''} onClick={() => setTimed(true)}>{t('builder.timed')}</button>
         </div>
-        <div className="grid-3" style={{ marginTop: 16 }}>
+        <Link className="btn ghost sm" to="/app/tests">{t('tests.title')}</Link>
+      </div>
+
+      <div className="card builder-card">
+        <div className="builder-top">
           <label className="field">
             <span>{t('builder.name')}</span>
             <input value={name} onChange={(e) => setName(e.target.value)} placeholder={t('builder.namePh')} />
@@ -140,7 +136,6 @@ export default function TestBuilder() {
               value={questionCount}
               onChange={(e) => setQuestionCount(Number(e.target.value) || 1)}
             />
-            <small className="muted">{t('builder.available', { n: available })}</small>
           </label>
           <label className="field">
             <span>{t('builder.time')}</span>
@@ -152,14 +147,10 @@ export default function TestBuilder() {
               disabled={!timed}
               onChange={(e) => setMinutes(Math.max(0, Number(e.target.value) || 0))}
             />
-            <small className="muted">{timed ? t('builder.minutesHint') : t('builder.noTime')}</small>
           </label>
+          <div className="builder-avail muted">{t('builder.available', { n: available })}</div>
         </div>
-      </div>
-
-      <div className="card builder-card">
-        <h3>{t('builder.status')}</h3>
-        <div className="builder-checks">
+        <div className="builder-status">
           {MODE_KEYS.map((key) => (
             <label key={key} className={`builder-check ${modes.includes(key) ? 'on' : ''}`}>
               <span>
@@ -170,7 +161,6 @@ export default function TestBuilder() {
             </label>
           ))}
         </div>
-        <p className="muted" style={{ margin: '10px 0 0' }}>{t('builder.statusHint')}</p>
       </div>
 
       <div className="builder-cols">
@@ -182,11 +172,11 @@ export default function TestBuilder() {
               <button type="button" className="btn ghost sm" onClick={() => setAllSections(false)}>{t('builder.allOff')}</button>
             </div>
           </div>
-          {!groups.length && <p className="empty">{t('builder.noSections')}</p>}
-          {groups.map((group) => (
-            <div key={group.id} className="builder-group">
-              <div className="muted">{group.name}</div>
-              <div className="builder-checks">
+          <div className="builder-scroll">
+            {!groups.length && <p className="empty">{t('builder.noSections')}</p>}
+            {groups.map((group) => (
+              <div key={group.id} className="builder-group">
+                <div className="builder-group-title">{group.name}</div>
                 {group.sections.map((row) => (
                   <label key={row.id} className={`builder-check ${testIds.includes(row.id) ? 'on' : ''}`}>
                     <span>
@@ -201,8 +191,8 @@ export default function TestBuilder() {
                   </label>
                 ))}
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
 
         <div className="card builder-card">
@@ -213,8 +203,8 @@ export default function TestBuilder() {
               <button type="button" className="btn ghost sm" onClick={() => setAllTags(false)}>{t('builder.allOff')}</button>
             </div>
           </div>
-          {!tags.length && <p className="empty">{t('builder.noTags')}</p>}
-          <div className="builder-checks">
+          <div className="builder-scroll builder-tags">
+            {!tags.length && <p className="empty">{t('builder.noTags')}</p>}
             {tags.map((tag) => (
               <label key={tag.id} className={`builder-check ${tagIds.includes(tag.id) ? 'on' : ''}`}>
                 <span>
@@ -234,7 +224,7 @@ export default function TestBuilder() {
 
       {error && <p className="err">{error}</p>}
       <div className="builder-start">
-        <button className="btn lg" type="button" disabled={busy || available < 1} onClick={start}>
+        <button className="btn" type="button" disabled={busy || available < 1} onClick={start}>
           {t('builder.start')}
         </button>
         <span className="muted">{t('builder.summary', { q: questionCount, m: timed ? t('sim.minutes', { n: minutes }) : t('builder.noTime') })}</span>
