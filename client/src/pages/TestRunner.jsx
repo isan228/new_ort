@@ -11,10 +11,14 @@ function readSimState() {
   try { return JSON.parse(sessionStorage.getItem(SIM_KEY) || 'null'); } catch { return null; }
 }
 
+const LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+
 function formatClock(sec) {
-  const mm = String(Math.floor(sec / 60)).padStart(2, '0');
-  const ss = String(sec % 60).padStart(2, '0');
-  return `${mm}:${ss}`;
+  const safe = Math.max(0, Number(sec) || 0);
+  const hh = Math.floor(safe / 3600);
+  const mm = String(Math.floor((safe % 3600) / 60)).padStart(2, '0');
+  const ss = String(safe % 60).padStart(2, '0');
+  return hh ? `${hh}:${mm}:${ss}` : `${mm}:${ss}`;
 }
 
 export default function TestRunner() {
@@ -50,7 +54,9 @@ export default function TestRunner() {
     return Math.round(minutes * 60);
   });
   const timed = left != null;
-  const examMode = !!session?.examMode;
+  const [elapsed, setElapsed] = useState(() => (
+    session?.startedAt ? Math.max(0, Math.floor((Date.now() - session.startedAt) / 1000)) : 0
+  ));
   const finishing = useRef(false);
   const pickedRef = useRef(picked);
   pickedRef.current = picked;
@@ -60,10 +66,18 @@ export default function TestRunner() {
   const sectionEnd = section ? section.start + section.count : (session?.questions?.length || 0);
 
   useEffect(() => {
-    if (!session?.questions || phase !== 'running' || left == null) return undefined;
-    const timer = setInterval(() => setLeft((s) => Math.max(0, s - 1)), 1000);
+    if (!session?.questions || phase !== 'running') return undefined;
+    const timer = setInterval(() => {
+      if (left != null) setLeft((s) => Math.max(0, s - 1));
+      if (session.startedAt) setElapsed(Math.max(0, Math.floor((Date.now() - session.startedAt) / 1000)));
+    }, 1000);
     return () => clearInterval(timer);
   }, [session, phase, sectionIdx, left == null]);
+
+  useEffect(() => {
+    document.body.classList.add('exam-open');
+    return () => document.body.classList.remove('exam-open');
+  }, []);
 
   useEffect(() => {
     if (!simulation) return;
@@ -99,7 +113,7 @@ export default function TestRunner() {
       sessionStorage.removeItem(SIM_KEY);
       sessionStorage.setItem('ortResult', JSON.stringify({
         ...data,
-        examMode,
+        examMode: !!session?.examMode,
         simulation,
         bank: bank?.name || session.test?.name,
       }));
@@ -136,132 +150,147 @@ export default function TestRunner() {
     else finish();
   }, [left]);
 
-  if (!session?.questions?.length) {
-    return <p>{t('runner.empty')} <Link to="/app/tests">{t('runner.collect')}</Link>.</p>;
-  }
-
-  const questions = session.questions;
-  const q = questions[index];
-  const localIndex = index - sectionStart;
-  const warn = left != null && left <= 60;
-
-  function skip() {
-    const p = loadProgress();
-    p.skipped = [...new Set([...(p.skipped || []), q.id])];
-    saveProgress(p);
-    if (index < sectionEnd - 1) setIndex(index + 1);
-  }
-
   function goInSection(next) {
     if (next < sectionStart || next >= sectionEnd) return;
     setIndex(next);
   }
 
+  function skip() {
+    if (!session?.questions?.[index]) return;
+    const p = loadProgress();
+    p.skipped = [...new Set([...(p.skipped || []), session.questions[index].id])];
+    saveProgress(p);
+    if (index < sectionEnd - 1) setIndex(index + 1);
+  }
+
+  useEffect(() => {
+    function onKey(e) {
+      if (phase !== 'running') return;
+      if (e.key === 'ArrowLeft') goInSection(index - 1);
+      if (e.key === 'ArrowRight') {
+        if (index < sectionEnd - 1) goInSection(index + 1);
+      }
+    }
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [index, phase, sectionEnd, sectionStart]);
+
+  if (!session?.questions?.length) {
+    return (
+      <div className="exam-empty">
+        <p>{t('runner.empty')} <Link to="/app/tests">{t('runner.collect')}</Link>.</p>
+      </div>
+    );
+  }
+
+  const questions = session.questions;
+  const q = questions[index];
+  const localIndex = index - sectionStart;
+  const total = section?.count || questions.length;
+  const warn = left != null && left <= 60;
+  const lastInSection = index >= sectionEnd - 1;
+  const endAction = lastInSection && simulation && sectionIdx < sections.length - 1
+    ? { label: t('sim.endSection'), run: closeSection }
+    : lastInSection
+      ? { label: t('runner.end'), run: finish }
+      : { label: t('runner.next'), run: () => goInSection(index + 1) };
+
   if (phase === 'gate' && section) {
     const next = sections[sectionIdx + 1];
     return (
-      <div className="card exam-gate">
-        <span className="badge">{t('sim.sectionClosed')}</span>
-        <h1>{section.title}</h1>
-        <p>{t('sim.gateText')}</p>
-        {next && (
-          <p>
-            <b>{t('sim.nextSection')}</b>
-            {' '}
-            {next.title}
-            {' · '}
-            {t('sim.minutes', { n: next.minutes })}
-            {' · '}
-            {t('sim.qCount', { n: next.count })}
-          </p>
-        )}
-        <button className="btn" type="button" onClick={openNextSection}>
-          {t('sim.continue')}
-        </button>
+      <div className="exam-lab">
+        <div className="exam-top"><b>{t('sim.sectionClosed')}</b></div>
+        <div className="exam-gate-wrap">
+          <div className="card exam-gate">
+            <h1>{section.title}</h1>
+            <p>{t('sim.gateText')}</p>
+            {next && (
+              <p>
+                <b>{t('sim.nextSection')}</b>
+                {' '}
+                {next.title}
+                {' · '}
+                {t('sim.minutes', { n: next.minutes })}
+                {' · '}
+                {t('sim.qCount', { n: next.count })}
+              </p>
+            )}
+            <button className="btn" type="button" onClick={openNextSection}>{t('sim.continue')}</button>
+          </div>
+        </div>
+        <div className="exam-bot" />
       </div>
     );
   }
 
   return (
-    <div>
-      <div className="row" style={{ justifyContent: 'space-between', alignItems: 'flex-start' }}>
-        <div>
-          <div className="muted">{simulation ? t('sim.title') : (bank?.name || session.test?.name)}</div>
-          {simulation && section && (
-            <div className="exam-section-name">
-              {t('sim.sectionN', { a: sectionIdx + 1, b: sections.length })}
-              {' · '}
-              {section.title}
-            </div>
-          )}
-          <b>
-            {simulation
-              ? t('runner.q', { a: localIndex + 1, b: section?.count || questions.length })
-              : t('runner.q', { a: index + 1, b: questions.length })}
-          </b>
-        </div>
-        {timed && (
-          <span className={`badge ${warn ? 'bad' : 'brand'}`}>
-            {simulation ? t('sim.sectionLeft', { time: formatClock(left) }) : t('runner.left', { time: formatClock(left) })}
-          </span>
-        )}
-      </div>
-      {simulation && (
-        <div className="exam-section-pips">
-          {sections.map((item, i) => (
-            <span key={item.key} className={`exam-pip ${i === sectionIdx ? 'on' : ''} ${i < sectionIdx ? 'done' : ''}`}>
-              {item.title}
-            </span>
-          ))}
-        </div>
-      )}
-      <div className="progress" style={{ margin: '12px 0 20px' }}>
-        <i style={{ width: `${((localIndex + 1) / (section?.count || questions.length)) * 100}%` }} />
-      </div>
-      {error && <p className="err">{error}</p>}
-      <p className="q-text">{q.text}</p>
-      <div style={{ display: 'grid', gap: 10, margin: '18px 0' }}>
-        {q.answers.map((a) => (
-          <button
-            key={a.id}
-            type="button"
-            className={`answer ${picked[q.id] === a.id ? 'on' : ''}`}
-            onClick={() => setPicked((prev) => ({ ...prev, [q.id]: a.id }))}
-          >
-            {a.text}
-          </button>
-        ))}
-      </div>
-      {!examMode && picked[q.id] && <p className="muted">{t('runner.saved')}</p>}
-      <div className="row test-actions" style={{ marginBottom: 16 }}>
-        <button className="btn ghost" type="button" disabled={index <= sectionStart} onClick={() => goInSection(index - 1)}>
-          {t('runner.back')}
+    <div className="exam-lab">
+      <header className="exam-top">
+        <b className="exam-item">{t('runner.item', { a: localIndex + 1, b: total })}</b>
+        {simulation && section && <span className="exam-top-sec">{section.title}</span>}
+        <button
+          type="button"
+          className={`exam-top-btn ${flagged[q.id] ? 'on' : ''}`}
+          onClick={() => setFlagged((f) => ({ ...f, [q.id]: !f[q.id] }))}
+        >
+          {flagged[q.id] ? t('runner.unflag') : t('runner.mark')}
         </button>
-        <button className="btn ghost" type="button" onClick={skip}>{t('runner.skip')}</button>
-        <button className="btn purple" type="button" onClick={() => setFlagged((f) => ({ ...f, [q.id]: !f[q.id] }))}>
-          {flagged[q.id] ? t('runner.unflag') : t('runner.flag')}
+        <span className="exam-top-spacer" />
+        <button type="button" className="exam-top-btn" disabled={index <= sectionStart} onClick={() => goInSection(index - 1)}>
+          {t('runner.prev')}
         </button>
+        <button type="button" className="exam-top-btn" onClick={endAction.run}>{endAction.label}</button>
         {!simulation && (
-          <button className="btn ghost" type="button" onClick={() => toggleFavorite(q.id)}>{t('runner.fav')}</button>
+          <button type="button" className="exam-top-btn" onClick={() => toggleFavorite(q.id)}>{t('runner.fav')}</button>
         )}
-        {index < sectionEnd - 1
-          ? <button className="btn" type="button" onClick={() => goInSection(index + 1)}>{t('runner.next')}</button>
-          : simulation && sectionIdx < sections.length - 1
-            ? <button className="btn" type="button" onClick={closeSection}>{t('sim.endSection')}</button>
-            : <button className="btn" type="button" onClick={finish}>{t('runner.finish')}</button>}
+        {!lastInSection && (
+          <button type="button" className="exam-top-btn" onClick={skip}>{t('runner.skip')}</button>
+        )}
+      </header>
+
+      <div className="exam-body">
+        <aside className="exam-side">
+          {questions.slice(sectionStart, sectionEnd).map((item, i) => {
+            const abs = sectionStart + i;
+            let cls = 'exam-num';
+            if (abs === index) cls += ' on';
+            else if (picked[item.id]) cls += ' done';
+            if (flagged[item.id]) cls += ' flag';
+            return (
+              <button key={item.id} type="button" className={cls} onClick={() => goInSection(abs)}>
+                {i + 1}
+              </button>
+            );
+          })}
+        </aside>
+        <main className="exam-main">
+          {error && <p className="err">{error}</p>}
+          <p className="exam-stem">{q.text}</p>
+          <div className="exam-opts">
+            {q.answers.map((a, i) => (
+              <button
+                key={a.id}
+                type="button"
+                className={`exam-opt ${picked[q.id] === a.id ? 'on' : ''}`}
+                onClick={() => setPicked((prev) => ({ ...prev, [q.id]: a.id }))}
+              >
+                <i className="exam-radio" />
+                <span><b>{LETTERS[i]}.</b> {a.text}</span>
+              </button>
+            ))}
+          </div>
+        </main>
       </div>
-      <div className="q-nav">
-        {questions.slice(sectionStart, sectionEnd).map((item, i) => {
-          const abs = sectionStart + i;
-          let cls = 'q-dot';
-          if (abs === index) cls += ' on';
-          else if (picked[item.id]) cls += ' done';
-          if (flagged[item.id]) cls += ' flag';
-          return (
-            <button key={item.id} type="button" className={cls} onClick={() => goInSection(abs)}>{i + 1}</button>
-          );
-        })}
-      </div>
+
+      <footer className="exam-bot">
+        {timed ? (
+          <span className={warn ? 'warn' : ''}>{t('runner.remain', { time: formatClock(left) })}</span>
+        ) : (
+          <span>{t('builder.noTime')}</span>
+        )}
+        <span className="exam-bot-spacer" />
+        <span>{t('runner.elapsed', { time: formatClock(elapsed) })}</span>
+      </footer>
     </div>
   );
 }

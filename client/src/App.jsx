@@ -105,7 +105,7 @@ export default function App() {
       <Route path="/app/tests" element={<AppLayout><Tests /></AppLayout>} />
       <Route path="/app/exam" element={<AppLayout><ExamBriefing /></AppLayout>} />
       <Route path="/app/create" element={<AppLayout><TestBuilder /></AppLayout>} />
-      <Route path="/app/test" element={<AppLayout><TestRunner /></AppLayout>} />
+      <Route path="/app/test" element={<Private><TestRunner /></Private>} />
       <Route path="/app/results" element={<AppLayout><TestResults /></AppLayout>} />
       <Route path="/app/errors" element={<AppLayout><Errors /></AppLayout>} />
       <Route path="/app/favorites" element={<AppLayout><Favorites /></AppLayout>} />
