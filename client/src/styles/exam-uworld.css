@@ -419,7 +419,7 @@ body.usmle-test-session {
     grid-template-columns: 1fr;
     grid-template-rows: minmax(0, 1fr) 48px;
   }
-  .usmle-qnav {
+  .test-session-layout .usmle-qnav {
     order: 2;
     width: 100%;
     height: 48px;
@@ -430,10 +430,296 @@ body.usmle-test-session {
     border-radius: 0;
     padding: 0;
   }
-  .usmle-qnav-title { display: none; }
-  .usmle-qnav-list { flex-direction: row; height: 100%; }
-  .usmle-qnav-btn { width: 42px; height: 48px; min-height: 48px; }
-  .usmle-qnav-dot { display: none; }
+  .test-session-layout .usmle-qnav-title { display: none; }
+  .test-session-layout .usmle-qnav-list { flex-direction: row; height: 100%; }
+  .test-session-layout .usmle-qnav-btn { width: 42px; height: 48px; min-height: 48px; }
+  .test-session-layout .usmle-qnav-dot { display: none; }
   .uworld-tb-tools .uworld-tb-tool:nth-child(n+3) { display: none; }
   .test-content { border-radius: 0; border: 0; padding: 1rem; }
+
+  body.uworld-review-page .uworld-review-qnav {
+    order: 0;
+    display: block;
+    height: auto;
+    overflow-x: hidden;
+    overflow-y: auto;
+  }
+  body.uworld-review-page .uworld-review-qnav .usmle-qnav-list {
+    flex-direction: column;
+    height: auto;
+  }
+  body.uworld-review-page .uworld-review-qnav .usmle-qnav-btn {
+    width: 100%;
+    height: auto;
+    min-height: 42px;
+  }
+  body.uworld-review-page .uworld-review-qnav .usmle-qnav-dot {
+    display: block;
+  }
 }
+/* ——— UWorld review (split explanation) ——— */
+body.uworld-review-page {
+  margin: 0;
+  min-height: 100vh;
+  background: #e8edf2;
+  overflow: hidden;
+}
+body.uworld-review-page.usmle-test-session {
+  padding-bottom: 0;
+}
+
+a.uworld-tb-tool,
+a.uworld-tb-nav-btn,
+a.uworld-sf-tool {
+  text-decoration: none;
+  color: inherit;
+}
+
+.uworld-tb-end {
+  background: #dc2626 !important;
+  border-radius: 0.35rem;
+  min-width: 48px;
+  color: #fff !important;
+}
+.uworld-tb-end:hover { background: #b91c1c !important; }
+
+.uworld-sf-end {
+  background: #dc2626 !important;
+  color: #fff !important;
+  border-radius: 0.35rem;
+}
+.uworld-sf-end:hover { background: #b91c1c !important; }
+.uworld-sf-end svg { width: 1.05rem; height: 1.05rem; }
+
+.usmle-qnav-item.is-reviewed:not(.is-active) .usmle-qnav-dot {
+  border-color: #059669;
+  background: #059669;
+}
+
+.ort-review-root .uworld-review-shell {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 56px minmax(0, 1fr);
+  min-height: 0;
+  height: auto;
+}
+.uworld-review-shell.qnav-collapsed {
+  grid-template-columns: minmax(0, 1fr);
+}
+.uworld-review-shell.qnav-collapsed > .uworld-review-qnav {
+  display: none;
+}
+.uworld-review-qnav {
+  height: 100%;
+  max-height: none;
+  width: 56px;
+  position: relative;
+  border-radius: 0;
+  border: none;
+  border-right: 1px solid #d1d5db;
+  overflow-y: auto;
+  overflow-x: hidden;
+  background: #fff;
+}
+.uworld-review-qnav .usmle-qnav-list {
+  flex-direction: column;
+}
+.uworld-review-split {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  min-height: 0;
+  height: 100%;
+}
+.uworld-review-pane {
+  min-height: 0;
+  overflow: auto;
+  background: #fff;
+}
+.uworld-review-left {
+  border-right: 1px solid #d1d5db;
+  padding: 1rem 1.15rem 1.35rem;
+  display: flex;
+  flex-direction: column;
+}
+.uworld-review-right {
+  display: flex;
+  flex-direction: column;
+  background: #f8fafc;
+}
+.uworld-review-expl-head {
+  flex-shrink: 0;
+  padding: 0.55rem 1rem;
+  border-bottom: 1px solid #dbe3ec;
+  background: #eef3f8;
+  font-weight: 700;
+  color: #1e3a5f;
+}
+.uworld-review-expl-body {
+  flex: 1;
+  padding: 1rem 1.15rem 1.5rem;
+  overflow: auto;
+  font-size: 0.95rem;
+  line-height: 1.55;
+  color: #1f2937;
+  white-space: pre-wrap;
+}
+.uworld-review-no-expl {
+  color: #64748b;
+  margin: 0;
+}
+.uworld-review-stem {
+  margin-bottom: 1rem;
+  font-size: 0.98rem;
+  line-height: 1.6;
+  color: #111827;
+  white-space: pre-wrap;
+}
+.uworld-review-choices {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin-bottom: 1rem;
+}
+.uworld-review-choice {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.4rem;
+  padding: 0.45rem 0.55rem;
+  border-radius: 0.35rem;
+  border: 1px solid transparent;
+  font-size: 0.95rem;
+  line-height: 1.45;
+  color: #111827;
+}
+.uworld-review-choice.is-correct {
+  background: rgba(16, 185, 129, 0.1);
+  border-color: rgba(16, 185, 129, 0.35);
+}
+.uworld-review-choice.is-user-wrong {
+  background: rgba(220, 38, 38, 0.08);
+  border-color: rgba(220, 38, 38, 0.3);
+}
+.uworld-review-choice-mark {
+  width: 1rem;
+  flex-shrink: 0;
+  color: #059669;
+  font-weight: 700;
+}
+.uworld-review-choice.is-user-wrong .uworld-review-choice-mark {
+  color: #dc2626;
+}
+.uworld-review-choice-letter {
+  font-weight: 700;
+  flex-shrink: 0;
+}
+.uworld-review-choice-text { min-width: 0; }
+
+.uworld-review-resultbar {
+  margin-top: auto;
+  padding: 0.75rem 0.9rem;
+  border: 1px solid #93c5fd;
+  background: #eff6ff;
+  border-radius: 0.35rem;
+}
+.uworld-review-resultbar.is-ok {
+  border-color: #6ee7b7;
+  background: #ecfdf5;
+}
+.uworld-review-resultbar.is-bad {
+  border-color: #fca5a5;
+  background: #fef2f2;
+}
+.uworld-review-resultbar.is-omit {
+  border-color: #93c5fd;
+  background: #eff6ff;
+}
+.uworld-review-resultbar-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1.25rem;
+  align-items: baseline;
+  margin-bottom: 0.45rem;
+}
+.uworld-review-status {
+  font-weight: 800;
+  font-size: 1rem;
+  color: #1e3a5f;
+}
+.uworld-review-resultbar.is-ok .uworld-review-status { color: #047857; }
+.uworld-review-resultbar.is-bad .uworld-review-status { color: #b91c1c; }
+.uworld-review-correct-ans { color: #1f2937; }
+.uworld-review-resultbar-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem 1.1rem;
+  font-size: 0.88rem;
+  color: #374151;
+  font-weight: 600;
+}
+
+@media (max-width: 900px) {
+  body.uworld-review-page .uworld-review-shell {
+    grid-template-columns: 1fr;
+  }
+  body.uworld-review-page .uworld-review-qnav {
+    position: fixed;
+    left: 0;
+    top: var(--exam-topbar-h, 52px);
+    bottom: var(--exam-footer-h, 56px);
+    z-index: 95;
+    width: min(96px, 32vw);
+    height: auto;
+    max-height: none;
+    overflow-x: hidden;
+    overflow-y: auto;
+    border-right: 1px solid #334155;
+    transform: translateX(-105%);
+    transition: transform 0.2s ease;
+    background: #1e293b;
+  }
+  body.uworld-review-page .uworld-review-shell:not(.qnav-collapsed) > .uworld-review-qnav {
+    transform: translateX(0);
+    display: block;
+  }
+  body.uworld-review-page .uworld-review-shell.qnav-collapsed > .uworld-review-qnav {
+    display: block;
+    transform: translateX(-105%);
+  }
+  body.uworld-review-page .uworld-review-qnav .usmle-qnav-title { display: none; }
+  body.uworld-review-page .uworld-review-qnav .usmle-qnav-btn { color: #e2e8f0; }
+  body.uworld-review-page .uworld-review-split {
+    grid-template-columns: 1fr;
+    height: auto;
+  }
+  body.uworld-review-page .uworld-review-left {
+    border-right: none;
+    border-bottom: 1px solid #d1d5db;
+  }
+  body.uworld-review-page .uworld-review-right {
+    min-height: 45vh;
+  }
+}
+
+@media (max-width: 960px) and (min-width: 901px) {
+  .uworld-review-shell {
+    grid-template-columns: 56px 1fr;
+  }
+  .uworld-review-split {
+    grid-template-columns: 1fr;
+    height: auto;
+  }
+  .uworld-review-left {
+    border-right: none;
+    border-bottom: 1px solid #d1d5db;
+  }
+  .uworld-review-right { min-height: 50vh; }
+}
+
+[data-theme="dark"] .uworld-review-pane { background: #0e1730; color: #e5e7eb; }
+[data-theme="dark"] .uworld-review-right { background: #0b1220; }
+[data-theme="dark"] .uworld-review-expl-head { background: #152038; border-color: #243256; color: #93c5fd; }
+[data-theme="dark"] .uworld-review-left { border-color: #243256; }
+[data-theme="dark"] .uworld-review-stem,
+[data-theme="dark"] .uworld-review-choice,
+[data-theme="dark"] .uworld-review-expl-body { color: #e5e7eb; }
+[data-theme="dark"] .uworld-review-qnav { background: #101827; border-color: #243256; }

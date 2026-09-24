@@ -11,6 +11,7 @@ import ExamBriefing from './pages/ExamBriefing';
 import TestBuilder from './pages/TestBuilder';
 import TestRunner from './pages/TestRunner';
 import TestResults from './pages/TestResults';
+import TestReview from './pages/TestReview';
 import Errors from './pages/Errors';
 import Favorites from './pages/Favorites';
 import Flashcards from './pages/Flashcards';
@@ -107,7 +108,8 @@ export default function App() {
       <Route path="/app/create" element={<AppLayout><TestBuilder /></AppLayout>} />
       <Route path="/app/test" element={<Private><TestRunner /></Private>} />
       <Route path="/app/results" element={<AppLayout><TestResults /></AppLayout>} />
-      <Route path="/app/errors" element={<AppLayout><Errors /></AppLayout>} />
+      <Route path="/app/review" element={<Private><TestReview /></Private>} />
+      <Route path="/app/errors" element={<Private><Errors /></Private>} />
       <Route path="/app/favorites" element={<AppLayout><Favorites /></AppLayout>} />
       <Route path="/app/flashcards" element={<AppLayout><Flashcards /></AppLayout>} />
       <Route path="/app/stats" element={<AppLayout><Stats /></AppLayout>} />
