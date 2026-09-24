@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { NavLink, Link, useLocation, useNavigate } from 'react-router-dom';
+import { chatApi } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { useLang } from '../context/LangContext';
@@ -17,6 +18,7 @@ const SIDE = [
   ['/app/achievements', 'nav.achievements'],
   ['/app/referral', 'nav.referral'],
   ['/app/premium', 'nav.premium'],
+  ['/app/support', 'nav.support'],
   ['/app/settings', 'nav.settings'],
 ];
 
@@ -34,7 +36,38 @@ const ADMIN_SIDE = [
   [`${ADMIN_ROOT}/users`, 'admin.users'],
   [`${ADMIN_ROOT}/content`, 'admin.program'],
   [`${ADMIN_ROOT}/plans`, 'admin.plans'],
+  [`${ADMIN_ROOT}/chat`, 'admin.chat'],
 ];
+
+function useUnreadChat() {
+  const [unread, setUnread] = useState(0);
+
+  useEffect(() => {
+    let stop = false;
+    async function tick() {
+      try {
+        const data = await chatApi.unread();
+        if (!stop) setUnread(data.unread || 0);
+      } catch {
+        if (!stop) setUnread(0);
+      }
+    }
+    tick();
+    const id = setInterval(tick, 10000);
+    return () => { stop = true; clearInterval(id); };
+  }, []);
+
+  return unread;
+}
+
+function SideItem({ to, label, end, unread }) {
+  return (
+    <NavLink to={to} end={end} className={({ isActive }) => `side-link ${isActive ? 'active' : ''}`}>
+      <span>{label}</span>
+      {unread > 0 && <span className="nav-unread">{unread > 99 ? '99+' : unread}</span>}
+    </NavLink>
+  );
+}
 
 function useMenu() {
   const [open, setOpen] = useState(false);
@@ -92,6 +125,7 @@ export function AppShell({ children }) {
   const { t } = useLang();
   const navigate = useNavigate();
   const [open, setOpen] = useMenu();
+  const unread = useUnreadChat();
   const initial = (user?.name || 'У')[0].toUpperCase();
 
   return (
@@ -99,9 +133,7 @@ export function AppShell({ children }) {
       <aside className="sidebar">
         <BrandLogo to="/app" />
         {SIDE.map(([to, key]) => (
-          <NavLink key={to} to={to} end={to === '/app'} className={({ isActive }) => `side-link ${isActive ? 'active' : ''}`}>
-            {t(key)}
-          </NavLink>
+          <SideItem key={to} to={to} end={to === '/app'} label={t(key)} unread={to === '/app/support' ? unread : 0} />
         ))}
       </aside>
       <div className="app-main">
@@ -137,9 +169,7 @@ export function AppShell({ children }) {
         <BrandLogo to="/app" />
         <LangSwitch />
         {SIDE.map(([to, key]) => (
-          <NavLink key={to} to={to} end={to === '/app'} className={({ isActive }) => `side-link ${isActive ? 'active' : ''}`}>
-            {t(key)}
-          </NavLink>
+          <SideItem key={to} to={to} end={to === '/app'} label={t(key)} unread={to === '/app/support' ? unread : 0} />
         ))}
         <button type="button" className="side-link" onClick={() => { logout(); navigate('/'); }}>{t('common.logout')}</button>
       </Drawer>
@@ -203,15 +233,14 @@ export function AdminShell({ children }) {
   const { t } = useLang();
   const navigate = useNavigate();
   const [open, setOpen] = useMenu();
+  const unread = useUnreadChat();
 
   return (
     <div className="app-shell">
       <aside className="sidebar">
         <BrandLogo to={ADMIN_ROOT} />
         {ADMIN_SIDE.map(([to, key]) => (
-          <NavLink key={to} to={to} end={to === ADMIN_ROOT} className={({ isActive }) => `side-link ${isActive ? 'active' : ''}`}>
-            {t(key)}
-          </NavLink>
+          <SideItem key={to} to={to} end={to === ADMIN_ROOT} label={t(key)} unread={to.endsWith('/chat') ? unread : 0} />
         ))}
         <button type="button" className="side-link drawer-exit" onClick={() => { logout(); navigate(ADMIN_ROOT); }}>{t('common.logout')}</button>
       </aside>
@@ -230,9 +259,7 @@ export function AdminShell({ children }) {
         <BrandLogo to={ADMIN_ROOT} />
         <LangSwitch />
         {ADMIN_SIDE.map(([to, key]) => (
-          <NavLink key={to} to={to} end={to === ADMIN_ROOT} className={({ isActive }) => `side-link ${isActive ? 'active' : ''}`}>
-            {t(key)}
-          </NavLink>
+          <SideItem key={to} to={to} end={to === ADMIN_ROOT} label={t(key)} unread={to.endsWith('/chat') ? unread : 0} />
         ))}
         <button type="button" className="side-link drawer-exit" onClick={() => { logout(); navigate(ADMIN_ROOT); }}>{t('common.logout')}</button>
       </Drawer>

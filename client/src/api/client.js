@@ -83,6 +83,12 @@ export const payApi = {
   status: (paymentId) => api(`/api/payments/status?paymentId=${encodeURIComponent(paymentId)}`),
 };
 
+export const chatApi = {
+  messages: () => api('/api/chat/messages'),
+  send: (text) => api('/api/chat/messages', { method: 'POST', body: JSON.stringify({ text }) }),
+  unread: () => api('/api/chat/unread'),
+};
+
 export const glossaryApi = {
   keywords: () => api('/api/term-images/keywords'),
 };
@@ -132,6 +138,12 @@ export const adminApi = {
   grant: (id, months) => api(`/api/admin/users/${id}/grant-subscription`, {
     method: 'POST',
     body: JSON.stringify({ months }),
+  }),
+  chatThreads: () => api('/api/admin/chat/threads'),
+  chatThread: (userId) => api(`/api/admin/chat/threads/${userId}`),
+  chatReply: (userId, text) => api(`/api/admin/chat/threads/${userId}`, {
+    method: 'POST',
+    body: JSON.stringify({ text }),
   }),
   uploadTxt: (url, testId, file, extra = {}) => {
     const form = new FormData();

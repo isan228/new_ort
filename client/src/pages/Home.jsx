@@ -118,6 +118,12 @@ export default function Home() {
           <Link className="btn ghost" to="/app/stats">{t('nav.stats')}</Link>
         </div>
       </div>
+
+      <div className="card" style={{ marginTop: 16 }}>
+        <h3>{t('chat.title')}</h3>
+        <p className="muted">{t('chat.homeLead')}</p>
+        <Link className="btn" to="/app/support">{t('chat.open')}</Link>
+      </div>
     </div>
   );
 }

@@ -23,6 +23,7 @@ import PaymentSuccess from './pages/PaymentSuccess';
 import Profile from './pages/Profile';
 import Settings from './pages/Settings';
 import History from './pages/History';
+import Support from './pages/Support';
 import AdminLogin from './pages/admin/AdminLogin';
 import AdminHome from './pages/admin/AdminHome';
 import AdminUsers from './pages/admin/AdminUsers';
@@ -30,6 +31,7 @@ import AdminPlans from './pages/admin/AdminPlans';
 import AdminContent from './pages/admin/AdminContent';
 import AdminSubject from './pages/admin/AdminSubject';
 import AdminSection from './pages/admin/AdminSection';
+import AdminChat from './pages/admin/AdminChat';
 
 export const ADMIN_PATH = '/админ';
 
@@ -79,6 +81,7 @@ function adminPages() {
       <Route path="content/:subjectId/:sectionId" element={<AdminSection />} />
       <Route path="flashcards" element={<Navigate to="../content" replace />} />
       <Route path="plans" element={<AdminPlans />} />
+      <Route path="chat" element={<AdminChat />} />
     </>
   );
 }
@@ -115,6 +118,7 @@ export default function App() {
       <Route path="/app/profile" element={<AppLayout><Profile /></AppLayout>} />
       <Route path="/app/settings" element={<AppLayout><Settings /></AppLayout>} />
       <Route path="/app/history" element={<AppLayout><History /></AppLayout>} />
+      <Route path="/app/support" element={<AppLayout><Support /></AppLayout>} />
 
       <Route path={ADMIN_PATH} element={<AdminGate />}>{adminPages()}</Route>
       <Route path="/admin" element={<AdminGate />}>{adminPages()}</Route>

@@ -17,7 +17,10 @@ const {
   SubscriptionPlan,
   Payment,
   TestResult,
+  ChatMessage,
+  sequelize,
 } = require('../models');
+const { publicMessage } = require('./chat');
 const { inferOrtPart, normalizeOrtPart } = require('../utils/ortScoring');
 const { slugify, normalizeTagName } = require('../utils/ortTagNormalize');
 const { findOrCreateTag } = require('../utils/findOrCreateTag');
@@ -556,6 +559,74 @@ router.get('/users', async (req, res) => {
     offset: (page - 1) * limit,
   });
   res.json({ users: rows, total: count, page, limit });
+});
+
+router.get('/chat/threads', async (req, res) => {
+  const unreadRows = await ChatMessage.count({
+    where: { fromAdmin: false, readAt: null },
+    group: ['userId'],
+  });
+  const unreadMap = Object.fromEntries(unreadRows.map((row) => [row.userId, Number(row.count)]));
+
+  const lastIds = await ChatMessage.findAll({
+    attributes: [[sequelize.fn('MAX', sequelize.col('id')), 'id']],
+    group: ['userId'],
+    raw: true,
+  });
+  const ids = lastIds.map((row) => row.id).filter(Boolean);
+  const lastMessages = ids.length
+    ? await ChatMessage.findAll({
+      where: { id: ids },
+      include: [{ model: User, attributes: ['id', 'name', 'login', 'email'] }],
+      order: [['id', 'DESC']],
+    })
+    : [];
+
+  res.json({
+    threads: lastMessages.map((row) => ({
+      userId: row.userId,
+      user: row.User,
+      lastText: row.text,
+      lastAt: row.createdAt,
+      lastFromAdmin: row.fromAdmin,
+      unread: unreadMap[row.userId] || 0,
+    })),
+  });
+});
+
+router.get('/chat/threads/:userId', async (req, res) => {
+  const user = await User.findByPk(req.params.userId, {
+    attributes: ['id', 'name', 'login', 'email', 'role'],
+  });
+  if (!user || user.role === 'admin') return res.status(404).json({ error: 'Пользователь не найден' });
+  await ChatMessage.update(
+    { readAt: new Date() },
+    { where: { userId: user.id, fromAdmin: false, readAt: null } },
+  );
+  const rows = await ChatMessage.findAll({
+    where: { userId: user.id },
+    order: [['id', 'ASC']],
+    limit: 300,
+  });
+  res.json({
+    user: { id: user.id, name: user.name, login: user.login, email: user.email },
+    messages: rows.map(publicMessage),
+  });
+});
+
+router.post('/chat/threads/:userId', async (req, res) => {
+  const user = await User.findByPk(req.params.userId);
+  if (!user || user.role === 'admin') return res.status(404).json({ error: 'Пользователь не найден' });
+  const text = String(req.body.text || '').trim();
+  if (!text) return res.status(400).json({ error: 'Напишите сообщение' });
+  if (text.length > 2000) return res.status(400).json({ error: 'Слишком длинное сообщение' });
+  const row = await ChatMessage.create({
+    userId: user.id,
+    authorId: req.user.id,
+    fromAdmin: true,
+    text,
+  });
+  res.json({ message: publicMessage(row) });
 });
 
 router.post('/users/:id/grant-subscription', async (req, res) => {

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { adminApi } from '../../api/client';
 import { useLang } from '../../context/LangContext';
 
@@ -70,6 +71,7 @@ export default function AdminUsers() {
                   </td>
                   <td>
                     <div className="row">
+                      <Link className="btn sm ghost" to={`/админ/chat?user=${u.id}`}>{t('chat.open')}</Link>
                       {[1, 3, 12].map((m) => (
                         <button key={m} className="btn sm ghost" type="button" onClick={() => grant(u.id, m)}>
                           {t('admin.grantN', { n: m })}

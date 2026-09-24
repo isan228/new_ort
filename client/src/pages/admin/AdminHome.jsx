@@ -43,6 +43,7 @@ export default function AdminHome() {
         <div className="row">
           <Link className="btn sm" to="/админ/content">{t('admin.program')}</Link>
           <Link className="btn ghost sm" to="/админ/plans">{t('admin.plans')}</Link>
+          <Link className="btn ghost sm" to="/админ/chat">{t('admin.chat')}</Link>
         </div>
       </div>
       {error && <p className="err">{error}</p>}

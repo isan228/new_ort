@@ -13,6 +13,7 @@ const testsRoutes = require('./routes/tests');
 const adminRoutes = require('./routes/admin');
 const paymentsRoutes = require('./routes/payments');
 const termImagesRoutes = require('./routes/termImages');
+const { chatRouter } = require('./routes/chat');
 
 const app = express();
 const port = Number(process.env.PORT) || 4000;
@@ -45,6 +46,7 @@ app.use('/api/tests', testsRoutes);
 app.use('/api/admin', requireAdmin, adminRoutes);
 app.use('/api/payments', paymentsRoutes);
 app.use('/api/term-images', termImagesRoutes);
+app.use('/api/chat', chatRouter);
 
 const clientDist = path.join(__dirname, '..', 'client', 'dist');
 const indexHtml = path.join(clientDist, 'index.html');

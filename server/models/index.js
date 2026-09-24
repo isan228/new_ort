@@ -12,6 +12,7 @@ const { TermImage } = require('./TermImage');
 const { SubscriptionPlan } = require('./SubscriptionPlan');
 const { TestResult } = require('./TestResult');
 const { Payment } = require('./Payment');
+const { ChatMessage } = require('./ChatMessage');
 
 Subject.hasMany(Test, { foreignKey: 'subjectId' });
 Test.belongsTo(Subject, { foreignKey: 'subjectId' });
@@ -61,6 +62,10 @@ Payment.belongsTo(SubscriptionPlan, { foreignKey: 'planId' });
 User.belongsTo(SubscriptionPlan, { foreignKey: 'subscriptionPlanId' });
 SubscriptionPlan.hasMany(User, { foreignKey: 'subscriptionPlanId' });
 
+User.hasMany(ChatMessage, { foreignKey: 'userId' });
+ChatMessage.belongsTo(User, { foreignKey: 'userId' });
+ChatMessage.belongsTo(User, { as: 'Author', foreignKey: 'authorId' });
+
 module.exports = {
   sequelize,
   User,
@@ -76,4 +81,5 @@ module.exports = {
   SubscriptionPlan,
   TestResult,
   Payment,
+  ChatMessage,
 };
