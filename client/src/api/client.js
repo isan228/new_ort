@@ -50,6 +50,14 @@ export const ortApi = {
   history: (testId) => api(`/api/tests/ort/history?testId=${testId}`),
   tags: () => api('/api/tests/ort/tags'),
   tagsGrouped: (testId) => api(`/api/tests/ort/tags/grouped?testId=${testId}`),
+  builder: (params = {}) => {
+    const q = new URLSearchParams();
+    if (params.testIds?.length) q.set('testIds', params.testIds.join(','));
+    if (params.tagIds?.length) q.set('tagIds', params.tagIds.join(','));
+    if (params.modes?.length) q.set('modes', params.modes.join(','));
+    const qs = q.toString();
+    return api(`/api/tests/ort/builder${qs ? `?${qs}` : ''}`);
+  },
   customTest: (body) => api('/api/tests/ort/custom-test/questions', {
     method: 'POST',
     body: JSON.stringify(body),

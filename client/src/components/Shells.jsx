@@ -10,6 +10,7 @@ import { CabinetDock } from './CabinetDock';
 const SIDE = [
   ['/app', 'nav.dashboard'],
   ['/app/tests', 'nav.tests'],
+  ['/app/create', 'nav.create'],
   ['/app/flashcards', 'nav.flashcards'],
   ['/app/errors', 'nav.errors'],
   ['/app/favorites', 'nav.favorites'],

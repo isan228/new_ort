@@ -45,8 +45,11 @@ export default function TestRunner() {
   const [left, setLeft] = useState(() => {
     if (saved?.left != null) return saved.left;
     if (simulation) return Math.round((sections[0]?.minutes || 20) * 60);
-    return Math.round((session?.minutes || 20) * 60);
+    const minutes = Number(session?.minutes);
+    if (!minutes) return null;
+    return Math.round(minutes * 60);
   });
+  const timed = left != null;
   const examMode = !!session?.examMode;
   const finishing = useRef(false);
   const pickedRef = useRef(picked);
@@ -57,10 +60,10 @@ export default function TestRunner() {
   const sectionEnd = section ? section.start + section.count : (session?.questions?.length || 0);
 
   useEffect(() => {
-    if (!session?.questions || phase !== 'running') return undefined;
+    if (!session?.questions || phase !== 'running' || left == null) return undefined;
     const timer = setInterval(() => setLeft((s) => Math.max(0, s - 1)), 1000);
     return () => clearInterval(timer);
-  }, [session, phase, sectionIdx]);
+  }, [session, phase, sectionIdx, left == null]);
 
   useEffect(() => {
     if (!simulation) return;
@@ -89,7 +92,7 @@ export default function TestRunner() {
         examType: session.examType,
         testId: session.test?.id,
       };
-      const data = session.examType === 'main' || !session.test?.id
+      const data = session.examType === 'main' || session.examType === 'custom' || !session.test?.id
         ? await ortApi.checkExam(body)
         : await ortApi.check(session.test.id, body);
       bumpToday(answers.filter((a) => a.answerId).length);
@@ -128,7 +131,7 @@ export default function TestRunner() {
   }
 
   useEffect(() => {
-    if (left !== 0 || phase !== 'running' || !session?.questions) return;
+    if (left == null || left !== 0 || phase !== 'running' || !session?.questions) return;
     if (simulation) closeSection();
     else finish();
   }, [left]);
@@ -140,7 +143,7 @@ export default function TestRunner() {
   const questions = session.questions;
   const q = questions[index];
   const localIndex = index - sectionStart;
-  const warn = left <= 60;
+  const warn = left != null && left <= 60;
 
   function skip() {
     const p = loadProgress();
@@ -197,9 +200,11 @@ export default function TestRunner() {
               : t('runner.q', { a: index + 1, b: questions.length })}
           </b>
         </div>
-        <span className={`badge ${warn ? 'bad' : 'brand'}`}>
-          {simulation ? t('sim.sectionLeft', { time: formatClock(left) }) : t('runner.left', { time: formatClock(left) })}
-        </span>
+        {timed && (
+          <span className={`badge ${warn ? 'bad' : 'brand'}`}>
+            {simulation ? t('sim.sectionLeft', { time: formatClock(left) }) : t('runner.left', { time: formatClock(left) })}
+          </span>
+        )}
       </div>
       {simulation && (
         <div className="exam-section-pips">

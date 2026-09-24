@@ -60,6 +60,16 @@ export default function Tests() {
         ))}
       </div>
       {error && <p className="err">{error}</p>}
+      <div className="card ort-exam-card">
+        <div className="row" style={{ justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 12 }}>
+          <div>
+            <span className="badge">{t('nav.create')}</span>
+            <h2 style={{ margin: '8px 0 6px' }}>{t('builder.title')}</h2>
+            <p className="muted" style={{ margin: 0 }}>{t('builder.leadNew')}</p>
+          </div>
+          <button className="btn" type="button" onClick={() => navigate('/app/create')}>{t('builder.start')}</button>
+        </div>
+      </div>
       {showExam && exam && (
         <div className="card ort-exam-card">
           <div className="row" style={{ justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 12 }}>

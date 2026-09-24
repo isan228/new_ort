@@ -1,116 +1,244 @@
-import { useEffect, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useEffect, useMemo, useState } from 'react';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { ortApi } from '../api/client';
 import { isOrtGate } from '../context/AuthContext';
 import { useBank } from '../context/BankContext';
 import { useLang } from '../context/LangContext';
 
+const MODE_KEYS = ['unused', 'solved', 'correct', 'incorrect'];
+
+function toggleId(list, id) {
+  return list.includes(id) ? list.filter((item) => item !== id) : [...list, id];
+}
+
 export default function TestBuilder() {
-  const { bank } = useBank();
+  const { bank, setBank } = useBank();
   const { t } = useLang();
   const navigate = useNavigate();
-  const [topics, setTopics] = useState([]);
-  const [skills, setSkills] = useState([]);
-  const [topicIds, setTopicIds] = useState([]);
-  const [skillIds, setSkillIds] = useState([]);
-  const [questionCount, setQuestionCount] = useState(10);
-  const [questionMode, setQuestionMode] = useState('all');
-  const [examMode, setExamMode] = useState(false);
-  const [randomizeAnswers, setRandomizeAnswers] = useState(true);
+  const [params] = useSearchParams();
+  const presetId = Number(params.get('bank')) || bank?.testId || null;
+
+  const [groups, setGroups] = useState([]);
+  const [tags, setTags] = useState([]);
+  const [status, setStatus] = useState({ all: 0, unused: 0, solved: 0, correct: 0, incorrect: 0 });
+  const [available, setAvailable] = useState(0);
+  const [testIds, setTestIds] = useState(presetId ? [presetId] : []);
+  const [tagIds, setTagIds] = useState([]);
+  const [modes, setModes] = useState(['unused']);
+  const [questionCount, setQuestionCount] = useState(20);
+  const [minutes, setMinutes] = useState(20);
+  const [timed, setTimed] = useState(true);
+  const [name, setName] = useState('');
   const [error, setError] = useState('');
+  const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    if (!bank?.testId) return;
-    ortApi.tagsGrouped(bank.testId)
+    let stop = false;
+    ortApi.builder({ testIds, tagIds, modes })
       .then((data) => {
-        setTopics(data.topics || []);
-        setSkills(data.skills || []);
+        if (stop) return;
+        setGroups(data.groups || []);
+        setTags(data.tags || []);
+        setStatus(data.status || { all: 0, unused: 0, solved: 0, correct: 0, incorrect: 0 });
+        setAvailable(data.available || 0);
       })
       .catch((err) => {
+        if (stop) return;
         if (isOrtGate(err)) navigate('/app/premium');
         else setError(err.message);
       });
-  }, [bank, navigate]);
+    return () => { stop = true; };
+  }, [modes, navigate, tagIds, testIds]);
 
-  function toggle(list, setList, id) {
-    setList(list.includes(id) ? list.filter((x) => x !== id) : [...list, id]);
+  const sections = useMemo(() => groups.flatMap((group) => group.sections), [groups]);
+  const maxCount = Math.max(1, Math.min(150, available || 1));
+
+  useEffect(() => {
+    setQuestionCount((n) => Math.min(Math.max(1, n), maxCount));
+  }, [maxCount]);
+
+  function toggleMode(key) {
+    setModes((prev) => (prev.includes(key) ? prev.filter((item) => item !== key) : [...prev, key]));
+  }
+
+  function setAllSections(on) {
+    setTestIds(on ? sections.map((row) => row.id) : []);
+  }
+
+  function setAllTags(on) {
+    setTagIds(on ? tags.map((row) => row.id) : []);
   }
 
   async function start() {
     setError('');
+    setBusy(true);
     try {
       const data = await ortApi.customTest({
-        testId: bank.testId,
-        topicTagIds: topicIds,
-        skillTagIds: skillIds,
+        testIds,
+        tagIds,
+        modes,
         questionCount,
-        questionMode,
-        randomizeAnswers,
-        instantFeedbackMode: !examMode,
+        minutes: timed ? minutes : 0,
+        name,
+        randomizeAnswers: true,
       });
+      const first = sections.find((row) => testIds.includes(row.id)) || sections[0];
+      if (first) {
+        setBank({
+          subjectId: first.subjectId,
+          testId: first.id,
+          name: first.subjectName,
+          testName: data.test?.name || first.name,
+          trackGroup: first.trackGroup,
+        });
+      }
       sessionStorage.setItem('ortSession', JSON.stringify({
         ...data,
-        examMode,
-        instantFeedbackMode: !examMode,
+        examMode: timed,
+        instantFeedbackMode: !timed,
         startedAt: Date.now(),
-        questionMode,
-        minutes: Math.max(8, questionCount * 1.2),
+        questionMode: modes.join(',') || 'all',
+        minutes: timed ? minutes : 0,
+        examType: 'custom',
       }));
       navigate('/app/test');
     } catch (err) {
       if (isOrtGate(err)) navigate('/app/premium');
       else setError(err.message);
+    } finally {
+      setBusy(false);
     }
   }
 
-  if (!bank?.testId) {
-    return <p>{t('builder.pick')} <Link to="/app/tests">{t('tests.title')}</Link>.</p>;
-  }
-
   return (
-    <div>
-      <h1>{t('builder.title')}</h1>
-      <p className="muted">{t('builder.lead', { name: bank.name })}</p>
-      <h3>{t('builder.topics')}</h3>
-      <div className="row" style={{ marginBottom: 12 }}>
-        {topics.map((t) => (
-          <button key={t.id} type="button" className={`chip ${topicIds.includes(t.id) ? 'on' : ''}`} onClick={() => toggle(topicIds, setTopicIds, t.id)}>
-            {t.name} ({t.count})
-          </button>
-        ))}
-        {!topics.length && <span className="muted">{t('builder.noTags')}</span>}
+    <div className="builder-page">
+      <div className="builder-head">
+        <div>
+          <h1>{t('builder.title')}</h1>
+          <p className="muted">{t('builder.leadNew')}</p>
+        </div>
+        <Link className="btn ghost" to="/app/tests">{t('tests.title')}</Link>
       </div>
-      <h3>{t('builder.skill')}</h3>
-      <div className="row" style={{ marginBottom: 16 }}>
-        {skills.map((t) => (
-          <button key={t.id} type="button" className={`chip ${skillIds.includes(t.id) ? 'on' : ''}`} onClick={() => toggle(skillIds, setSkillIds, t.id)}>
-            {t.name} ({t.count})
-          </button>
-        ))}
+
+      <div className="card builder-card">
+        <h3>{t('builder.format')}</h3>
+        <div className="builder-switch">
+          <button type="button" className={!timed ? 'on' : ''} onClick={() => setTimed(false)}>{t('builder.practice')}</button>
+          <button type="button" className={timed ? 'on' : ''} onClick={() => setTimed(true)}>{t('builder.timed')}</button>
+        </div>
+        <div className="grid-3" style={{ marginTop: 16 }}>
+          <label className="field">
+            <span>{t('builder.name')}</span>
+            <input value={name} onChange={(e) => setName(e.target.value)} placeholder={t('builder.namePh')} />
+          </label>
+          <label className="field">
+            <span>{t('builder.count')}</span>
+            <input
+              type="number"
+              min={1}
+              max={maxCount}
+              value={questionCount}
+              onChange={(e) => setQuestionCount(Number(e.target.value) || 1)}
+            />
+            <small className="muted">{t('builder.available', { n: available })}</small>
+          </label>
+          <label className="field">
+            <span>{t('builder.time')}</span>
+            <input
+              type="number"
+              min={0}
+              max={240}
+              value={minutes}
+              disabled={!timed}
+              onChange={(e) => setMinutes(Math.max(0, Number(e.target.value) || 0))}
+            />
+            <small className="muted">{timed ? t('builder.minutesHint') : t('builder.noTime')}</small>
+          </label>
+        </div>
       </div>
-      <div className="grid-3">
-        <label className="field"><span>{t('builder.count')}</span><input type="number" min={1} max={80} value={questionCount} onChange={(e) => setQuestionCount(Number(e.target.value))} /></label>
-        <label className="field">
-          <span>{t('builder.mode')}</span>
-          <select value={questionMode} onChange={(e) => setQuestionMode(e.target.value)}>
-            <option value="all">{t('builder.all')}</option>
-            <option value="unsolved">{t('builder.unsolved')}</option>
-            <option value="incorrect">{t('builder.incorrect')}</option>
-          </select>
-        </label>
-        <label className="field">
-          <span>{t('builder.format')}</span>
-          <select value={examMode ? 'exam' : 'practice'} onChange={(e) => setExamMode(e.target.value === 'exam')}>
-            <option value="practice">{t('builder.practice')}</option>
-            <option value="exam">{t('builder.exam')}</option>
-          </select>
-        </label>
+
+      <div className="card builder-card">
+        <h3>{t('builder.status')}</h3>
+        <div className="builder-checks">
+          {MODE_KEYS.map((key) => (
+            <label key={key} className={`builder-check ${modes.includes(key) ? 'on' : ''}`}>
+              <span>
+                <input type="checkbox" checked={modes.includes(key)} onChange={() => toggleMode(key)} />
+                {t(`builder.${key}`)}
+              </span>
+              <b>{status[key] || 0}</b>
+            </label>
+          ))}
+        </div>
+        <p className="muted" style={{ margin: '10px 0 0' }}>{t('builder.statusHint')}</p>
       </div>
-      <label className="field">
-        <span><input type="checkbox" checked={randomizeAnswers} onChange={(e) => setRandomizeAnswers(e.target.checked)} /> {t('builder.shuffle')}</span>
-      </label>
+
+      <div className="builder-cols">
+        <div className="card builder-card">
+          <div className="builder-block-head">
+            <h3>{t('builder.sections')}</h3>
+            <div className="row">
+              <button type="button" className="btn ghost sm" onClick={() => setAllSections(true)}>{t('builder.allOn')}</button>
+              <button type="button" className="btn ghost sm" onClick={() => setAllSections(false)}>{t('builder.allOff')}</button>
+            </div>
+          </div>
+          {!groups.length && <p className="empty">{t('builder.noSections')}</p>}
+          {groups.map((group) => (
+            <div key={group.id} className="builder-group">
+              <div className="muted">{group.name}</div>
+              <div className="builder-checks">
+                {group.sections.map((row) => (
+                  <label key={row.id} className={`builder-check ${testIds.includes(row.id) ? 'on' : ''}`}>
+                    <span>
+                      <input
+                        type="checkbox"
+                        checked={testIds.includes(row.id)}
+                        onChange={() => setTestIds((prev) => toggleId(prev, row.id))}
+                      />
+                      {row.name}
+                    </span>
+                    <b>{row.available}</b>
+                  </label>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div className="card builder-card">
+          <div className="builder-block-head">
+            <h3>{t('builder.tags')}</h3>
+            <div className="row">
+              <button type="button" className="btn ghost sm" onClick={() => setAllTags(true)}>{t('builder.allOn')}</button>
+              <button type="button" className="btn ghost sm" onClick={() => setAllTags(false)}>{t('builder.allOff')}</button>
+            </div>
+          </div>
+          {!tags.length && <p className="empty">{t('builder.noTags')}</p>}
+          <div className="builder-checks">
+            {tags.map((tag) => (
+              <label key={tag.id} className={`builder-check ${tagIds.includes(tag.id) ? 'on' : ''}`}>
+                <span>
+                  <input
+                    type="checkbox"
+                    checked={tagIds.includes(tag.id)}
+                    onChange={() => setTagIds((prev) => toggleId(prev, tag.id))}
+                  />
+                  {tag.name}
+                </span>
+                <b>{tag.available}</b>
+              </label>
+            ))}
+          </div>
+        </div>
+      </div>
+
       {error && <p className="err">{error}</p>}
-      <button className="btn lg" type="button" onClick={start}>{t('builder.start')}</button>
+      <div className="builder-start">
+        <button className="btn lg" type="button" disabled={busy || available < 1} onClick={start}>
+          {t('builder.start')}
+        </button>
+        <span className="muted">{t('builder.summary', { q: questionCount, m: timed ? t('sim.minutes', { n: minutes }) : t('builder.noTime') })}</span>
+      </div>
     </div>
   );
 }

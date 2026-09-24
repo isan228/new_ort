@@ -6,7 +6,7 @@ import { useLang } from '../context/LangContext';
 import { buildNotifications, markNotificationsSeen } from '../lib/notifications';
 import { StudentChat } from './StudentChat';
 
-const HIDDEN = ['/app/test', '/app/exam', '/app/support'];
+const HIDDEN = ['/app/test', '/app/exam', '/app/support', '/app/create'];
 
 function ChatIcon() {
   return (

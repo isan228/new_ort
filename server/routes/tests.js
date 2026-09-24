@@ -55,6 +55,62 @@ async function loadQuestionsForTest(testId, extraWhere = {}) {
   });
 }
 
+function parseIdList(value) {
+  const raw = Array.isArray(value) ? value : String(value || '').split(',');
+  return [...new Set(raw.map((item) => Number(item)).filter(Boolean))];
+}
+
+function parseModes(value) {
+  const raw = Array.isArray(value) ? value : String(value || '').split(',');
+  const allowed = new Set(['unused', 'unsolved', 'solved', 'correct', 'incorrect']);
+  return [...new Set(raw.map((item) => String(item || '').trim()).filter((item) => allowed.has(item)))]
+    .map((item) => (item === 'unsolved' ? 'unused' : item));
+}
+
+async function loadUserLastAnswers(userId) {
+  const results = await TestResult.findAll({
+    where: { userId },
+    attributes: ['answers'],
+    order: [['id', 'ASC']],
+  });
+  const last = new Map();
+  for (const result of results) {
+    for (const item of result.answers || []) {
+      if (item.questionId) last.set(item.questionId, item.correct === true);
+    }
+  }
+  return last;
+}
+
+function questionFlags(questionId, last) {
+  const seen = last.has(questionId);
+  const ok = last.get(questionId) === true;
+  return {
+    unused: !seen,
+    solved: seen,
+    correct: seen && ok,
+    incorrect: seen && !ok,
+  };
+}
+
+function matchesModes(flags, modes) {
+  if (!modes.length) return true;
+  return modes.some((mode) => flags[mode]);
+}
+
+function emptyStats() {
+  return { all: 0, unused: 0, solved: 0, correct: 0, incorrect: 0, available: 0 };
+}
+
+function bumpStats(bucket, flags, available) {
+  bucket.all += 1;
+  if (flags.unused) bucket.unused += 1;
+  if (flags.solved) bucket.solved += 1;
+  if (flags.correct) bucket.correct += 1;
+  if (flags.incorrect) bucket.incorrect += 1;
+  if (available) bucket.available += 1;
+}
+
 function serializeSubjectForStudent(subject) {
   const json = subject.toJSON();
   const tests = (json.Tests || [])
@@ -267,65 +323,156 @@ router.get('/ort/tests-by-tags', async (req, res) => {
   res.json({ tests });
 });
 
+router.get('/ort/builder', async (req, res) => {
+  const selectedTests = parseIdList(req.query.testIds);
+  const selectedTags = parseIdList(req.query.tagIds);
+  const modes = parseModes(req.query.modes);
+  const last = await loadUserLastAnswers(req.user.id);
+
+  const subjects = await Subject.findAll({
+    where: { isActive: true },
+    include: [{ model: Test, where: { isActive: true }, required: false }],
+    order: [['sortOrder', 'ASC'], ['id', 'ASC'], [Test, 'sortOrder', 'ASC']],
+  });
+
+  const questions = await Question.findAll({
+    where: { isActive: true },
+    attributes: ['id', 'testId'],
+    include: [{
+      model: QuestionTag,
+      attributes: ['id', 'name', 'kind'],
+      where: { isActive: true },
+      required: false,
+    }],
+  });
+
+  const byTest = new Map();
+  const tagMap = new Map();
+  const status = emptyStats();
+  let available = 0;
+
+  for (const question of questions) {
+    const flags = questionFlags(question.id, last);
+    const tagIds = (question.QuestionTags || []).map((tag) => tag.id);
+    const testsOk = !selectedTests.length || selectedTests.includes(question.testId);
+    const tagsOk = !selectedTags.length || selectedTags.some((id) => tagIds.includes(id));
+    const modeOk = matchesModes(flags, modes);
+
+    if (!byTest.has(question.testId)) byTest.set(question.testId, emptyStats());
+    if (tagsOk) bumpStats(byTest.get(question.testId), flags, modeOk);
+
+    if (testsOk && tagsOk) bumpStats(status, flags, modeOk);
+    if (testsOk && tagsOk && modeOk) available += 1;
+
+    if (testsOk && modeOk) {
+      for (const tag of question.QuestionTags || []) {
+        if (!tagMap.has(tag.id)) {
+          tagMap.set(tag.id, {
+            id: tag.id,
+            name: tag.name,
+            kind: tag.kind,
+            ...emptyStats(),
+          });
+        }
+        bumpStats(tagMap.get(tag.id), flags, true);
+      }
+    }
+  }
+
+  const groups = subjects.map((subject) => {
+    const sections = (subject.Tests || [])
+      .map((test) => ({
+        id: test.id,
+        name: test.name,
+        subjectId: subject.id,
+        subjectName: subject.name,
+        trackGroup: subject.trackGroup,
+        ...(byTest.get(test.id) || emptyStats()),
+      }))
+      .filter((test) => test.all > 0);
+    return {
+      id: subject.id,
+      name: subject.name,
+      trackGroup: subject.trackGroup,
+      sections,
+    };
+  }).filter((group) => group.sections.length);
+
+  const tags = [...tagMap.values()].sort((a, b) => a.name.localeCompare(b.name, 'ru'));
+  res.json({ groups, tags, status, available });
+});
+
 router.post('/ort/custom-test/questions', async (req, res) => {
   const {
     testId,
+    testIds = [],
     topicTagIds = [],
     skillTagIds = [],
+    tagIds = [],
     questionCount = 20,
     questionMode = 'all',
+    modes = [],
+    minutes,
+    name,
     randomizeAnswers = true,
   } = req.body || {};
 
-  if (!testId) return res.status(400).json({ error: 'testId обязателен' });
-
-  const test = await Test.findByPk(testId);
-  if (!test || !test.isActive) return res.status(404).json({ error: 'Банк не найден' });
-
-  let questions = await loadQuestionsForTest(testId);
-
-  const topicIds = (topicTagIds || []).map(Number).filter(Boolean);
-  const skillIds = (skillTagIds || []).map(Number).filter(Boolean);
-
-  if (topicIds.length || skillIds.length) {
-    questions = questions.filter((q) => {
-      const ids = (q.QuestionTags || []).map((t) => t.id);
-      const topicOk = !topicIds.length || topicIds.some((id) => ids.includes(id));
-      const skillOk = !skillIds.length || skillIds.some((id) => ids.includes(id));
-      return topicOk && skillOk;
-    });
+  const sectionIds = parseIdList([...testIds, testId].filter(Boolean));
+  const selectedTags = parseIdList(tagIds);
+  const topicIds = parseIdList(topicTagIds);
+  const skillIds = parseIdList(skillTagIds);
+  let selectedModes = parseModes(modes);
+  if (!selectedModes.length && (questionMode === 'unsolved' || questionMode === 'incorrect')) {
+    selectedModes = [questionMode === 'unsolved' ? 'unused' : 'incorrect'];
   }
 
-  if (questionMode === 'unsolved' || questionMode === 'incorrect') {
-    const results = await TestResult.findAll({
-      where: { userId: req.user.id, testId },
-    });
-    const seen = new Set();
-    const wrong = new Set();
-    for (const result of results) {
-      for (const item of result.answers || []) {
-        if (item.questionId) seen.add(item.questionId);
-        if (item.correct === false) wrong.add(item.questionId);
-      }
-    }
-    questions = questions.filter((q) => (
-      questionMode === 'unsolved' ? !seen.has(q.id) : wrong.has(q.id)
-    ));
-  }
+  const testWhere = { isActive: true };
+  if (sectionIds.length) testWhere.id = sectionIds;
+  const tests = await Test.findAll({ where: testWhere });
+  if (!tests.length) return res.status(404).json({ error: 'Разделы не найдены' });
 
-  const limit = Math.max(1, Math.min(80, Number(questionCount) || 20));
-  const mixed = shuffle(questions);
-  const picked = pickQuestionsKeepingLinkedOrder(mixed, limit);
+  const questions = await Question.findAll({
+    where: { testId: tests.map((row) => row.id), isActive: true },
+    include: [
+      { model: Answer },
+      { model: QuestionTag },
+    ],
+    order: [['sortOrder', 'ASC'], ['id', 'ASC'], [Answer, 'sortOrder', 'ASC']],
+  });
 
-  const payload = picked.map((q) => {
-    const shaped = publicQuestionShape(q);
+  const last = await loadUserLastAnswers(req.user.id);
+
+  const filtered = questions.filter((question) => {
+    const ids = (question.QuestionTags || []).map((tag) => tag.id);
+    if (selectedTags.length && !selectedTags.some((id) => ids.includes(id))) return false;
+    if (topicIds.length && !topicIds.some((id) => ids.includes(id))) return false;
+    if (skillIds.length && !skillIds.some((id) => ids.includes(id))) return false;
+    return matchesModes(questionFlags(question.id, last), selectedModes);
+  });
+
+  const limit = Math.max(1, Math.min(150, Number(questionCount) || 20));
+  const picked = pickQuestionsKeepingLinkedOrder(shuffle(filtered), limit);
+  if (!picked.length) return res.status(400).json({ error: 'Нет вопросов по выбранным фильтрам' });
+
+  const payload = picked.map((question) => {
+    const shaped = publicQuestionShape(question);
     if (randomizeAnswers) shaped.answers = shuffle(shaped.answers);
     return shaped;
   });
 
+  const title = String(name || '').trim() || (tests.length === 1 ? tests[0].name : 'Свой тест');
+  const timed = Math.max(0, Math.min(240, Number(minutes) || 0));
+
   res.json({
-    test: { id: test.id, name: test.name, hasExplanations: test.hasExplanations, ortPart: test.ortPart },
+    examType: 'custom',
+    test: {
+      id: tests[0].id,
+      name: title,
+      hasExplanations: tests.some((row) => row.hasExplanations),
+      ortPart: tests[0].ortPart,
+    },
     questions: payload,
+    minutes: timed,
   });
 });
 
