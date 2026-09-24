@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { useLang } from '../context/LangContext';
 import { LangSwitch } from './LangSwitch';
+import { CabinetDock } from './CabinetDock';
 
 const SIDE = [
   ['/app', 'nav.dashboard'],
@@ -18,7 +19,6 @@ const SIDE = [
   ['/app/achievements', 'nav.achievements'],
   ['/app/referral', 'nav.referral'],
   ['/app/premium', 'nav.premium'],
-  ['/app/support', 'nav.support'],
   ['/app/settings', 'nav.settings'],
 ];
 
@@ -125,7 +125,6 @@ export function AppShell({ children }) {
   const { t } = useLang();
   const navigate = useNavigate();
   const [open, setOpen] = useMenu();
-  const unread = useUnreadChat();
   const initial = (user?.name || 'У')[0].toUpperCase();
 
   return (
@@ -133,7 +132,7 @@ export function AppShell({ children }) {
       <aside className="sidebar">
         <BrandLogo to="/app" />
         {SIDE.map(([to, key]) => (
-          <SideItem key={to} to={to} end={to === '/app'} label={t(key)} unread={to === '/app/support' ? unread : 0} />
+          <SideItem key={to} to={to} end={to === '/app'} label={t(key)} />
         ))}
       </aside>
       <div className="app-main">
@@ -169,10 +168,11 @@ export function AppShell({ children }) {
         <BrandLogo to="/app" />
         <LangSwitch />
         {SIDE.map(([to, key]) => (
-          <SideItem key={to} to={to} end={to === '/app'} label={t(key)} unread={to === '/app/support' ? unread : 0} />
+          <SideItem key={to} to={to} end={to === '/app'} label={t(key)} />
         ))}
         <button type="button" className="side-link" onClick={() => { logout(); navigate('/'); }}>{t('common.logout')}</button>
       </Drawer>
+      <CabinetDock />
     </div>
   );
 }
