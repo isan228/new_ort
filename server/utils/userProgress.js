@@ -1,6 +1,6 @@
 const { Op } = require('sequelize');
-const { TestResult, User, Question, Test } = require('../models');
-const { partMeta } = require('./ortScoring');
+const { TestResult, User, Question, Test, Subject } = require('../models');
+const { partMeta, blockPoints, roundOrt, MAIN_MAX, SUBJECT_MAX } = require('./ortScoring');
 
 function startOfDay(date = new Date()) {
   const d = new Date(date);
@@ -101,6 +101,71 @@ function buildCurve(scores, userScore) {
     std: Math.round(std * 10) / 10,
     userScore: userScore == null ? null : Math.round(userScore * 10) / 10,
     points: points.map((p) => ({ x: p.x, y: Math.round((p.y / peak) * 1000) / 1000 })),
+  };
+}
+
+function lastBlockScore(results, blockKey) {
+  for (const result of results) {
+    const items = (result.answers || []).filter((item) => partMeta(item.ortPart)?.block === blockKey);
+    if (!items.length) continue;
+    return { ...blockPoints(items.filter((item) => item.correct).length, blockKey), attempted: true };
+  }
+  return { ...blockPoints(0, blockKey), attempted: false };
+}
+
+function buildOrtScores(results, subjectList) {
+  const lastMain = results.find((result) => (
+    result.scoreBreakdown?.examType === 'main' || result.questionMode === 'main_exam'
+  ));
+  const fromBlocks = lastMain?.scoreBreakdown?.blocks || [];
+  const pick = (key) => fromBlocks.find((row) => row.key === key);
+
+  const verbal = pick('verbal') || lastBlockScore(results, 'verbal');
+  const grammar = pick('grammar') || lastBlockScore(results, 'grammar');
+  const math = pick('math') || lastBlockScore(results, 'math');
+  const parts = [verbal, grammar, math].filter((row) => row.attempted !== false || row.points);
+  const total = lastMain?.officialScore != null
+    ? lastMain.officialScore
+    : roundOrt(parts.reduce((sum, row) => sum + (row.points || 0), 0));
+
+  const subjects = (subjectList || []).map((subject) => {
+    const last = results.find((result) => (
+      result.Test?.Subject?.id === subject.id || result.Test?.subjectId === subject.id
+    ));
+    if (!last) {
+      return {
+        id: subject.id,
+        name: subject.name,
+        officialScore: null,
+        maxScore: SUBJECT_MAX,
+        attempted: false,
+      };
+    }
+    const correct = (last.answers || []).filter((item) => item.correct).length;
+    const official = last.officialScore != null
+      ? last.officialScore
+      : blockPoints(correct, 'subject').points;
+    return {
+      id: subject.id,
+      name: subject.name,
+      officialScore: official,
+      maxScore: SUBJECT_MAX,
+      correct,
+      total: last.total,
+      attempted: true,
+    };
+  });
+
+  return {
+    main: {
+      total: parts.length || lastMain ? total : null,
+      maxScore: MAIN_MAX,
+      fromExam: !!lastMain,
+      verbal,
+      grammar,
+      math,
+    },
+    subjects,
   };
 }
 
@@ -223,6 +288,7 @@ function summarizeResults(results, extras = {}) {
     activity: activityDays(dayCounts),
     recentScores: recentScores.slice(0, 10).reverse(),
     history,
+    ort: extras.ort || null,
   };
   stats.achievements = achievementsFrom(stats);
   stats.achievementsOpen = Object.values(stats.achievements).filter(Boolean).length;
@@ -249,14 +315,22 @@ async function peerAverages() {
 }
 
 async function userStats(userId) {
-  const [results, bankTotal, peers] = await Promise.all([
+  const [results, bankTotal, peers, subjectList] = await Promise.all([
     TestResult.findAll({
       where: { userId },
-      include: [{ model: Test, attributes: ['id', 'name'] }],
+      include: [{
+        model: Test,
+        attributes: ['id', 'name', 'subjectId', 'ortPart'],
+        include: [{ model: Subject, attributes: ['id', 'name', 'trackGroup'] }],
+      }],
       order: [['createdAt', 'DESC']],
     }),
     Question.count({ where: { isActive: true } }),
     peerAverages(),
+    Subject.findAll({
+      where: { trackGroup: 'subject', isActive: true },
+      order: [['sortOrder', 'ASC'], ['id', 'ASC']],
+    }),
   ]);
   const mine = peers.find((row) => row.userId === userId);
   const place = mine ? peers.findIndex((row) => row.userId === userId) + 1 : null;
@@ -264,6 +338,7 @@ async function userStats(userId) {
     bankTotal,
     peerScores: peers.map((row) => row.avg),
     place,
+    ort: buildOrtScores(results, subjectList),
   });
 }
 

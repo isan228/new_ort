@@ -1072,6 +1072,16 @@ p { margin: 0 0 12px; }
   align-items: baseline;
   flex-wrap: wrap;
 }
+.home-score-hero {
+  font-size: 44px;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  line-height: 1;
+  margin: 8px 0 6px;
+}
+.home-score-hero span { font-size: 22px; color: var(--muted); font-weight: 700; }
+.home-score-row { margin-top: 14px; }
+.home-score-card .btn { width: fit-content; }
 .exam-brief { max-width: 860px; }
 .exam-brief h1 { margin: 8px 0 8px; }
 .exam-time-table { width: 100%; }
