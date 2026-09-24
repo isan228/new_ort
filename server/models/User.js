@@ -11,6 +11,7 @@ const User = sequelize.define('User', {
   language: { type: DataTypes.ENUM('ru', 'ky'), allowNull: false, defaultValue: 'ru' },
   grade: { type: DataTypes.INTEGER, allowNull: true },
   subscriptionEndDate: { type: DataTypes.DATE, allowNull: true },
+  subscriptionPlanId: { type: DataTypes.INTEGER, allowNull: true },
 });
 
 module.exports = { User };

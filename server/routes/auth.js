@@ -1,8 +1,8 @@
 const express = require('express');
 const bcrypt = require('bcryptjs');
 const { Op } = require('sequelize');
-const { User } = require('../models');
-const { requireAuth, signToken, publicUser } = require('../middleware/auth');
+const { User, SubscriptionPlan } = require('../models');
+const { requireAuth, signToken, publicUserWithPlan } = require('../middleware/auth');
 const { normalizeLogin, assertLogin } = require('../utils/userLogin');
 
 const router = express.Router();
@@ -17,7 +17,7 @@ async function findByLoginOrEmail(ident) {
 }
 
 router.post('/register', async (req, res) => {
-  const { name, login, email, password, phone, language, grade } = req.body || {};
+  const { name, login, email, password, phone, language, grade, planId } = req.body || {};
   if (!name || !login || !password) {
     return res.status(400).json({ error: 'Имя, логин и пароль обязательны' });
   }
@@ -36,6 +36,10 @@ router.post('/register', async (req, res) => {
   });
   if (exists) return res.status(409).json({ error: 'Логин уже занят' });
 
+  const plan = await SubscriptionPlan.findByPk(Number(planId));
+  if (!plan || !plan.isActive) return res.status(400).json({ error: 'Выберите тариф' });
+  const subscriptionPlanId = plan.id;
+
   const user = await User.create({
     name: String(name).trim(),
     login: cleanLogin,
@@ -45,9 +49,10 @@ router.post('/register', async (req, res) => {
     language: language === 'ky' ? 'ky' : 'ru',
     grade: grade ? Number(grade) : null,
     role: 'student',
+    subscriptionPlanId,
   });
 
-  return res.json({ token: signToken(user), user: publicUser(user) });
+  return res.json({ token: signToken(user), user: await publicUserWithPlan(user) });
 });
 
 async function checkPassword(user, password) {
@@ -64,7 +69,7 @@ router.post('/login', async (req, res) => {
   if (user.role === 'admin') {
     return res.status(401).json({ error: 'Неверный логин или пароль' });
   }
-  return res.json({ token: signToken(user), user: publicUser(user) });
+  return res.json({ token: signToken(user), user: await publicUserWithPlan(user) });
 });
 
 router.post('/admin-login', async (req, res) => {
@@ -76,11 +81,11 @@ router.post('/admin-login', async (req, res) => {
   if (user.role !== 'admin') {
     return res.status(403).json({ error: 'Нет доступа к админке', code: 'ADMIN_REQUIRED' });
   }
-  return res.json({ token: signToken(user), user: publicUser(user) });
+  return res.json({ token: signToken(user), user: await publicUserWithPlan(user) });
 });
 
 router.get('/me', requireAuth, async (req, res) => {
-  return res.json({ user: publicUser(req.user) });
+  return res.json({ user: await publicUserWithPlan(req.user) });
 });
 
 router.patch('/me', requireAuth, async (req, res) => {
@@ -88,7 +93,7 @@ router.patch('/me', requireAuth, async (req, res) => {
   if (name) req.user.name = String(name).trim();
   if (language === 'ky' || language === 'ru') req.user.language = language;
   await req.user.save();
-  return res.json({ user: publicUser(req.user) });
+  return res.json({ user: await publicUserWithPlan(req.user) });
 });
 
 module.exports = router;

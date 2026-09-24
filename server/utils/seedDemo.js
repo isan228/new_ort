@@ -7,6 +7,7 @@ const {
   Test,
   Question,
   Flashcard,
+  SubscriptionPlan,
 } = require('../models');
 const { parseExplainedQuestions } = require('./parseQuestionsTxt');
 const { parseFlashcardsTxt } = require('./parseFlashcardsTxt');
@@ -83,6 +84,15 @@ async function seedDemoContent() {
   } else if (!demo.login) {
     demo.login = demoLogin;
     await demo.save();
+  }
+  if (demo && !demo.subscriptionPlanId) {
+    const plan = await SubscriptionPlan.findOne({
+      where: { months: 3, isActive: true },
+    }) || await SubscriptionPlan.findOne({ order: [['sortOrder', 'ASC']] });
+    if (plan) {
+      demo.subscriptionPlanId = plan.id;
+      await demo.save();
+    }
   }
 
   const all = await User.findAll();

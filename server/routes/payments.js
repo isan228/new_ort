@@ -2,7 +2,7 @@ const crypto = require('crypto');
 const express = require('express');
 const { Op } = require('sequelize');
 const { SubscriptionPlan, Payment, User } = require('../models');
-const { requireAuth, publicUser } = require('../middleware/auth');
+const { requireAuth, publicUserWithPlan } = require('../middleware/auth');
 const { createPayment, isFinikConfigured, webhookUrl, redirectUrl, trimEnv } = require('../utils/finikClient');
 const {
   parseWebhookBody,
@@ -30,6 +30,7 @@ async function applyPaidSubscription(payment) {
     : new Date();
   base.setMonth(base.getMonth() + payment.months);
   user.subscriptionEndDate = base;
+  if (payment.planId) user.subscriptionPlanId = payment.planId;
   await user.save();
   payment.status = 'paid';
   await payment.save();
@@ -137,7 +138,7 @@ router.post('/confirm-demo', requireAuth, async (req, res) => {
   });
   if (!payment) return res.status(404).json({ error: 'Платёж не найден' });
   const user = await applyPaidSubscription(payment);
-  res.json({ payment, user: publicUser(user) });
+  res.json({ payment, user: await publicUserWithPlan(user) });
 });
 
 router.get('/status', async (req, res) => {

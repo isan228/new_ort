@@ -42,8 +42,9 @@ function signToken(user) {
   );
 }
 
-function publicUser(user) {
+function publicUser(user, plan) {
   const end = user.subscriptionEndDate ? new Date(user.subscriptionEndDate) : null;
+  const resolved = plan || user.SubscriptionPlan || null;
   return {
     id: user.id,
     name: user.name,
@@ -55,7 +56,19 @@ function publicUser(user) {
     grade: user.grade,
     subscriptionEndDate: end,
     subscriptionActive: user.role === 'admin' || (end && end > new Date()),
+    subscriptionPlanId: user.subscriptionPlanId || resolved?.id || null,
+    subscriptionTitle: resolved?.title || null,
+    subscriptionMonths: resolved?.months || null,
   };
 }
 
-module.exports = { requireAuth, requireAdmin, signToken, publicUser };
+async function publicUserWithPlan(user) {
+  if (!user) return null;
+  if (user.SubscriptionPlan) return publicUser(user, user.SubscriptionPlan);
+  if (!user.subscriptionPlanId) return publicUser(user);
+  const { SubscriptionPlan } = require('../models/SubscriptionPlan');
+  const plan = await SubscriptionPlan.findByPk(user.subscriptionPlanId);
+  return publicUser(user, plan);
+}
+
+module.exports = { requireAuth, requireAdmin, signToken, publicUser, publicUserWithPlan };

@@ -58,6 +58,8 @@ TestResult.belongsTo(Test, { foreignKey: 'testId' });
 User.hasMany(Payment, { foreignKey: 'userId' });
 Payment.belongsTo(User, { foreignKey: 'userId' });
 Payment.belongsTo(SubscriptionPlan, { foreignKey: 'planId' });
+User.belongsTo(SubscriptionPlan, { foreignKey: 'subscriptionPlanId' });
+SubscriptionPlan.hasMany(User, { foreignKey: 'subscriptionPlanId' });
 
 module.exports = {
   sequelize,
