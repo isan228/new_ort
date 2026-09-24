@@ -3,6 +3,8 @@ import { Link } from 'react-router-dom';
 import { linkifyMedicalTerms } from '../lib/linkify';
 import { useLang } from '../context/LangContext';
 
+const LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+
 function formatOrt(value) {
   if (value == null || Number.isNaN(Number(value))) return '—';
   return String(value).replace('.', ',');
@@ -14,15 +16,18 @@ export default function TestResults() {
     try { return JSON.parse(sessionStorage.getItem('ortResult') || 'null'); } catch { return null; }
   }, []);
   const [onlyWrong, setOnlyWrong] = useState(false);
+  const [index, setIndex] = useState(0);
 
   if (!result) return <p>{t('results.none')} <Link to="/app/tests">{t('results.go')}</Link>.</p>;
 
   const wrong = (result.items || []).filter((i) => !i.correct);
   const skipped = (result.items || []).filter((i) => !i.answerId);
-  const items = onlyWrong ? wrong : result.items;
+  const items = onlyWrong ? wrong : (result.items || []);
   const breakdown = result.breakdown || [];
   const official = result.officialScore != null ? result.officialScore : result.score;
   const maxScore = result.maxScore;
+  const item = items[Math.min(index, Math.max(0, items.length - 1))];
+  const answers = item?.question?.answers || [];
 
   return (
     <div>
@@ -60,23 +65,67 @@ export default function TestResults() {
       <div className="row" style={{ margin: '18px 0' }}>
         <Link className="btn" to="/app/tests">{t('results.more')}</Link>
         <Link className="btn ghost" to="/app/errors">{t('results.review')}</Link>
-        <button type="button" className={`chip ${onlyWrong ? 'on' : ''}`} onClick={() => setOnlyWrong(!onlyWrong)}>{t('results.onlyWrong')}</button>
+        <button type="button" className={`chip ${onlyWrong ? 'on' : ''}`} onClick={() => { setOnlyWrong(!onlyWrong); setIndex(0); }}>
+          {t('results.onlyWrong')}
+        </button>
       </div>
+
       <h2>{t('results.breakdown')}</h2>
-      {(items || []).map((item, i) => (
-        <div key={item.questionId} className="card" style={{ marginBottom: 12 }}>
-          <p className="muted">{t('results.qn', { n: i + 1 })} · {item.correct ? t('results.ok') : t('results.bad')}</p>
-          <p className="q-text" style={{ fontSize: 18 }}>{item.question?.text}</p>
-          <div style={{ display: 'grid', gap: 8, margin: '12px 0' }}>
-            {(item.question?.answers || []).map((a) => (
-              <div key={a.id} className={`answer ${a.isCorrect ? 'good' : ''} ${item.answerId === a.id && !a.isCorrect ? 'bad' : ''}`}>
-                {a.text}
-              </div>
-            ))}
+      {!items.length && <p className="empty">—</p>}
+      {!!items.length && item && (
+        <div className="card review-lab" style={{ padding: 0, overflow: 'hidden' }}>
+          <div className="exam-top" style={{ position: 'relative' }}>
+            <div className="exam-meta">
+              <b>{t('runner.item', { a: index + 1, b: items.length })}</b>
+              <span>{t('runner.qid', { id: item.questionId })}</span>
+              <span>{item.correct ? t('results.ok') : t('results.bad')}</span>
+            </div>
+            <div className="exam-nav">
+              <button type="button" className="exam-nav-btn" disabled={index <= 0} onClick={() => setIndex((n) => n - 1)}>
+                ‹ {t('runner.prev')}
+              </button>
+              <button type="button" className="exam-nav-btn" disabled={index >= items.length - 1} onClick={() => setIndex((n) => n + 1)}>
+                {t('runner.next')} ›
+              </button>
+            </div>
           </div>
-          {item.question?.explanation && <p>{linkifyMedicalTerms(item.question.explanation, [], () => {})}</p>}
+          <div className="exam-body" style={{ minHeight: 360 }}>
+            <aside className="exam-side">
+              {items.map((row, i) => (
+                <button
+                  key={row.questionId}
+                  type="button"
+                  className={`exam-num ${i === index ? 'on' : ''} ${row.correct ? 'done' : 'flag'}`}
+                  onClick={() => setIndex(i)}
+                >
+                  <span>{i + 1}</span>
+                  <i className={`exam-dot ${row.answerId ? '' : 'empty'}`} />
+                </button>
+              ))}
+            </aside>
+            <main className="exam-main">
+              <p className="exam-stem">{item.question?.text}</p>
+              <div className="exam-opts">
+                {answers.map((a, i) => {
+                  let cls = 'exam-opt';
+                  if (a.isCorrect) cls += ' good';
+                  else if (item.answerId === a.id) cls += ' bad';
+                  if (item.answerId === a.id) cls += ' on';
+                  return (
+                    <div key={a.id} className={cls}>
+                      <i className="exam-radio" />
+                      <span><b>({LETTERS[i]})</b> {a.text}</span>
+                    </div>
+                  );
+                })}
+              </div>
+              {item.question?.explanation && (
+                <p style={{ marginTop: 16, maxWidth: 860 }}>{linkifyMedicalTerms(item.question.explanation, [], () => {})}</p>
+              )}
+            </main>
+          </div>
         </div>
-      ))}
+      )}
     </div>
   );
 }
