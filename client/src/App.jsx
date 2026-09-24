@@ -26,6 +26,7 @@ import History from './pages/History';
 import AdminLogin from './pages/admin/AdminLogin';
 import AdminHome from './pages/admin/AdminHome';
 import AdminUsers from './pages/admin/AdminUsers';
+import AdminPlans from './pages/admin/AdminPlans';
 import AdminContent from './pages/admin/AdminContent';
 import AdminSubject from './pages/admin/AdminSubject';
 import AdminSection from './pages/admin/AdminSection';
@@ -77,7 +78,7 @@ function adminPages() {
       <Route path="content/:subjectId" element={<AdminSubject />} />
       <Route path="content/:subjectId/:sectionId" element={<AdminSection />} />
       <Route path="flashcards" element={<Navigate to="../content" replace />} />
-      <Route path="plans" element={<Navigate to="../content" replace />} />
+      <Route path="plans" element={<AdminPlans />} />
     </>
   );
 }

@@ -32,6 +32,7 @@ const ADMIN_SIDE = [
   [ADMIN_ROOT, 'admin.dashboard'],
   [`${ADMIN_ROOT}/users`, 'admin.users'],
   [`${ADMIN_ROOT}/content`, 'admin.program'],
+  [`${ADMIN_ROOT}/plans`, 'admin.plans'],
 ];
 
 function useMenu() {

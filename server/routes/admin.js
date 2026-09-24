@@ -108,26 +108,48 @@ router.get('/ort-subscription-plans', async (req, res) => {
   res.json({ plans });
 });
 
+function normalizePlan(item, index) {
+  const title = String(item.title || '').trim();
+  const months = Math.round(Number(item.months));
+  const price = Math.round(Number(item.price));
+  const oldRaw = item.oldPrice;
+  const oldPrice = oldRaw === '' || oldRaw == null || oldRaw === 0
+    ? null
+    : Math.round(Number(oldRaw));
+  if (!title) throw new Error('Название тарифа обязательно');
+  if (!Number.isFinite(months) || months < 1) throw new Error('Срок должен быть от 1 месяца');
+  if (!Number.isFinite(price) || price < 1) throw new Error('Цена должна быть больше 0');
+  if (oldPrice != null && (!Number.isFinite(oldPrice) || oldPrice < 0)) {
+    throw new Error('Старая цена указана неверно');
+  }
+  return {
+    title,
+    months,
+    price,
+    oldPrice,
+    isActive: item.isActive !== false,
+    sortOrder: Math.round(Number(item.sortOrder)) || index + 1,
+  };
+}
+
 router.put('/ort-subscription-plans', async (req, res) => {
   const items = req.body.plans || [];
   const saved = [];
-  for (const item of items) {
-    if (item.id) {
-      const plan = await SubscriptionPlan.findByPk(item.id);
-      if (plan) {
-        await plan.update({
-          title: item.title,
-          months: item.months,
-          price: item.price,
-          oldPrice: item.oldPrice ?? null,
-          isActive: item.isActive !== false,
-          sortOrder: item.sortOrder || 0,
-        });
-        saved.push(plan);
+  try {
+    for (const [index, item] of items.entries()) {
+      const patch = normalizePlan(item, index);
+      if (item.id) {
+        const plan = await SubscriptionPlan.findByPk(item.id);
+        if (plan) {
+          await plan.update(patch);
+          saved.push(plan);
+        }
+      } else {
+        saved.push(await SubscriptionPlan.create(patch));
       }
-    } else {
-      saved.push(await SubscriptionPlan.create(item));
     }
+  } catch (err) {
+    return res.status(400).json({ error: err.message });
   }
   res.json({ plans: saved });
 });

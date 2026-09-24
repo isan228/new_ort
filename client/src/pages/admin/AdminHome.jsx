@@ -40,7 +40,10 @@ export default function AdminHome() {
           <h1>{t('admin.dashboard')}</h1>
           <p className="muted">{t('admin.programLead')}</p>
         </div>
-        <Link className="btn sm" to="/админ/content">{t('admin.program')}</Link>
+        <div className="row">
+          <Link className="btn sm" to="/админ/content">{t('admin.program')}</Link>
+          <Link className="btn ghost sm" to="/админ/plans">{t('admin.plans')}</Link>
+        </div>
       </div>
       {error && <p className="err">{error}</p>}
       <div className="grid-4">
