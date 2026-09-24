@@ -4,6 +4,7 @@ import { ortApi } from '../api/client';
 import { useBank } from '../context/BankContext';
 import { useLang } from '../context/LangContext';
 import { bumpToday, loadProgress, saveProgress, toggleFavorite } from '../lib/progress';
+import '../styles/exam-uworld.css';
 
 const SIM_KEY = 'ortSimState';
 const LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
@@ -18,6 +19,22 @@ function formatClock(sec) {
   const mm = String(Math.floor((safe % 3600) / 60)).padStart(2, '0');
   const ss = String(safe % 60).padStart(2, '0');
   return `${hh}:${mm}:${ss}`;
+}
+
+function IconMenu() {
+  return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" /></svg>;
+}
+function IconPrev() {
+  return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" /></svg>;
+}
+function IconNext() {
+  return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" /></svg>;
+}
+function IconFull() {
+  return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 4H4v4M16 4h4v4M8 20H4v-4M16 20h4v-4" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></svg>;
+}
+function IconEnd() {
+  return <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" strokeWidth="1.8" /><path d="M9 12h6" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" /></svg>;
 }
 
 export default function TestRunner() {
@@ -44,6 +61,7 @@ export default function TestRunner() {
   });
   const [picked, setPicked] = useState(saved?.picked || {});
   const [flagged, setFlagged] = useState(saved?.flagged || {});
+  const [qnavOpen, setQnavOpen] = useState(true);
   const [phase, setPhase] = useState('running');
   const [error, setError] = useState('');
   const [left, setLeft] = useState(() => {
@@ -66,6 +84,11 @@ export default function TestRunner() {
   const sectionEnd = section ? section.start + section.count : (session?.questions?.length || 0);
 
   useEffect(() => {
+    document.body.classList.add('usmle-test-session', 'exam-open');
+    return () => document.body.classList.remove('usmle-test-session', 'exam-open');
+  }, []);
+
+  useEffect(() => {
     if (!session?.questions || phase !== 'running') return undefined;
     const timer = setInterval(() => {
       if (left != null) setLeft((s) => Math.max(0, s - 1));
@@ -73,11 +96,6 @@ export default function TestRunner() {
     }, 1000);
     return () => clearInterval(timer);
   }, [session, phase, sectionIdx, left == null]);
-
-  useEffect(() => {
-    document.body.classList.add('exam-open');
-    return () => document.body.classList.remove('exam-open');
-  }, []);
 
   useEffect(() => {
     if (!simulation) return;
@@ -163,7 +181,7 @@ export default function TestRunner() {
     if (index < sectionEnd - 1) setIndex(index + 1);
   }
 
-  function submitCurrent() {
+  function goNext() {
     if (index < sectionEnd - 1) {
       goInSection(index + 1);
       return;
@@ -184,7 +202,7 @@ export default function TestRunner() {
       if (e.key === 'ArrowRight' && index < sectionEnd - 1) goInSection(index + 1);
       if (e.key === 'Enter' && !e.shiftKey) {
         e.preventDefault();
-        submitCurrent();
+        goNext();
       }
     }
     window.addEventListener('keydown', onKey);
@@ -193,7 +211,7 @@ export default function TestRunner() {
 
   if (!session?.questions?.length) {
     return (
-      <div className="exam-empty">
+      <div className="ort-exam-empty">
         <p>{t('runner.empty')} <Link to="/app/tests">{t('runner.collect')}</Link>.</p>
       </div>
     );
@@ -205,14 +223,23 @@ export default function TestRunner() {
   const total = section?.count || questions.length;
   const warn = left != null && left <= 60;
   const lastInSection = index >= sectionEnd - 1;
+  const nextLabel = lastInSection
+    ? (simulation && sectionIdx < sections.length - 1 ? t('sim.endSection') : t('runner.end'))
+    : t('runner.next');
   const modeLabel = simulation ? t('runner.modeSim') : (examMode ? t('runner.modeExam') : t('runner.modeTutor'));
 
   if (phase === 'gate' && section) {
     const next = sections[sectionIdx + 1];
     return (
-      <div className="exam-lab">
-        <header className="exam-top"><b>{t('sim.sectionClosed')}</b></header>
-        <div className="exam-gate-wrap">
+      <div className="ort-exam-root">
+        <header className="uworld-session-topbar">
+          <div className="uworld-tb-left">
+            <div className="uworld-tb-item-info">
+              <span className="uworld-tb-item-label">{t('sim.sectionClosed')}</span>
+            </div>
+          </div>
+        </header>
+        <div className="ort-exam-gate">
           <div className="card exam-gate">
             <h1>{section.title}</h1>
             <p>{t('sim.gateText')}</p>
@@ -230,103 +257,147 @@ export default function TestRunner() {
             <button className="btn" type="button" onClick={openNextSection}>{t('sim.continue')}</button>
           </div>
         </div>
-        <footer className="exam-bot" />
+        <footer className="uworld-session-footer" />
       </div>
     );
   }
 
   return (
-    <div className="exam-lab">
-      <header className="exam-top">
-        <div className="exam-top-l">
-          <button type="button" className="exam-ico" title={t('runner.exit')} onClick={() => navigate('/app/tests')}>←</button>
-          <b>{t('runner.item', { a: localIndex + 1, b: total })}</b>
-          <span className="exam-qid">{t('runner.qid', { id: q.id })}</span>
-          {simulation && section && <span className="exam-top-sec">{section.title}</span>}
+    <div className="ort-exam-root">
+      <header className="uworld-session-topbar">
+        <div className="uworld-tb-left">
           <button
             type="button"
-            className={`exam-mark ${flagged[q.id] ? 'on' : ''}`}
+            className={`uworld-tb-icon-btn ${qnavOpen ? 'is-active' : ''}`}
+            title={t('runner.exit')}
+            onClick={() => setQnavOpen((v) => !v)}
+          >
+            <IconMenu />
+          </button>
+          <div className="uworld-tb-item-info">
+            <span className="uworld-tb-item-label">{t('runner.item', { a: localIndex + 1, b: total })}</span>
+            <span className="uworld-tb-qid">{t('runner.qid', { id: q.id })}</span>
+          </div>
+          <button
+            type="button"
+            className={`uworld-tb-mark ${flagged[q.id] ? 'is-active' : ''}`}
             onClick={() => setFlagged((f) => ({ ...f, [q.id]: !f[q.id] }))}
           >
-            ⚑ {flagged[q.id] ? t('runner.unflag') : t('runner.mark')}
+            <span className="uworld-tb-mark-icon">⚑</span>
+            <span className="uworld-tb-mark-text">{flagged[q.id] ? t('runner.unflag') : t('runner.mark')}</span>
           </button>
         </div>
-        <div className="exam-top-c">
-          <button type="button" className="exam-nav-btn" disabled={index <= sectionStart} onClick={() => goInSection(index - 1)}>
-            ‹ {t('runner.prev')}
+        <div className="uworld-tb-tools">
+          <button type="button" className="uworld-tb-tool" onClick={toggleFullscreen}>
+            <IconFull />
+            <span className="uworld-tb-tool-full">{t('runner.fullscreen')}</span>
+            <span className="uworld-tb-tool-short">{t('runner.fullscreen')}</span>
           </button>
-          <button
-            type="button"
-            className="exam-nav-btn"
-            disabled={lastInSection}
-            onClick={() => goInSection(index + 1)}
-          >
-            {t('runner.next')} ›
-          </button>
-        </div>
-        <div className="exam-top-r">
           {!simulation && (
-            <button type="button" className="exam-tool" onClick={() => toggleFavorite(q.id)}>{t('runner.fav')}</button>
+            <button type="button" className="uworld-tb-tool" onClick={() => toggleFavorite(q.id)}>
+              <span className="uworld-tb-mark-icon">★</span>
+              <span>{t('runner.fav')}</span>
+            </button>
           )}
-          <button type="button" className="exam-tool" onClick={skip}>{t('runner.skip')}</button>
-          <button type="button" className="exam-tool" onClick={toggleFullscreen}>{t('runner.fullscreen')}</button>
+          <button type="button" className="uworld-tb-tool" onClick={skip}>
+            <span className="uworld-tb-mark-icon">↷</span>
+            <span>{t('runner.skip')}</span>
+          </button>
+        </div>
+        <div className="uworld-tb-nav">
+          <button type="button" className="uworld-tb-nav-btn" disabled={index <= sectionStart} onClick={() => goInSection(index - 1)}>
+            <IconPrev />
+            <span>{t('runner.prev')}</span>
+          </button>
+          <button type="button" className="uworld-tb-nav-btn" onClick={goNext}>
+            <IconNext />
+            <span>{nextLabel}</span>
+          </button>
         </div>
       </header>
 
-      <div className="exam-body">
-        <aside className="exam-side">
-          {questions.slice(sectionStart, sectionEnd).map((item, i) => {
-            const abs = sectionStart + i;
-            let cls = 'exam-num';
-            if (abs === index) cls += ' on';
-            if (picked[item.id]) cls += ' done';
-            if (flagged[item.id]) cls += ' flag';
-            return (
-              <button key={item.id} type="button" className={cls} onClick={() => goInSection(abs)}>
-                <em>{i + 1}</em>
-                <i className={picked[item.id] ? 'exam-dot' : 'exam-dot empty'} />
-              </button>
-            );
-          })}
+      <div className={`test-session-layout has-usmle-qnav${qnavOpen ? '' : ' qnav-collapsed'}`}>
+        <aside className="usmle-qnav" aria-label="Questions">
+          <div className="usmle-qnav-title">{t('runner.items')}</div>
+          <ol className="usmle-qnav-list">
+            {questions.slice(sectionStart, sectionEnd).map((item, i) => {
+              const abs = sectionStart + i;
+              let cls = 'usmle-qnav-item';
+              if (abs === index) cls += ' is-active';
+              if (picked[item.id]) cls += ' is-answered';
+              if (flagged[item.id]) cls += ' is-favorite';
+              return (
+                <li key={item.id} className={cls}>
+                  <button type="button" className="usmle-qnav-btn" onClick={() => goInSection(abs)}>
+                    <i className="usmle-qnav-dot" />
+                    <span className="usmle-qnav-num">{i + 1}</span>
+                    {flagged[item.id] && <span className="usmle-qnav-flag">⚑</span>}
+                  </button>
+                </li>
+              );
+            })}
+          </ol>
         </aside>
-        <main className="exam-main">
-          {error && <p className="err">{error}</p>}
-          <div className="exam-content">
-            <p className="exam-stem">{q.text}</p>
-            <div className="exam-opts">
+        <div className="test-session-main">
+          <div className="test-content">
+            {error && <p className="err">{error}</p>}
+            {simulation && section && (
+              <p className="muted" style={{ marginBottom: 8, fontSize: 13 }}>{section.title}</p>
+            )}
+            <p className="usmle-question-stem">{q.text}</p>
+            <div className="answers-list">
               {q.answers.map((a, i) => (
                 <button
                   key={a.id}
                   type="button"
-                  className={`exam-opt ${picked[q.id] === a.id ? 'on' : ''}`}
+                  className={`answer-item ${picked[q.id] === a.id ? 'selected' : ''}`}
                   onClick={() => setPicked((prev) => ({ ...prev, [q.id]: a.id }))}
                 >
-                  <i className="exam-radio" />
-                  <span><b>({LETTERS[i]})</b> {a.text}</span>
+                  <span className="answer-option-letter">{LETTERS[i]}</span>
+                  <span className="answer-option-text">{a.text}</span>
                 </button>
               ))}
             </div>
-            <button className="exam-submit" type="button" onClick={submitCurrent}>
-              {lastInSection
-                ? (simulation && sectionIdx < sections.length - 1 ? t('sim.endSection') : t('runner.end'))
-                : t('runner.submit')}
-            </button>
           </div>
-        </main>
+        </div>
       </div>
 
-      <footer className="exam-bot">
-        <div className="exam-bot-left">
-          <strong className={warn ? 'warn' : ''}>
-            {timed
-              ? t('runner.blockTime', { time: formatClock(left) })
-              : t('runner.blockElapsed', { time: formatClock(elapsed) })}
-          </strong>
-          <small>{modeLabel}</small>
+      <footer className="uworld-session-footer">
+        <div className="uworld-sf-left">
+          <div className="uworld-sf-meta">
+            <span className="uworld-sf-k">{modeLabel}</span>
+            {simulation && section && <span className="uworld-sf-v">{section.title}</span>}
+          </div>
+          <div className="uworld-sf-meta">
+            {timed ? (
+              <>
+                <span className="uworld-sf-k uworld-sf-k-full">{t('runner.blockTimeLabel')}</span>
+                <span className="uworld-sf-k uworld-sf-k-short">{t('runner.remainShort')}</span>
+                <span className={`uworld-sf-v uworld-sf-time ${warn ? 'uworld-sf-warn' : ''}`}>{formatClock(left)}</span>
+              </>
+            ) : (
+              <>
+                <span className="uworld-sf-k uworld-sf-k-full">{t('runner.blockElapsedLabel')}</span>
+                <span className="uworld-sf-k uworld-sf-k-short">{t('runner.elapsedShort')}</span>
+                <span className="uworld-sf-v uworld-sf-time">{formatClock(elapsed)}</span>
+              </>
+            )}
+          </div>
         </div>
-        <button type="button" className="exam-end" onClick={() => (simulation ? closeSection() : finish())}>
-          {simulation ? t('sim.endSection') : t('runner.end')}
-        </button>
+        <div className="uworld-sf-tools">
+          <button type="button" className="uworld-sf-tool" onClick={() => navigate('/app/tests')}>
+            <span>←</span>
+            <span>{t('runner.exit')}</span>
+          </button>
+          <button
+            type="button"
+            className="uworld-sf-tool uworld-sf-end"
+            onClick={() => (simulation ? closeSection() : finish())}
+          >
+            <IconEnd />
+            <span>{simulation ? t('sim.endSection') : t('runner.end')}</span>
+          </button>
+        </div>
       </footer>
     </div>
   );

@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { linkifyMedicalTerms } from '../lib/linkify';
 import { useLang } from '../context/LangContext';
+import '../styles/exam-uworld.css';
 
 const LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
 
@@ -73,49 +74,48 @@ export default function TestResults() {
       <h2>{t('results.breakdown')}</h2>
       {!items.length && <p className="empty">—</p>}
       {!!items.length && item && (
-        <div className="card review-lab" style={{ padding: 0, overflow: 'hidden' }}>
-          <div className="exam-top">
-            <div className="exam-meta">
-              <b>{t('runner.item', { a: index + 1, b: items.length })}</b>
-              <span>{t('runner.qid', { id: item.questionId })}</span>
-              <span>{item.correct ? t('results.ok') : t('results.bad')}</span>
+        <div className="card review-lab" style={{ padding: 0 }}>
+          <header className="uworld-session-topbar">
+            <div className="uworld-tb-left">
+              <div className="uworld-tb-item-info">
+                <span className="uworld-tb-item-label">{t('runner.item', { a: index + 1, b: items.length })}</span>
+                <span className="uworld-tb-qid">{item.correct ? t('results.ok') : t('results.bad')}</span>
+              </div>
             </div>
-            <div className="exam-nav">
-              <button type="button" className="exam-nav-btn" disabled={index <= 0} onClick={() => setIndex((n) => n - 1)}>
-                ‹ {t('runner.prev')}
+            <div className="uworld-tb-nav">
+              <button type="button" className="uworld-tb-nav-btn" disabled={index <= 0} onClick={() => setIndex((n) => n - 1)}>
+                <span>{t('runner.prev')}</span>
               </button>
-              <button type="button" className="exam-nav-btn" disabled={index >= items.length - 1} onClick={() => setIndex((n) => n + 1)}>
-                {t('runner.next')} ›
+              <button type="button" className="uworld-tb-nav-btn" disabled={index >= items.length - 1} onClick={() => setIndex((n) => n + 1)}>
+                <span>{t('runner.next')}</span>
               </button>
             </div>
-          </div>
-          <div className="exam-body">
-            <aside className="exam-side">
-              {items.map((row, i) => (
-                <button
-                  key={row.questionId}
-                  type="button"
-                  className={`exam-num ${i === index ? 'on' : ''} ${row.correct ? 'done' : 'flag'}`}
-                  onClick={() => setIndex(i)}
-                >
-                  <em>{i + 1}</em>
-                  <i className={`exam-dot ${row.answerId ? '' : 'empty'}`} />
-                </button>
-              ))}
+          </header>
+          <div className="test-session-layout has-usmle-qnav">
+            <aside className="usmle-qnav">
+              <ol className="usmle-qnav-list">
+                {items.map((row, i) => (
+                  <li key={row.questionId} className={`usmle-qnav-item ${i === index ? 'is-active' : ''} ${row.correct ? 'is-answered' : 'is-favorite'}`}>
+                    <button type="button" className="usmle-qnav-btn" onClick={() => setIndex(i)}>
+                      <i className="usmle-qnav-dot" />
+                      <span className="usmle-qnav-num">{i + 1}</span>
+                    </button>
+                  </li>
+                ))}
+              </ol>
             </aside>
-            <main className="exam-main">
-              <div className="exam-content">
-                <p className="exam-stem">{item.question?.text}</p>
-                <div className="exam-opts">
+            <div className="test-session-main">
+              <div className="test-content">
+                <p className="usmle-question-stem">{item.question?.text}</p>
+                <div className="answers-list">
                   {answers.map((a, i) => {
-                    let cls = 'exam-opt';
-                    if (a.isCorrect) cls += ' good';
-                    else if (item.answerId === a.id) cls += ' bad';
-                    if (item.answerId === a.id) cls += ' on';
+                    let cls = 'answer-item';
+                    if (a.isCorrect) cls += ' correct selected';
+                    else if (item.answerId === a.id) cls += ' incorrect selected';
                     return (
                       <div key={a.id} className={cls}>
-                        <i className="exam-radio" />
-                        <span><b>({LETTERS[i]})</b> {a.text}</span>
+                        <span className="answer-option-letter">{LETTERS[i]}</span>
+                        <span className="answer-option-text">{a.text}</span>
                       </div>
                     );
                   })}
@@ -124,7 +124,7 @@ export default function TestResults() {
                   <p style={{ marginTop: 16 }}>{linkifyMedicalTerms(item.question.explanation, [], () => {})}</p>
                 )}
               </div>
-            </main>
+            </div>
           </div>
         </div>
       )}

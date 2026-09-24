@@ -1,0 +1,439 @@
+/* UWorld / USMLE exam chrome — ported from stud_beta for ORT */
+
+body.usmle-test-session {
+  --exam-topbar-h: 52px;
+  --exam-footer-h: 56px;
+  --exam-qnav-w: 56px;
+  --exam-gap: 0.65rem;
+  --exam-pad-x: 0.85rem;
+  --exam-content-max: 920px;
+  margin: 0;
+  background: #e8eaf0;
+  overflow: hidden;
+}
+
+.ort-exam-root {
+  display: flex;
+  flex-direction: column;
+  height: 100dvh;
+  max-height: 100dvh;
+  width: 100%;
+  overflow: hidden;
+  background: #e8eaf0;
+  color: #111827;
+}
+
+.ort-exam-root * { box-sizing: border-box; }
+
+.uworld-session-topbar {
+  display: flex;
+  align-items: stretch;
+  justify-content: space-between;
+  gap: 0.35rem;
+  height: var(--exam-topbar-h);
+  min-height: var(--exam-topbar-h);
+  max-height: var(--exam-topbar-h);
+  padding: 0 0.5rem;
+  background: #3b4a8b;
+  color: #fff;
+  flex: 0 0 auto;
+  z-index: 80;
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.18);
+}
+
+.uworld-tb-left,
+.uworld-tb-tools,
+.uworld-tb-nav {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+.uworld-tb-left { gap: 0.55rem; flex: 0 1 auto; }
+.uworld-tb-tools {
+  flex: 1 1 auto;
+  justify-content: flex-end;
+  gap: 0.15rem;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.uworld-tb-tools::-webkit-scrollbar { display: none; }
+.uworld-tb-nav { flex: 0 0 auto; margin-left: 0.25rem; }
+
+.uworld-tb-item-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.05rem;
+  min-width: 0;
+  line-height: 1.15;
+}
+.uworld-tb-item-label { font-size: 0.85rem; font-weight: 700; white-space: nowrap; }
+.uworld-tb-qid { font-size: 0.68rem; opacity: 0.85; white-space: nowrap; }
+
+.uworld-tb-icon-btn,
+.uworld-tb-mark,
+.uworld-tb-tool,
+.uworld-tb-nav-btn,
+.uworld-sf-tool {
+  appearance: none;
+  border: none;
+  background: transparent;
+  color: #fff;
+  cursor: pointer;
+  font: inherit;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.05rem;
+  min-width: 44px;
+  min-height: 44px;
+  height: 44px;
+  padding: 0.15rem 0.3rem;
+  border-radius: 0.3rem;
+  font-size: 0.62rem;
+  line-height: 1.1;
+  flex: 0 0 auto;
+}
+.uworld-tb-icon-btn svg,
+.uworld-tb-mark svg,
+.uworld-tb-tool svg,
+.uworld-tb-nav-btn svg,
+.uworld-sf-tool svg {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+.uworld-tb-icon-btn:hover,
+.uworld-tb-mark:hover,
+.uworld-tb-tool:hover,
+.uworld-tb-nav-btn:hover:not(:disabled),
+.uworld-sf-tool:hover { background: rgba(255, 255, 255, 0.12); }
+.uworld-tb-icon-btn.is-active,
+.uworld-tb-mark.is-active { background: rgba(255, 255, 255, 0.16); }
+.uworld-tb-nav-btn:disabled { opacity: 0.35; cursor: default; }
+.uworld-tb-mark-icon { font-size: 14px; line-height: 1; }
+.uworld-tb-tool-short { display: none; }
+
+.test-session-layout.has-usmle-qnav {
+  display: grid;
+  grid-template-columns: var(--exam-qnav-w) minmax(0, 1fr);
+  gap: var(--exam-gap);
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: 0.5rem var(--exam-pad-x) 0.5rem;
+  overflow: hidden;
+  align-items: stretch;
+}
+.test-session-layout.has-usmle-qnav.qnav-collapsed {
+  grid-template-columns: minmax(0, 1fr);
+}
+.test-session-layout.qnav-collapsed > .usmle-qnav { display: none; }
+
+.usmle-qnav {
+  width: var(--exam-qnav-w);
+  height: 100%;
+  max-height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  margin: 0;
+  padding: 0.4rem 0.15rem 0.5rem;
+  border-radius: 0.4rem;
+  background: #f3f4f6;
+  border: 1px solid #e5e7eb;
+  scrollbar-width: thin;
+}
+.usmle-qnav-title {
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #6b7280;
+  text-align: center;
+  margin: 0 0 0.35rem;
+}
+.usmle-qnav-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+.usmle-qnav-item { position: relative; margin: 0; }
+.usmle-qnav-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.2rem;
+  padding: 0.28rem 0.1rem;
+  min-height: 32px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  color: #374151;
+  border-radius: 0.25rem;
+  font: inherit;
+}
+.usmle-qnav-btn:hover { background: rgba(37, 99, 235, 0.08); }
+.usmle-qnav-item.is-active .usmle-qnav-btn { background: #2563eb; color: #fff; }
+.usmle-qnav-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  border: 1.5px solid #9ca3af;
+  background: transparent;
+  box-sizing: border-box;
+  flex-shrink: 0;
+}
+.usmle-qnav-item.is-active .usmle-qnav-dot { border-color: #fff; background: #fff; }
+.usmle-qnav-item.is-answered:not(.is-active) .usmle-qnav-dot {
+  border-color: #2563eb;
+  background: #2563eb;
+}
+.usmle-qnav-num {
+  font-size: 0.78rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  min-width: 1.1rem;
+  text-align: center;
+}
+.usmle-qnav-flag {
+  color: #fff;
+  background: #dc2626;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 0.95rem;
+  height: 0.95rem;
+  border-radius: 0.2rem;
+  font-size: 0.55rem;
+  line-height: 1;
+}
+.usmle-qnav-item.is-active .usmle-qnav-flag { color: #dc2626; background: #fff; }
+.usmle-qnav-item.is-favorite .usmle-qnav-num { font-weight: 800; }
+
+.test-session-main {
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.test-content {
+  flex: 1 1 auto;
+  min-height: 0;
+  margin: 0 auto;
+  width: 100%;
+  max-width: var(--exam-content-max);
+  padding: 1.1rem 1.35rem 1.25rem;
+  overflow-x: hidden;
+  overflow-y: auto;
+  background: #fff;
+  border-radius: 0.45rem;
+  border: 1px solid #dbe0ea;
+}
+
+.usmle-question-stem {
+  font-size: 1.05rem;
+  line-height: 1.55;
+  margin: 0 0 0.85rem;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.answers-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.answer-item {
+  padding: 0.7rem 0.85rem;
+  border: 2px solid #d1d5db;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  background: #fff;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  text-align: left;
+  width: 100%;
+  font: inherit;
+  color: inherit;
+  position: relative;
+  transition: border-color 0.15s ease, background 0.15s ease, transform 0.15s ease;
+}
+.answer-item:hover {
+  border-color: #2563eb;
+  background: #f8fafc;
+  transform: translateX(4px);
+}
+.answer-item.selected {
+  border-color: #2563eb;
+  background: linear-gradient(90deg, rgba(37, 99, 235, 0.1) 0%, rgba(37, 99, 235, 0.05) 100%);
+  transform: translateX(6px);
+}
+.answer-option-letter {
+  width: 1.6rem;
+  height: 1.6rem;
+  border-radius: 0.35rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.85rem;
+  flex-shrink: 0;
+  background: #eef2ff;
+  color: #1e3a8a;
+}
+.answer-item.selected .answer-option-letter {
+  background: #2563eb;
+  color: #fff;
+}
+.answer-option-text {
+  flex: 1;
+  min-width: 0;
+  line-height: 1.45;
+  font-size: 1rem;
+  word-break: break-word;
+}
+.answer-item.correct {
+  border-color: #16a34a;
+  background: #f0fdf4;
+}
+.answer-item.incorrect {
+  border-color: #dc2626;
+  background: #fef2f2;
+}
+.answer-item.correct .answer-option-letter { background: #16a34a; color: #fff; }
+.answer-item.incorrect .answer-option-letter { background: #dc2626; color: #fff; }
+
+.uworld-session-footer {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  min-height: calc(var(--exam-footer-h) + env(safe-area-inset-bottom, 0px));
+  padding: 0 0.85rem;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  background: linear-gradient(180deg, #3b4a8b 0%, #33407a 100%);
+  color: #fff;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  z-index: 90;
+}
+.uworld-sf-left {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.2rem;
+  min-width: 0;
+}
+.uworld-sf-meta {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  line-height: 1.25;
+}
+.uworld-sf-k {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.75);
+  white-space: nowrap;
+}
+.uworld-sf-k-short { display: none; }
+.uworld-sf-v {
+  font-size: 0.92rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.uworld-sf-time {
+  font-variant-numeric: tabular-nums;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.95rem;
+}
+.uworld-sf-tools {
+  display: flex;
+  align-items: stretch;
+  justify-content: flex-end;
+  gap: 0.35rem;
+  min-width: 0;
+}
+.uworld-sf-end { min-width: 64px; }
+.uworld-sf-warn { color: #fecaca; }
+
+.ort-exam-empty {
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  padding: 2rem;
+  background: #e8eaf0;
+}
+.ort-exam-gate {
+  flex: 1;
+  display: grid;
+  place-items: center;
+  padding: 1.5rem;
+  overflow: auto;
+}
+.ort-exam-gate .card { max-width: 560px; width: 100%; }
+
+.review-lab {
+  display: flex;
+  flex-direction: column;
+  max-height: 70vh;
+  overflow: hidden;
+  background: #e8eaf0;
+}
+.review-lab .uworld-session-topbar { position: static; }
+.review-lab .test-session-layout {
+  flex: 1;
+  min-height: 280px;
+  padding: 0.5rem;
+}
+.review-lab .answer-item { cursor: default; }
+.review-lab .answer-item:hover { transform: none; }
+
+[data-theme="dark"] .ort-exam-root,
+[data-theme="dark"] body.usmle-test-session { background: #0b1220; color: #e5e7eb; }
+[data-theme="dark"] .usmle-qnav { background: #101827; border-color: #243256; }
+[data-theme="dark"] .usmle-qnav-btn { color: #cbd5e1; }
+[data-theme="dark"] .test-content { background: #0e1730; border-color: #243256; }
+[data-theme="dark"] .answer-item { background: #0e1730; border-color: #334155; color: #e5e7eb; }
+[data-theme="dark"] .answer-item:hover,
+[data-theme="dark"] .answer-item.selected { background: #1e3a5f; }
+
+@media (max-width: 900px) {
+  .uworld-tb-qid { display: none; }
+  .uworld-tb-tool-full { display: none; }
+  .uworld-tb-tool-short { display: inline; }
+  .uworld-sf-k-full { display: none; }
+  .uworld-sf-k-short { display: inline; }
+}
+
+@media (max-width: 720px) {
+  .test-session-layout.has-usmle-qnav {
+    grid-template-columns: 1fr;
+    grid-template-rows: minmax(0, 1fr) 48px;
+  }
+  .usmle-qnav {
+    order: 2;
+    width: 100%;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    overflow-x: auto;
+    overflow-y: hidden;
+    border-radius: 0;
+    padding: 0;
+  }
+  .usmle-qnav-title { display: none; }
+  .usmle-qnav-list { flex-direction: row; height: 100%; }
+  .usmle-qnav-btn { width: 42px; height: 48px; min-height: 48px; }
+  .usmle-qnav-dot { display: none; }
+  .uworld-tb-tools .uworld-tb-tool:nth-child(n+3) { display: none; }
+  .test-content { border-radius: 0; border: 0; padding: 1rem; }
+}

@@ -7,6 +7,7 @@ import { BankProvider } from './context/BankContext';
 import { ThemeProvider } from './context/ThemeContext';
 import { LangProvider } from './context/LangContext';
 import './index.css';
+import './styles/exam-uworld.css';
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
