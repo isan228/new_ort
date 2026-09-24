@@ -795,6 +795,23 @@ p { margin: 0 0 12px; }
   padding: 14px 16px;
 }
 .admin-list-item h4 { margin: 0; font-size: 15px; overflow-wrap: anywhere; }
+.admin-list-item.on {
+  border-color: var(--brand);
+  background: var(--brand-soft);
+}
+.admin-crumbs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 14px;
+  font-size: 14px;
+  color: var(--muted);
+}
+.admin-crumbs a { color: var(--muted); font-weight: 650; }
+.admin-crumbs a:hover { color: var(--brand); }
+.admin-crumbs b { color: var(--ink); }
+.admin-crumbs i { font-style: normal; opacity: 0.5; }
 .admin-section-head {
   display: flex;
   justify-content: space-between;
@@ -854,6 +871,7 @@ p { margin: 0 0 12px; }
 
 @media (max-width: 980px) {
   .admin-program { grid-template-columns: 1fr; }
+  .admin-workspace { grid-template-columns: 1fr; }
   .admin-aside { position: static; }
   .admin-list-item { flex-direction: column; }
 }
@@ -863,6 +881,58 @@ p { margin: 0 0 12px; }
   grid-template-columns: repeat(auto-fill, minmax(min(100%, 360px), 1fr));
   gap: 16px;
 }
+.admin-workspace {
+  display: grid;
+  grid-template-columns: 280px minmax(0, 1fr);
+  gap: 20px;
+  align-items: start;
+}
+.admin-workspace-main {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+.admin-nav-list { display: flex; flex-direction: column; gap: 6px; }
+.admin-nav-item {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  width: 100%;
+  text-align: left;
+  border: 1px solid var(--line);
+  background: var(--card);
+  border-radius: 14px;
+  padding: 12px 14px;
+  cursor: pointer;
+}
+.admin-nav-item strong { font-size: 15px; }
+.admin-nav-item span { font-size: 12px; color: var(--muted); }
+.admin-nav-item.on {
+  border-color: transparent;
+  background: var(--brand-soft);
+  color: var(--brand);
+}
+.admin-nav-item.on span { color: inherit; opacity: 0.8; }
+.admin-subject-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+.admin-section-stack { display: flex; flex-direction: column; gap: 12px; }
+.admin-section-card h3 { font-size: 18px; }
+.admin-section-head select {
+  border: 1px solid var(--line);
+  background: var(--card);
+  border-radius: 12px;
+  padding: 8px 12px;
+  min-height: 40px;
+  min-width: min(240px, 100%);
+}
+.admin-txt-row { display: flex; flex-wrap: wrap; gap: 8px; }
+.admin-list-item h4 .badge { margin-left: 8px; vertical-align: middle; }
 .admin-subject-card h2 { font-size: 22px; }
 .admin-block-label {
   display: flex;

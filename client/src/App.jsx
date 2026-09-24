@@ -26,6 +26,8 @@ import AdminLogin from './pages/admin/AdminLogin';
 import AdminHome from './pages/admin/AdminHome';
 import AdminUsers from './pages/admin/AdminUsers';
 import AdminContent from './pages/admin/AdminContent';
+import AdminSubject from './pages/admin/AdminSubject';
+import AdminSection from './pages/admin/AdminSection';
 
 export const ADMIN_PATH = '/админ';
 
@@ -71,6 +73,8 @@ function adminPages() {
       <Route index element={<AdminHome />} />
       <Route path="users" element={<AdminUsers />} />
       <Route path="content" element={<AdminContent />} />
+      <Route path="content/:subjectId" element={<AdminSubject />} />
+      <Route path="content/:subjectId/:sectionId" element={<AdminSection />} />
       <Route path="flashcards" element={<Navigate to="../content" replace />} />
       <Route path="plans" element={<Navigate to="../content" replace />} />
     </>
