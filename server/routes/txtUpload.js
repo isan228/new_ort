@@ -17,6 +17,7 @@ const {
 const { parseQuestionsFromText } = require('../utils/parseQuestionsTxt');
 const { parseFlashcardsTxt } = require('../utils/parseFlashcardsTxt');
 const { findOrCreateTag } = require('../utils/findOrCreateTag');
+const { applyPassageTags } = require('../utils/passageTags');
 
 const uploadDir = path.join(__dirname, '..', 'uploads');
 fs.mkdirSync(uploadDir, { recursive: true });
@@ -119,6 +120,7 @@ async function upsertQuestions(test, parsed, passageId = null) {
     }
     await replaceAnswers(question.id, item.answers);
     await attachTags(question.id, item.tags, test.subjectId);
+    if (passageId) await applyPassageTags(passageId, [question.id]);
   }
   return { created, updated, total: parsed.length };
 }

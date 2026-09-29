@@ -6,6 +6,7 @@ import { PassageText } from '../../components/PassageText';
 import { findEvidence, splitParagraphs } from '../../lib/reading';
 import { Crumbs, TxtUploadButtons, contentPath, previewText } from './adminUi';
 import QuestionForm, { draftPayload, draftProblem, toDraft } from './QuestionForm';
+import TagInput, { TagChips } from './TagInput';
 import { pickTextFile, readTextFile, splitTitle } from '../../lib/textFile';
 import '../../styles/reading-book.css';
 
@@ -89,7 +90,7 @@ export default function AdminReadingEditor() {
 
   const [subject, setSubject] = useState(null);
   const [section, setSection] = useState(null);
-  const [form, setForm] = useState({ title: '', subtitle: '', body: '', isActive: true });
+  const [form, setForm] = useState({ title: '', subtitle: '', body: '', isActive: true, tags: [] });
   const [savedForm, setSavedForm] = useState(null);
   const [questions, setQuestions] = useState([]);
   const [openKey, setOpenKey] = useState(null);
@@ -117,7 +118,7 @@ export default function AdminReadingEditor() {
       setSubject(foundSubject);
       setSection(foundSection);
       if (isNew) {
-        const empty = { title: '', subtitle: '', body: '', isActive: true };
+        const empty = { title: '', subtitle: '', body: '', isActive: true, tags: [] };
         setForm(empty);
         setSavedForm(empty);
         setQuestions([]);
@@ -130,6 +131,7 @@ export default function AdminReadingEditor() {
         subtitle: data.passage.subtitle || '',
         body: data.passage.body || '',
         isActive: data.passage.isActive !== false,
+        tags: (data.passage.tags || []).map((tag) => tag.name),
       };
       setForm(loaded);
       setSavedForm(loaded);
@@ -295,7 +297,12 @@ export default function AdminReadingEditor() {
         <div className="ar-col">
           {!isNew && (
             <div className="ar-text-bar">
-              <span className="muted">{t('admin.reading.textBar')}</span>
+              <span className="ar-text-bar-copy">
+                <span className="muted">{t('admin.reading.textBar')}</span>
+                {savedForm?.tags?.length ? <TagChips tags={savedForm.tags} /> : (
+                  <button type="button" className="ar-link" onClick={() => setEditText(true)}>+ {t('admin.reading.addTags')}</button>
+                )}
+              </span>
               <button type="button" className={`btn sm${editText ? '' : ' ghost'}`} onClick={() => setEditText(!editText)}>
                 {editText ? t('admin.reading.hideEdit') : t('admin.reading.editText')}
               </button>
@@ -326,6 +333,7 @@ export default function AdminReadingEditor() {
               />
               <small className="field-hint">{t('admin.reading.bodyHint')}</small>
             </div>
+            <TagInput value={form.tags} onChange={(tags) => setForm({ ...form, tags })} label={t('admin.reading.fTags')} />
             <label className="ar-check">
               <input type="checkbox" checked={form.isActive} onChange={(e) => setForm({ ...form, isActive: e.target.checked })} />
               <span>{t('admin.reading.active')}</span>
@@ -349,7 +357,7 @@ export default function AdminReadingEditor() {
           <div className="rb rb-embed theme-light measure-normal">
             <div className="rb-page rb-left">
               <PassageText
-                passage={{ title: form.title, subtitle: form.subtitle, body: form.body }}
+                passage={form}
                 number={1}
                 pageNo={1}
                 ranges={ranges}

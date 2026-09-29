@@ -132,7 +132,10 @@ export default function Tests() {
                   <span className="reading-card-num">{String(i + 1).padStart(2, '0')}</span>
                   <span className="reading-card-title">
                     <b>{p.title}</b>
-                    <small>{t('reading.progress', { done: p.answered, total: p.questionCount })}</small>
+                    <small>
+                      {t('reading.progress', { done: p.answered, total: p.questionCount })}
+                      {p.tags?.length ? ` · ${p.tags.map((tag) => tag.name).join(', ')}` : ''}
+                    </small>
                   </span>
                   <span className="reading-card-bar"><i style={{ width: `${p.questionCount ? (p.answered / p.questionCount) * 100 : 0}%` }} /></span>
                 </button>

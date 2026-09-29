@@ -19,6 +19,7 @@ const {
   TestResult,
   ChatMessage,
   ReadingPassage,
+  ReadingPassageTagMap,
   sequelize,
 } = require('../models');
 const { publicMessage } = require('./chat');
@@ -28,6 +29,13 @@ const { findOrCreateTag } = require('../utils/findOrCreateTag');
 const { publicQuestionWithCorrect, parseLinkedText, encodeLinkedText } = require('../utils/ortLinkedQuestions');
 const txtUpload = require('./txtUpload');
 const { ensurePlansForOrt } = require('../utils/subscriptionPlans');
+const {
+  setPassageTags,
+  applyPassageTags,
+  publicTags,
+  destroyPassageTags,
+  passageTagInclude,
+} = require('../utils/passageTags');
 
 const uploadDir = path.join(__dirname, '..', 'uploads');
 fs.mkdirSync(uploadDir, { recursive: true });
@@ -52,8 +60,16 @@ async function mergeTagInto(sourceId, targetId) {
       defaults: { flashcardId: map.flashcardId, tagId: targetId },
     });
   }
+  const pmaps = await ReadingPassageTagMap.findAll({ where: { tagId: sourceId } });
+  for (const map of pmaps) {
+    await ReadingPassageTagMap.findOrCreate({
+      where: { passageId: map.passageId, tagId: targetId },
+      defaults: { passageId: map.passageId, tagId: targetId },
+    });
+  }
   await QuestionTagMap.destroy({ where: { tagId: sourceId } });
   await FlashcardTagMap.destroy({ where: { tagId: sourceId } });
+  await ReadingPassageTagMap.destroy({ where: { tagId: sourceId } });
   await QuestionTag.destroy({ where: { id: sourceId } });
 }
 
@@ -194,6 +210,7 @@ router.put('/question-tags/:id', async (req, res) => {
 router.delete('/question-tags/:id', async (req, res) => {
   await QuestionTagMap.destroy({ where: { tagId: req.params.id } });
   await FlashcardTagMap.destroy({ where: { tagId: req.params.id } });
+  await ReadingPassageTagMap.destroy({ where: { tagId: req.params.id } });
   await QuestionTag.destroy({ where: { id: req.params.id } });
   res.json({ ok: true });
 });
@@ -329,6 +346,7 @@ router.delete('/subjects/:id', async (req, res) => {
       await QuestionTagMap.destroy({ where: { questionId: q.id } });
     }
     await Question.destroy({ where: { testId: test.id } });
+    await destroyPassageTags({ testId: test.id });
     await ReadingPassage.destroy({ where: { testId: test.id } });
   }
   await Test.destroy({ where: { subjectId: req.params.id } });
@@ -336,6 +354,7 @@ router.delete('/subjects/:id', async (req, res) => {
   for (const tag of tags) {
     await QuestionTagMap.destroy({ where: { tagId: tag.id } });
     await FlashcardTagMap.destroy({ where: { tagId: tag.id } });
+    await ReadingPassageTagMap.destroy({ where: { tagId: tag.id } });
   }
   await QuestionTag.destroy({ where: { subjectId: req.params.id } });
   await Subject.destroy({ where: { id: req.params.id } });
@@ -399,6 +418,7 @@ router.delete('/tests/:id', async (req, res) => {
     await QuestionTagMap.destroy({ where: { questionId: q.id } });
   }
   await Question.destroy({ where: { testId: req.params.id } });
+  await destroyPassageTags({ testId: req.params.id });
   await ReadingPassage.destroy({ where: { testId: req.params.id } });
   await Test.destroy({ where: { id: req.params.id } });
   res.json({ ok: true });
@@ -435,21 +455,32 @@ router.get('/reading-passages', async (req, res) => {
   if (!testId) return res.status(400).json({ error: 'testId обязателен' });
   const passages = await ReadingPassage.findAll({
     where: { testId },
-    include: [{ model: Question, attributes: ['id'], required: false }],
+    include: [{ model: Question, attributes: ['id'], required: false }, passageTagInclude],
     order: [['sortOrder', 'ASC'], ['id', 'ASC']],
   });
   res.json({
     passages: passages.map((row) => {
       const p = row.toJSON();
       p.questionCount = (p.Questions || []).length;
+      p.tags = publicTags(row);
       delete p.Questions;
+      delete p.QuestionTags;
       return p;
     }),
   });
 });
 
+async function passageWithTags(id) {
+  const row = await ReadingPassage.findByPk(id, { include: [passageTagInclude] });
+  if (!row) return null;
+  const passage = row.toJSON();
+  passage.tags = publicTags(row);
+  delete passage.QuestionTags;
+  return passage;
+}
+
 router.get('/reading-passages/:id', async (req, res) => {
-  const passage = await ReadingPassage.findByPk(req.params.id);
+  const passage = await passageWithTags(req.params.id);
   if (!passage) return res.status(404).json({ error: 'Текст не найден' });
   const questions = await Question.findAll({
     where: { passageId: passage.id },
@@ -472,7 +503,8 @@ router.post('/reading-passages', async (req, res) => {
     sortOrder: Number(req.body.sortOrder) || count + 1,
     isActive: req.body.isActive !== false,
   });
-  res.json({ passage });
+  if (req.body.tags !== undefined) await setPassageTags(passage, req.body.tags);
+  res.json({ passage: await passageWithTags(passage.id) });
 });
 
 router.put('/reading-passages/:id', async (req, res) => {
@@ -486,11 +518,13 @@ router.put('/reading-passages/:id', async (req, res) => {
     sortOrder: req.body.sortOrder != null ? Number(req.body.sortOrder) || 0 : passage.sortOrder,
     isActive: req.body.isActive ?? passage.isActive,
   });
-  res.json({ passage });
+  if (req.body.tags !== undefined) await setPassageTags(passage, req.body.tags);
+  res.json({ passage: await passageWithTags(passage.id) });
 });
 
 router.delete('/reading-passages/:id', async (req, res) => {
   await destroyQuestions({ passageId: req.params.id });
+  await destroyPassageTags({ id: req.params.id });
   await ReadingPassage.destroy({ where: { id: req.params.id } });
   res.json({ ok: true });
 });
@@ -547,6 +581,7 @@ router.post('/questions', async (req, res) => {
     const row = await findOrCreateTag(tag.name, tag.kind || 'topic', parentTest?.subjectId || null);
     if (row) await QuestionTagMap.create({ questionId: question.id, tagId: row.id });
   }
+  await applyPassageTags(passageId, [question.id]);
   const full = await Question.findByPk(question.id, { include: [Answer, QuestionTag] });
   res.json({ question: publicQuestionWithCorrect(full) });
 });

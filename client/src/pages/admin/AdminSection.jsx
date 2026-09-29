@@ -7,6 +7,7 @@ import QuestionForm, { draftPayload, draftProblem, toDraft } from './QuestionFor
 import { PassageText } from '../../components/PassageText';
 import { splitParagraphs } from '../../lib/reading';
 import { pickTextFile, readTextFile, splitTitle } from '../../lib/textFile';
+import TagInput, { TagChips } from './TagInput';
 import '../../styles/reading-book.css';
 
 function QuestionModal({ testId, initial, onClose, onSaved }) {
@@ -106,6 +107,7 @@ export function PassageUploadPreview({ file, initial, testId, onClose, onCreated
               <span>{t('admin.reading.fSubtitle')}</span>
               <input value={form.subtitle} onChange={(e) => setForm({ ...form, subtitle: e.target.value })} />
             </label>
+            <TagInput value={form.tags} onChange={(tags) => setForm({ ...form, tags })} label={t('admin.reading.fTags')} />
             <button type="button" className="btn ghost sm" style={{ alignSelf: 'flex-start' }} onClick={() => setEditing(!editing)}>
               {editing ? t('admin.reading.hideEdit') : t('admin.reading.fixText')}
             </button>
@@ -159,7 +161,7 @@ function ReadingPassages({ subjectId, section, passages, onChanged, onError }) {
       const raw = await readTextFile(file);
       if (!raw) { onError(t('admin.reading.errBody')); return; }
       const split = splitTitle(raw);
-      setUpload({ file: file.name, initial: { title: split.title, subtitle: '', body: split.body } });
+      setUpload({ file: file.name, initial: { title: split.title, subtitle: '', body: split.body, tags: [] } });
     } catch (err) {
       onError(err.message);
     }
@@ -198,6 +200,7 @@ function ReadingPassages({ subjectId, section, passages, onChanged, onError }) {
                 {t('admin.reading.questions', { n: p.questionCount })}
                 {p.subtitle ? ` · ${previewText(p.subtitle)}` : ''}
               </p>
+              <TagChips tags={p.tags} />
             </div>
             <Link className="btn sm" to={contentPath(subjectId, section.id, 'reading', p.id)}>{t('admin.reading.edit')}</Link>
             <button

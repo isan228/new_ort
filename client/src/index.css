@@ -2134,3 +2134,66 @@ body.tp-open { overflow: hidden; }
   .rp-panel { border-radius: 0; height: 100%; }
   .rp-body { grid-template-columns: minmax(0, 1fr); padding: 14px; }
 }
+
+/* Tags */
+.tag-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.tag-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 26px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: var(--brand-soft);
+  color: var(--brand);
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.tag-chip button {
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font-size: 15px;
+  line-height: 1;
+  padding: 0 0 0 2px;
+  cursor: pointer;
+  opacity: 0.7;
+}
+.tag-chip button:hover { opacity: 1; }
+.tag-input-box {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  min-height: 48px;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--card);
+}
+.tag-input-box:focus-within { border-color: var(--brand); box-shadow: 0 0 0 4px var(--brand-soft); }
+.field .tag-input-box input {
+  flex: 1;
+  min-width: 140px;
+  width: auto;
+  border: 0 !important;
+  box-shadow: none !important;
+  padding: 4px !important;
+  background: transparent;
+  font-size: 15px;
+}
+.ar-text-bar-copy { display: grid; gap: 2px; flex: 1; min-width: 200px; }
+.ar-text-bar-copy .tag-chips { margin-top: 4px; }
+.ar-link {
+  justify-self: start;
+  border: 0;
+  background: transparent;
+  padding: 2px 0;
+  color: var(--brand);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.field .tag-chip { color: var(--brand); font-size: 12px; }

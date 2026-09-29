@@ -1825,6 +1825,16 @@ dict.ru.admin.reading = {
   looseLead: 'Не привязаны ни к одному тексту — идут в пробный ОРТ как обычные вопросы.',
 };
 
+Object.assign(dict.ru.admin, {
+  tagsLabel: 'Теги',
+  tagsPh: 'Например: главная мысль, вывод, лексика',
+  tagsHint: 'Enter или запятая — добавить тег. Можно выбрать из существующих.',
+});
+Object.assign(dict.ky.admin, {
+  tagsLabel: 'Тегдер',
+  tagsPh: 'Мисалы: негизги ой, корутунду, лексика',
+  tagsHint: 'Enter же үтүр — тег кошуу. Бар тегдерден тандоого болот.',
+});
 dict.ru.admin.q = {
   add: 'Добавить вопрос',
   new: 'Новый вопрос',
@@ -1933,3 +1943,12 @@ dict.ky.admin.reading = {
   looseTitle: 'Текстсиз өзүнчө суроолор',
   looseLead: 'Эч бир текстке байланган эмес — пробный ОРТко кадимки суроо катары кирет.',
 };
+
+Object.assign(dict.ru.admin.reading, {
+  fTags: 'Теги текста (темы, навыки)',
+  addTags: 'Добавить теги',
+});
+Object.assign(dict.ky.admin.reading, {
+  fTags: 'Тексттин тегдери (темалар, көндүмдөр)',
+  addTags: 'Тег кошуу',
+});

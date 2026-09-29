@@ -29,6 +29,11 @@ export function PassageText({
         <span className="rb-kicker">{kicker}</span>
         <h1 className="rb-title">{passage.title || '—'}</h1>
         {passage.subtitle && <p className="rb-sub">{passage.subtitle}</p>}
+        {passage.tags?.length > 0 && (
+          <div className="rb-tags">
+            {passage.tags.map((tag) => <span key={tag.name || tag}>{tag.name || tag}</span>)}
+          </div>
+        )}
         <div className="rb-orn" aria-hidden="true"><span /><i>❦</i><span /></div>
       </header>
       <div className="rb-body">

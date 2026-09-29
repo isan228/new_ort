@@ -20,6 +20,7 @@ const {
 } = require('../utils/ortLinkedQuestions');
 const { scoreAnswers } = require('../utils/ortScoring');
 const { previewMainExam, assembleMainExam } = require('../utils/buildMainExam');
+const { passageTagInclude, publicTags } = require('../utils/passageTags');
 
 const router = express.Router();
 
@@ -540,7 +541,7 @@ async function loadReadingPassages(where) {
       where: { isActive: true },
       required: true,
       include: [{ model: Answer }],
-    }],
+    }, passageTagInclude],
     order: [
       ['sortOrder', 'ASC'],
       ['id', 'ASC'],
@@ -560,7 +561,10 @@ router.get('/ort/reading', async (req, res) => {
         model: ReadingPassage,
         where: { isActive: true },
         required: true,
-        include: [{ model: Question, attributes: ['id'], where: { isActive: true }, required: true }],
+        include: [
+          { model: Question, attributes: ['id'], where: { isActive: true }, required: true },
+          passageTagInclude,
+        ],
       },
     ],
     order: [['sortOrder', 'ASC'], ['id', 'ASC'], [ReadingPassage, 'sortOrder', 'ASC'], [ReadingPassage, 'id', 'ASC']],
@@ -577,6 +581,7 @@ router.get('/ort/reading', async (req, res) => {
           id: p.id,
           title: p.title,
           subtitle: p.subtitle,
+          tags: publicTags(p),
           questionCount: ids.length,
           answered: ids.filter((id) => last.has(id)).length,
           correct: ids.filter((id) => last.get(id) === true).length,
@@ -597,6 +602,7 @@ router.get('/ort/reading/:testId', async (req, res) => {
       id: p.id,
       title: p.title,
       subtitle: p.subtitle,
+      tags: publicTags(p),
       body: p.body,
       questions: p.Questions.map(readingQuestionShape),
     })),
