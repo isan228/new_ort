@@ -8,8 +8,14 @@ const DEFAULT_PLANS = [
 
 async function ensurePlansForOrt() {
   const count = await SubscriptionPlan.count();
-  if (count > 0) return;
-  await SubscriptionPlan.bulkCreate(DEFAULT_PLANS);
+  if (count === 0) {
+    await SubscriptionPlan.bulkCreate(DEFAULT_PLANS);
+    return;
+  }
+  const active = await SubscriptionPlan.count({ where: { isActive: true } });
+  if (active === 0) {
+    await SubscriptionPlan.update({ isActive: true }, { where: {} });
+  }
 }
 
 module.exports = { ensurePlansForOrt, DEFAULT_PLANS };

@@ -11,6 +11,7 @@
     "start": "npm start --prefix server",
     "push": "node scripts/push.js",
     "setup:db": "node server/scripts/setupDb.js",
+    "fix:plans": "node server/scripts/fixPlans.js",
     "setup:service": "node scripts/setupService.js",
     "setup:nginx": "node scripts/setupNginx.js",
     "update": "node scripts/update.js"
