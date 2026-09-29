@@ -6,6 +6,7 @@ import { useTheme } from '../context/ThemeContext';
 import { useLang } from '../context/LangContext';
 import { LangSwitch } from './LangSwitch';
 import { CabinetDock } from './CabinetDock';
+import '../styles/coursology.css';
 
 const SIDE = [
   ['/app', 'nav.dashboard'],
@@ -185,27 +186,31 @@ export function PublicShell({ children }) {
 
   return (
     <>
-      <header className="public-header">
-        <div className="top-left">
-          <MenuBtn open={open} onClick={() => setOpen((v) => !v)} />
-          <BrandLogo to="/" />
-        </div>
-        <nav className="nav-links">
-          <NavLink to="/">{t('nav.home')}</NavLink>
-          <a href="/#programma">{t('nav.program')}</a>
-          <a href="/#kak">{t('nav.how')}</a>
-          <NavLink to="/pricing">{t('nav.pricing')}</NavLink>
-        </nav>
-        <div className="row header-actions">
-          <LangSwitch />
-          {user ? (
-            <Link className="btn" to="/app">{t('nav.cabinet')}</Link>
-          ) : (
-            <>
-              <Link className="btn ghost" to="/login">{t('common.enter')}</Link>
-              <Link className="btn hide-sm" to="/register">{t('nav.start')}</Link>
-            </>
-          )}
+      <header className="cl-header">
+        <div className="cl-container">
+          <div className="cl-header-bar">
+            <div className="cl-header-left">
+              <MenuBtn open={open} onClick={() => setOpen((v) => !v)} />
+              <BrandLogo to="/" />
+            </div>
+            <nav className="cl-header-nav">
+              <a href="/#platforma">{t('land.kickerPlat')}</a>
+              <a href="/#programma">{t('nav.program')}</a>
+              <a href="/#kak">{t('nav.how')}</a>
+              <NavLink to="/pricing">{t('nav.pricing')}</NavLink>
+            </nav>
+            <div className="cl-header-right">
+              <LangSwitch />
+              {user ? (
+                <Link className="cl-pill" to="/app">{t('nav.cabinet')}</Link>
+              ) : (
+                <>
+                  <Link className="cl-header-link hide-sm" to="/login">{t('common.enter')}</Link>
+                  <Link className="cl-pill" to="/register">{t('land.cl.start')}</Link>
+                </>
+              )}
+            </div>
+          </div>
         </div>
       </header>
       <Drawer open={open} onClose={() => setOpen(false)}>
