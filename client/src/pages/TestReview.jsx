@@ -146,6 +146,7 @@ export default function TestReview({ onlyWrong = false } = {}) {
         <div className="uworld-review-split">
           <section className="uworld-review-pane uworld-review-left">
             <div className="uworld-review-stem">{item.question?.text}</div>
+            {item.question?.imageUrl && <img className="q-media" src={item.question.imageUrl} alt="" />}
             <div className="uworld-review-choices">
               {answers.map((a, i) => {
                 const ok = !!a.isCorrect;
@@ -158,7 +159,10 @@ export default function TestReview({ onlyWrong = false } = {}) {
                   <div key={a.id} className={cls}>
                     <span className="uworld-review-choice-mark">{ok ? '✓' : (isUser ? '✗' : '')}</span>
                     <span className="uworld-review-choice-letter">{LETTERS[i]}.</span>
-                    <span className="uworld-review-choice-text">{a.text}</span>
+                    <span className="uworld-review-choice-text">
+                      {a.text}
+                      {a.imageUrl && <img className="q-media q-media-answer" src={a.imageUrl} alt="" />}
+                    </span>
                   </div>
                 );
               })}
@@ -183,7 +187,10 @@ export default function TestReview({ onlyWrong = false } = {}) {
             <div className="uworld-review-expl-body">
               {item.question?.explanation
                 ? item.question.explanation
-                : <p className="uworld-review-no-expl">{t('review.noExpl')}</p>}
+                : !item.question?.explanationImageUrl && <p className="uworld-review-no-expl">{t('review.noExpl')}</p>}
+              {item.question?.explanationImageUrl && (
+                <img className="q-media" src={item.question.explanationImageUrl} alt="" />
+              )}
             </div>
           </section>
         </div>

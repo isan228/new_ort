@@ -813,3 +813,15 @@ a.uworld-sf-tool {
 [data-theme="dark"] .uworld-review-choice,
 [data-theme="dark"] .uworld-review-expl-body { color: #e5e7eb; }
 [data-theme="dark"] .uworld-review-qnav { background: #101827; border-color: #243256; }
+
+.q-media {
+  display: block;
+  max-width: 100%;
+  max-height: 420px;
+  margin: 12px 0 16px;
+  border-radius: 8px;
+  border: 1px solid #dfe3ea;
+  background: #fff;
+  object-fit: contain;
+}
+.q-media-answer { max-height: 180px; margin: 8px 0 2px; }

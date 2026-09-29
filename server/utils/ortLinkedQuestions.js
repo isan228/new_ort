@@ -57,6 +57,7 @@ function publicQuestionShape(question) {
     id: question.id,
     testId: question.testId,
     text: parsed.displayText,
+    imageUrl: question.imageUrl || null,
     explanation: question.explanation,
     explanationImageUrl: question.explanationImageUrl,
     externalId: question.externalId,
@@ -66,6 +67,7 @@ function publicQuestionShape(question) {
     answers: (question.Answers || question.answers || []).map((a) => ({
       id: a.id,
       text: a.text,
+      imageUrl: a.imageUrl || null,
       sortOrder: a.sortOrder,
     })),
     tags: (question.QuestionTags || question.questionTags || []).map((t) => ({
@@ -82,6 +84,7 @@ function publicQuestionWithCorrect(question) {
   base.answers = (question.Answers || question.answers || []).map((a) => ({
     id: a.id,
     text: a.text,
+    imageUrl: a.imageUrl || null,
     sortOrder: a.sortOrder,
     isCorrect: a.isCorrect,
   }));

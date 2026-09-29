@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { adminApi } from '../../api/client';
 import { useLang } from '../../context/LangContext';
+import TxtPreview from './TxtPreview';
 
 export function contentPath(...parts) {
   const root = window.location.pathname.startsWith('/admin') ? '/admin' : '/админ';
@@ -127,18 +128,15 @@ function pickTxtFile() {
 export function TxtUploadButtons({ testId, subjectId, disabled, onDone }) {
   const { t } = useLang();
   const [busy, setBusy] = useState(false);
+  const [preview, setPreview] = useState(null);
 
   async function upload(kind) {
     const file = await pickTxtFile();
     if (!file) return;
     setBusy(true);
     try {
-      const url = kind === 'linked'
-        ? '/api/admin/upload-txt-linked'
-        : '/api/admin/upload-txt-explained';
-      const extra = subjectId && !testId ? { subjectId } : {};
-      const data = await adminApi.uploadTxt(url, testId, file, extra);
-      await onDone(data.message || t('admin.uploadedN', { n: data.total || 0 }));
+      const parsed = await adminApi.parseTxt(file, kind);
+      setPreview({ fileName: file.name, parsed });
     } catch (err) {
       await onDone(null, err.message);
     } finally {
@@ -146,14 +144,28 @@ export function TxtUploadButtons({ testId, subjectId, disabled, onDone }) {
     }
   }
 
+  const target = testId ? { testId } : { subjectId };
+
   return (
     <div className="admin-txt-row">
       <button className="btn sm" type="button" disabled={disabled || busy} onClick={() => upload('explained')}>
-        {t('admin.txtExplained')}
+        {busy ? t('common.loading') : t('admin.txtExplained')}
       </button>
       <button className="btn ghost sm" type="button" disabled={disabled || busy} onClick={() => upload('linked')}>
         {t('admin.txtLinked')}
       </button>
+      {preview && (
+        <TxtPreview
+          fileName={preview.fileName}
+          parsed={preview.parsed}
+          target={target}
+          onClose={() => setPreview(null)}
+          onSaved={async (message) => {
+            setPreview(null);
+            await onDone(message);
+          }}
+        />
+      )}
     </div>
   );
 }

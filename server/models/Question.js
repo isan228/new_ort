@@ -4,6 +4,7 @@ const { sequelize } = require('../config/database');
 const Question = sequelize.define('Question', {
   testId: { type: DataTypes.INTEGER, allowNull: false },
   text: { type: DataTypes.TEXT, allowNull: false },
+  imageUrl: { type: DataTypes.STRING, allowNull: true },
   explanation: { type: DataTypes.TEXT, allowNull: true },
   explanationImageUrl: { type: DataTypes.STRING, allowNull: true },
   externalId: { type: DataTypes.STRING, allowNull: true },

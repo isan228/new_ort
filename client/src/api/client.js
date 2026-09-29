@@ -162,4 +162,19 @@ export const adminApi = {
     Object.entries(extra).forEach(([k, v]) => form.append(k, v));
     return api(url, { method: 'POST', body: form });
   },
+  parseTxt: (file, mode) => {
+    const form = new FormData();
+    form.append('file', file);
+    form.append('mode', mode);
+    return api('/api/admin/parse-txt', { method: 'POST', body: form });
+  },
+  uploadImage: (file) => {
+    const form = new FormData();
+    form.append('image', file);
+    return api('/api/admin/upload-image', { method: 'POST', body: form });
+  },
+  importQuestions: (target, items) => api('/api/admin/import-questions', {
+    method: 'POST',
+    body: JSON.stringify({ ...target, items }),
+  }),
 };
