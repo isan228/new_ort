@@ -1245,6 +1245,25 @@ p { margin: 0 0 12px; }
 }
 .plan-card:hover .plan-cta { background: var(--line); }
 .plan-card.on .plan-cta { background: var(--brand); color: #fff; }
+.plan-skeleton {
+  min-height: 360px;
+  cursor: default;
+  background: linear-gradient(100deg, var(--card) 30%, var(--bg-soft) 50%, var(--card) 70%) 0 0 / 300% 100%;
+  animation: plan-shimmer 1.4s ease-in-out infinite;
+}
+.plan-skeleton:hover { transform: none; border-color: var(--line); }
+@keyframes plan-shimmer { to { background-position: -150% 0; } }
+.plan-empty {
+  max-width: 520px;
+  margin: 0 auto;
+  padding: 28px 24px;
+  text-align: center;
+  border: 1.5px dashed var(--line);
+  border-radius: 24px;
+  background: var(--card);
+  color: var(--muted);
+  font-size: 15px;
+}
 .admin-optional-block { margin-top: 4px; }
 .admin-optional-block .admin-list { margin-bottom: 8px; }
 .admin-upload-block { margin-top: 14px; }

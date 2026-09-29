@@ -12,9 +12,21 @@ export default function PlanPicker({ plans, selectedId, onSelect }) {
   const { t, copy } = useLang();
   const perks = (copy.land.features || []).slice(0, 4).map((f) => f.title);
 
+  if (plans == null) {
+    return (
+      <div className="plan-grid">
+        {[0, 1, 2].map((i) => <div key={i} className="plan-card plan-skeleton" aria-hidden="true" />)}
+      </div>
+    );
+  }
+
+  if (plans.length === 0) {
+    return <div className="plan-empty">{t('pay.noPlans')}</div>;
+  }
+
   return (
     <div className="plan-grid">
-      {(plans || []).map((plan) => {
+      {plans.map((plan) => {
         const on = selectedId === plan.id;
         const discount = plan.oldPrice && plan.oldPrice > plan.price
           ? Math.round((1 - plan.price / plan.oldPrice) * 100)

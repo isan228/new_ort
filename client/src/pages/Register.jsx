@@ -13,7 +13,7 @@ export default function Register() {
   const { t, lang } = useLang();
   const navigate = useNavigate();
   const [params] = useSearchParams();
-  const [plans, setPlans] = useState([]);
+  const [plans, setPlans] = useState(null);
   const [planId, setPlanId] = useState(() => Number(params.get('plan')) || null);
   const ref = params.get('ref') || (typeof sessionStorage !== 'undefined' ? sessionStorage.getItem('ortRef') : '') || '';
   const [step, setStep] = useState(() => (params.get('plan') ? 'form' : 'plan'));
@@ -25,10 +25,10 @@ export default function Register() {
     if (params.get('ref')) sessionStorage.setItem('ortRef', params.get('ref'));
     payApi.plans()
       .then((data) => setPlans(data.plans || []))
-      .catch((err) => setError(err.message));
+      .catch((err) => { setPlans([]); setError(err.message); });
   }, [params]);
 
-  const selected = plans.find((plan) => plan.id === planId) || null;
+  const selected = (plans || []).find((plan) => plan.id === planId) || null;
 
   function pickPlan(plan) {
     setPlanId(plan.id);

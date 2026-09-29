@@ -12,12 +12,16 @@ function Plans({ wrap }) {
   const { user, setUser } = useAuth();
   const { t, locale } = useLang();
   const navigate = useNavigate();
-  const [plans, setPlans] = useState([]);
+  const [plans, setPlans] = useState(null);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const [selectedId, setSelectedId] = useState(user?.subscriptionPlanId || null);
 
-  useEffect(() => { payApi.plans().then((d) => setPlans(d.plans || [])); }, []);
+  useEffect(() => {
+    payApi.plans()
+      .then((d) => setPlans(d.plans || []))
+      .catch(() => setPlans([]));
+  }, []);
 
   async function go(plan) {
     setSelectedId(plan.id);
