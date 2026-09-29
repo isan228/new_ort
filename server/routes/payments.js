@@ -4,6 +4,7 @@ const { Op } = require('sequelize');
 const { SubscriptionPlan, Payment, User } = require('../models');
 const { requireAuth, publicUserWithPlan } = require('../middleware/auth');
 const { maybeGrantReferralBonus } = require('../utils/referral');
+const { ensurePlansForOrt } = require('../utils/subscriptionPlans');
 const { createPayment, isFinikConfigured, webhookUrl, redirectUrl, trimEnv } = require('../utils/finikClient');
 const {
   parseWebhookBody,
@@ -63,6 +64,7 @@ async function findPaymentByFinik(payload) {
 }
 
 router.get('/plans', async (req, res) => {
+  await ensurePlansForOrt();
   const plans = await SubscriptionPlan.findAll({
     where: { isActive: true },
     order: [['sortOrder', 'ASC'], ['months', 'ASC']],

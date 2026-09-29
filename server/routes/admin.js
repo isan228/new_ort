@@ -26,6 +26,7 @@ const { slugify, normalizeTagName } = require('../utils/ortTagNormalize');
 const { findOrCreateTag } = require('../utils/findOrCreateTag');
 const { publicQuestionWithCorrect } = require('../utils/ortLinkedQuestions');
 const txtUpload = require('./txtUpload');
+const { ensurePlansForOrt } = require('../utils/subscriptionPlans');
 
 const uploadDir = path.join(__dirname, '..', 'uploads');
 fs.mkdirSync(uploadDir, { recursive: true });
@@ -107,6 +108,7 @@ router.get('/ort-stats', async (req, res) => {
 });
 
 router.get('/ort-subscription-plans', async (req, res) => {
+  await ensurePlansForOrt();
   const plans = await SubscriptionPlan.findAll({ order: [['sortOrder', 'ASC']] });
   res.json({ plans });
 });
