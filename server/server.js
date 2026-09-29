@@ -3,6 +3,7 @@ require('dotenv').config({ path: require('path').join(__dirname, '..', '.env') }
 const fs = require('fs');
 const path = require('path');
 const express = require('express');
+require('./utils/asyncErrors');
 const cors = require('cors');
 const { ensureDatabase } = require('./utils/ensureDatabase');
 const { prepareAppData } = require('./utils/prepareAppData');
@@ -63,7 +64,12 @@ if (serveFrontend) {
 
 app.use((err, req, res, next) => {
   console.error(err);
-  res.status(500).json({ error: err.message || 'Ошибка сервера' });
+  if (res.headersSent) return next(err);
+  const expose = process.env.NODE_ENV !== 'production';
+  return res.status(500).json({
+    error: expose && err.message ? err.message : 'Ошибка сервера. Попробуйте ещё раз.',
+    code: 'SERVER_ERROR',
+  });
 });
 
 async function boot() {
