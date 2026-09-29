@@ -113,7 +113,7 @@ async function startCheckout({ plan, userId = null, signup = null, lang = 'ru' }
       lang: lang === 'ky' ? 'ky' : 'ru',
       extraData: {
         localPaymentId: String(payment.id),
-        userId: userId ? String(userId) : '',
+        ...(userId && { userId: String(userId) }),
         planId: String(plan.id),
         paymentType: 'ort_subscription',
       },
