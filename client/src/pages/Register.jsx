@@ -1,15 +1,24 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { payApi } from '../api/client';
+import { ApiError, payApi } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import { useLang } from '../context/LangContext';
 import { AuthLayout, PublicShell } from '../components/Shells';
 import SiteFooter from '../components/SiteFooter';
 import PlanPicker from '../components/PlanPicker';
-import { startCheckout } from '../lib/checkout';
+import { rememberPendingPayment, startCheckout } from '../lib/checkout';
+
+const FIELD_BY_CODE = {
+  NAME_REQUIRED: 'name',
+  LOGIN_REQUIRED: 'login',
+  LOGIN_INVALID: 'login',
+  LOGIN_TAKEN: 'login',
+  PASSWORD_REQUIRED: 'password',
+  PASSWORD_SHORT: 'password',
+};
 
 export default function Register() {
-  const { register, setUser } = useAuth();
+  const { user, register, setUser } = useAuth();
   const { t, lang } = useLang();
   const navigate = useNavigate();
   const [params] = useSearchParams();
@@ -19,13 +28,15 @@ export default function Register() {
   const [step, setStep] = useState(() => (params.get('plan') ? 'form' : 'plan'));
   const [form, setForm] = useState({ name: '', login: '', password: '', grade: 11, language: lang });
   const [error, setError] = useState('');
+  const [errorCode, setErrorCode] = useState('');
+  const [fieldErr, setFieldErr] = useState({});
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
     if (params.get('ref')) sessionStorage.setItem('ortRef', params.get('ref'));
     payApi.plans()
       .then((data) => setPlans(data.plans || []))
-      .catch((err) => { setPlans([]); setError(err.message); });
+      .catch(() => setPlans([]));
   }, [params]);
 
   const selected = (plans || []).find((plan) => plan.id === planId) || null;
@@ -33,23 +44,82 @@ export default function Register() {
   function pickPlan(plan) {
     setPlanId(plan.id);
     setError('');
+    setErrorCode('');
+  }
+
+  function setField(key, value) {
+    setForm((f) => ({ ...f, [key]: value }));
+    if (fieldErr[key]) setFieldErr((fe) => ({ ...fe, [key]: '' }));
+  }
+
+  function errText(code) {
+    const key = `auth.err.${code}`;
+    const text = t(key);
+    return text === key ? t('auth.err.UNKNOWN') : text;
+  }
+
+  function validate() {
+    const next = {};
+    const loginValue = form.login.trim();
+    if (!form.name.trim()) next.name = errText('NAME_REQUIRED');
+    if (!loginValue) next.login = errText('LOGIN_REQUIRED');
+    else if (!/^[a-zA-Z0-9._-]{3,32}$/.test(loginValue)) next.login = errText('LOGIN_INVALID');
+    if (!form.password) next.password = errText('PASSWORD_REQUIRED');
+    else if (form.password.length < 6) next.password = errText('PASSWORD_SHORT');
+    return next;
+  }
+
+  function showError(err) {
+    const code = err instanceof ApiError
+      ? (err.code || (err.status === 409 ? 'LOGIN_TAKEN' : ''))
+      : (err instanceof TypeError ? 'NETWORK' : '');
+    if (err?.message === 'no-url') {
+      setError(errText('PAYMENT_FAILED'));
+      setErrorCode('PAYMENT_FAILED');
+      return;
+    }
+    const field = FIELD_BY_CODE[code];
+    if (field) {
+      setFieldErr({ [field]: errText(code) });
+      setErrorCode(code);
+      return;
+    }
+    if (code === 'PLAN_REQUIRED' || code === 'PLAN_NOT_FOUND') setStep('plan');
+    setError(code ? errText(code) : (err?.message || errText('UNKNOWN')));
+    setErrorCode(code);
   }
 
   async function onSubmit(e) {
     e.preventDefault();
+    setError('');
+    setErrorCode('');
     if (!selected) {
-      setError(t('auth.needPlan'));
+      setError(errText('PLAN_REQUIRED'));
       setStep('plan');
       return;
     }
-    setError('');
+    if (!user) {
+      const invalid = validate();
+      setFieldErr(invalid);
+      if (Object.keys(invalid).length) return;
+    }
     setBusy(true);
     try {
-      await register({ ...form, language: lang, planId: selected.id, ref: ref || undefined });
-      const result = await startCheckout(selected, { setUser });
-      if (result === 'demo') navigate('/app');
+      if (user) {
+        const result = await startCheckout(selected, { setUser });
+        if (result === 'demo') navigate('/app');
+        return;
+      }
+      const data = await register({ ...form, language: lang, planId: selected.id, ref: ref || undefined });
+      if (data.token) {
+        navigate('/app');
+        return;
+      }
+      if (!data.paymentUrl) throw new Error('no-url');
+      rememberPendingPayment(data.paymentId, data.claim);
+      window.location.href = data.paymentUrl;
     } catch (err) {
-      setError(err.message === 'no-url' ? t('pay.noUrl') : err.message);
+      showError(err);
     } finally {
       setBusy(false);
     }
@@ -65,7 +135,7 @@ export default function Register() {
           {step === 'plan' && (
             <>
               <PlanPicker plans={plans} selectedId={planId} onSelect={pickPlan} />
-              {error && <p className="err">{error}</p>}
+              {error && <div className="form-alert" role="alert">{error}</div>}
               <div className="cl-auth-actions">
                 <button className="btn lg" type="button" disabled={!selected} onClick={() => setStep('form')}>
                   {t('auth.toForm')}
@@ -87,17 +157,56 @@ export default function Register() {
                   </button>
                 </div>
               )}
-              <label className="field"><span>{t('common.name')}</span><input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required /></label>
-              <label className="field"><span>{t('common.login')}</span><input value={form.login} onChange={(e) => setForm({ ...form, login: e.target.value })} autoComplete="username" required /></label>
-              <label className="field"><span>{t('common.password')}</span><input value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} type="password" autoComplete="new-password" required /></label>
+              <label className={`field ${fieldErr.name ? 'has-error' : ''}`}>
+                <span>{t('common.name')}</span>
+                <input
+                  value={form.name}
+                  onChange={(e) => setField('name', e.target.value)}
+                  autoComplete="name"
+                  aria-invalid={!!fieldErr.name}
+                />
+                {fieldErr.name && <small className="field-error">{fieldErr.name}</small>}
+              </label>
+              <label className={`field ${fieldErr.login ? 'has-error' : ''}`}>
+                <span>{t('common.login')}</span>
+                <input
+                  value={form.login}
+                  onChange={(e) => setField('login', e.target.value)}
+                  autoComplete="username"
+                  autoCapitalize="none"
+                  spellCheck={false}
+                  aria-invalid={!!fieldErr.login}
+                />
+                {fieldErr.login ? (
+                  <small className="field-error">
+                    {fieldErr.login}
+                    {errorCode === 'LOGIN_TAKEN' && <> <Link to="/login">{t('auth.signIn')}</Link></>}
+                  </small>
+                ) : (
+                  <small className="field-hint">{t('auth.loginHint2')}</small>
+                )}
+              </label>
+              <label className={`field ${fieldErr.password ? 'has-error' : ''}`}>
+                <span>{t('common.password')}</span>
+                <input
+                  value={form.password}
+                  onChange={(e) => setField('password', e.target.value)}
+                  type="password"
+                  autoComplete="new-password"
+                  aria-invalid={!!fieldErr.password}
+                />
+                {fieldErr.password
+                  ? <small className="field-error">{fieldErr.password}</small>
+                  : <small className="field-hint">{t('auth.passwordHint')}</small>}
+              </label>
               <label className="field">
                 <span>{t('auth.grade')}</span>
-                <select value={form.grade} onChange={(e) => setForm({ ...form, grade: Number(e.target.value) })}>
+                <select value={form.grade} onChange={(e) => setField('grade', Number(e.target.value))}>
                   <option value={10}>10</option>
                   <option value={11}>11</option>
                 </select>
               </label>
-              {error && <p className="err">{error}</p>}
+              {error && <div className="form-alert" role="alert">{error}</div>}
               <button className="btn lg cl-auth-submit" type="submit" disabled={busy}>
                 {busy ? t('common.loading') : t('auth.payAndStart')}
               </button>

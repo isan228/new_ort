@@ -747,6 +747,28 @@ body.cl-body::before { display: none; }
   cursor: pointer;
 }
 .cl-auth .error, .cl-auth .err { text-align: center; }
+.field-hint, .field-error { font-size: 12.5px; line-height: 1.4; }
+.field-hint { color: var(--cl-faint); }
+.field-error { color: #dc2626; font-weight: 500; }
+.field-error a { font-weight: 700; color: var(--cl-blue); text-decoration: underline; }
+.cl-auth-card .field.has-error input,
+.cl-auth-card .field.has-error select {
+  background: #fef2f2;
+  border-color: #fca5a5;
+}
+.cl-auth-card .field.has-error input:focus { box-shadow: 0 0 0 4px #fee2e2; border-color: #dc2626; }
+.form-alert {
+  margin: 4px 0 12px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #b91c1c;
+  font-size: 14px;
+  line-height: 1.45;
+  text-align: left;
+}
+.cl-auth-actions + .form-alert, .plan-grid + .form-alert { margin-top: 20px; }
 
 /* ——— Responsive ——— */
 @media (max-width: 1200px) {

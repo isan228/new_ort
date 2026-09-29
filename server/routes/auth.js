@@ -6,6 +6,7 @@ const { requireAuth, signToken, publicUserWithPlan } = require('../middleware/au
 const { ensureReferralCode, findInviterByCode, referralStats } = require('../utils/referral');
 const { userStats, rankingFor } = require('../utils/userProgress');
 const { normalizeLogin, assertLogin } = require('../utils/userLogin');
+const { applyPaidSubscription, startCheckout, sendCheckoutError } = require('../utils/paymentFlow');
 
 const router = express.Router();
 
@@ -20,14 +21,18 @@ async function findByLoginOrEmail(ident) {
 
 router.post('/register', async (req, res) => {
   const { name, login, email, password, phone, language, grade, planId, ref } = req.body || {};
-  if (!name || !login || !password) {
-    return res.status(400).json({ error: 'Имя, логин и пароль обязательны' });
+  const fail = (status, code, field, error) => res.status(status).json({ error, code, field });
+  if (!String(name || '').trim()) return fail(400, 'NAME_REQUIRED', 'name', 'Укажите имя');
+  if (!String(login || '').trim()) return fail(400, 'LOGIN_REQUIRED', 'login', 'Придумайте логин');
+  if (!password) return fail(400, 'PASSWORD_REQUIRED', 'password', 'Придумайте пароль');
+  if (String(password).length < 6) {
+    return fail(400, 'PASSWORD_SHORT', 'password', 'Пароль должен быть не короче 6 символов');
   }
   let cleanLogin;
   try {
     cleanLogin = assertLogin(login || email);
   } catch (err) {
-    return res.status(400).json({ error: err.message });
+    return fail(400, 'LOGIN_INVALID', 'login', err.message);
   }
   const mail = email
     ? String(email).toLowerCase().trim()
@@ -36,28 +41,41 @@ router.post('/register', async (req, res) => {
   const exists = await User.findOne({
     where: { [Op.or]: [{ login: cleanLogin }, { email: mail }] },
   });
-  if (exists) return res.status(409).json({ error: 'Логин уже занят' });
+  if (exists) return fail(409, 'LOGIN_TAKEN', 'login', 'Этот логин уже занят');
 
   const plan = await SubscriptionPlan.findByPk(Number(planId));
-  if (!plan || !plan.isActive) return res.status(400).json({ error: 'Выберите тариф' });
-  const subscriptionPlanId = plan.id;
+  if (!plan || !plan.isActive) return fail(400, 'PLAN_REQUIRED', null, 'Выберите тариф');
   const inviter = await findInviterByCode(ref);
+  const lang = language === 'ky' ? 'ky' : 'ru';
 
-  const user = await User.create({
+  const signup = {
     name: String(name).trim(),
     login: cleanLogin,
-    email: mail,
+    email: email ? mail : null,
     passwordHash: await bcrypt.hash(password, 10),
     phone: phone || null,
-    language: language === 'ky' ? 'ky' : 'ru',
+    language: lang,
     grade: grade ? Number(grade) : null,
-    role: 'student',
-    subscriptionPlanId,
     referredById: inviter && inviter.login !== cleanLogin ? inviter.id : null,
-  });
-  await ensureReferralCode(user);
+  };
 
-  return res.json({ token: signToken(user), user: await publicUserWithPlan(user) });
+  let checkout;
+  try {
+    checkout = await startCheckout({ plan, signup, lang });
+  } catch (err) {
+    return sendCheckoutError(res, err);
+  }
+
+  if (checkout.demo) {
+    const user = await applyPaidSubscription(checkout.payment);
+    return res.json({ token: signToken(user), user: await publicUserWithPlan(user) });
+  }
+
+  return res.json({
+    paymentUrl: checkout.paymentUrl,
+    paymentId: checkout.paymentId,
+    claim: checkout.payment.claimToken,
+  });
 });
 
 async function checkPassword(user, password) {

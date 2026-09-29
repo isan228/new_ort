@@ -2,10 +2,15 @@ const crypto = require('crypto');
 const express = require('express');
 const { Op } = require('sequelize');
 const { SubscriptionPlan, Payment, User } = require('../models');
-const { requireAuth, publicUserWithPlan } = require('../middleware/auth');
-const { maybeGrantReferralBonus } = require('../utils/referral');
+const { requireAuth, publicUserWithPlan, signToken } = require('../middleware/auth');
 const { ensurePlansForOrt } = require('../utils/subscriptionPlans');
-const { createPayment, isFinikConfigured, webhookUrl, redirectUrl, trimEnv } = require('../utils/finikClient');
+const { isFinikConfigured } = require('../utils/finikClient');
+const {
+  allowDemoPayments,
+  applyPaidSubscription,
+  startCheckout,
+  sendCheckoutError,
+} = require('../utils/paymentFlow');
 const {
   parseWebhookBody,
   validateFinikSignature,
@@ -14,31 +19,6 @@ const {
 } = require('../utils/finikValidator');
 
 const router = express.Router();
-
-function allowDemoPayments() {
-  if (isFinikConfigured()) return false;
-  if (process.env.FINIK_ALLOW_DEMO === 'true') return true;
-  return process.env.NODE_ENV !== 'production';
-}
-
-async function applyPaidSubscription(payment) {
-  if (payment.status === 'paid') {
-    return User.findByPk(payment.userId);
-  }
-  const user = await User.findByPk(payment.userId);
-  if (!user) throw new Error('Пользователь платежа не найден');
-  const base = user.subscriptionEndDate && new Date(user.subscriptionEndDate) > new Date()
-    ? new Date(user.subscriptionEndDate)
-    : new Date();
-  base.setMonth(base.getMonth() + payment.months);
-  user.subscriptionEndDate = base;
-  if (payment.planId) user.subscriptionPlanId = payment.planId;
-  await user.save();
-  payment.status = 'paid';
-  await payment.save();
-  await maybeGrantReferralBonus(user);
-  return user;
-}
 
 async function findPaymentByFinik(payload) {
   const fields = payload.fields || {};
@@ -63,6 +43,13 @@ async function findPaymentByFinik(payload) {
   return null;
 }
 
+function claimMatches(payment, claim) {
+  if (!payment.claimToken || !claim) return false;
+  const a = Buffer.from(String(payment.claimToken));
+  const b = Buffer.from(String(claim));
+  return a.length === b.length && crypto.timingSafeEqual(a, b);
+}
+
 router.get('/plans', async (req, res) => {
   await ensurePlansForOrt();
   const plans = await SubscriptionPlan.findAll({
@@ -74,62 +61,18 @@ router.get('/plans', async (req, res) => {
 
 router.post('/create', requireAuth, async (req, res) => {
   const plan = await SubscriptionPlan.findByPk(req.body.planId);
-  if (!plan || !plan.isActive) return res.status(404).json({ error: 'Тариф не найден' });
-
-  const paymentId = crypto.randomUUID();
-  const payment = await Payment.create({
-    userId: req.user.id,
-    planId: plan.id,
-    type: 'ort_subscription',
-    status: 'pending',
-    amount: plan.price,
-    months: plan.months,
-    providerRef: paymentId,
-  });
-
-  if (!isFinikConfigured()) {
-    if (!allowDemoPayments()) {
-      await payment.update({ status: 'failed' });
-      return res.status(503).json({ error: 'Finik не настроен. В .env нужны FINIK_API_KEY и FINIK_ACCOUNT_ID, в корне проекта — finik_private.pem' });
-    }
-    return res.json({ payment, demo: true });
+  if (!plan || !plan.isActive) {
+    return res.status(404).json({ error: 'Тариф не найден', code: 'PLAN_NOT_FOUND' });
   }
-
-  const originRedirect = new URL(redirectUrl());
-  originRedirect.search = '';
-
   try {
-    const result = await createPayment({
-      amount: plan.price,
-      paymentId,
-      redirectUrl: originRedirect.toString(),
-      webhookUrl: webhookUrl(),
-      accountId: trimEnv('FINIK_ACCOUNT_ID'),
-      nameEn: 'ORT KG',
-      description: `ОРТ подписка ${plan.months} мес. · ${plan.title}`,
-      lang: req.user.language === 'ky' ? 'ky' : 'ru',
-      extraData: {
-        localPaymentId: String(payment.id),
-        userId: String(req.user.id),
-        planId: String(plan.id),
-        paymentType: 'ort_subscription',
-      },
+    const { payment, paymentId, paymentUrl, demo } = await startCheckout({
+      plan,
+      userId: req.user.id,
+      lang: req.user.language,
     });
-
-    if (!result.paymentUrl) {
-      await payment.update({ status: 'failed' });
-      return res.status(502).json({ error: 'Finik не вернул страницу оплаты' });
-    }
-
-    res.json({
-      payment,
-      paymentId,
-      paymentUrl: result.paymentUrl,
-    });
-  } catch (error) {
-    console.error('Finik create payment:', error);
-    await payment.update({ status: 'failed' });
-    res.status(502).json({ error: error.message || 'Не удалось создать платёж Finik' });
+    return res.json({ payment, paymentId, paymentUrl, demo: !!demo });
+  } catch (err) {
+    return sendCheckoutError(res, err);
   }
 });
 
@@ -155,12 +98,22 @@ router.get('/status', async (req, res) => {
   }
   if (!payment) return res.status(404).json({ error: 'Платёж не найден' });
 
-  res.json({
+  const body = {
     status: payment.status,
     paid: payment.status === 'paid',
     months: payment.months,
     amount: payment.amount,
-  });
+  };
+
+  if (body.paid && payment.userId && claimMatches(payment, req.query.claim)) {
+    const user = await User.findByPk(payment.userId);
+    if (user) {
+      body.token = signToken(user);
+      body.user = await publicUserWithPlan(user);
+    }
+  }
+
+  res.json(body);
 });
 
 router.post('/webhook', async (req, res) => {

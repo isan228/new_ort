@@ -88,7 +88,9 @@ export const payApi = {
     method: 'POST',
     body: JSON.stringify({ paymentId }),
   }),
-  status: (paymentId) => api(`/api/payments/status?paymentId=${encodeURIComponent(paymentId)}`),
+  status: (paymentId, claim) => api(
+    `/api/payments/status?paymentId=${encodeURIComponent(paymentId)}${claim ? `&claim=${encodeURIComponent(claim)}` : ''}`,
+  ),
 };
 
 export const chatApi = {
