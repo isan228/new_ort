@@ -25,7 +25,7 @@ const { publicMessage } = require('./chat');
 const { inferOrtPart, normalizeOrtPart } = require('../utils/ortScoring');
 const { slugify, normalizeTagName } = require('../utils/ortTagNormalize');
 const { findOrCreateTag } = require('../utils/findOrCreateTag');
-const { publicQuestionWithCorrect } = require('../utils/ortLinkedQuestions');
+const { publicQuestionWithCorrect, parseLinkedText, encodeLinkedText } = require('../utils/ortLinkedQuestions');
 const txtUpload = require('./txtUpload');
 const { ensurePlansForOrt } = require('../utils/subscriptionPlans');
 
@@ -554,8 +554,13 @@ router.post('/questions', async (req, res) => {
 router.put('/questions/:id', async (req, res) => {
   const question = await Question.findByPk(req.params.id);
   if (!question) return res.status(404).json({ error: 'Вопрос не найден' });
+  let nextText = req.body.text ?? question.text;
+  const linked = parseLinkedText(question.text);
+  if (req.body.text != null && linked.groupId) {
+    nextText = encodeLinkedText(linked.groupId, linked.role, String(req.body.text));
+  }
   const patch = {
-    text: req.body.text ?? question.text,
+    text: nextText,
     explanation: req.body.explanation ?? question.explanation,
     isActive: req.body.isActive ?? question.isActive,
   };

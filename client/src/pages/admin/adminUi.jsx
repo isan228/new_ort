@@ -125,7 +125,7 @@ function pickTxtFile() {
   });
 }
 
-export function TxtUploadButtons({ testId, subjectId, disabled, onDone }) {
+export function TxtUploadButtons({ testId, subjectId, passageId, disabled, onDone }) {
   const { t } = useLang();
   const [busy, setBusy] = useState(false);
   const [preview, setPreview] = useState(null);
@@ -144,7 +144,9 @@ export function TxtUploadButtons({ testId, subjectId, disabled, onDone }) {
     }
   }
 
-  const target = testId ? { testId } : { subjectId };
+  let target = { subjectId };
+  if (passageId) target = { passageId };
+  else if (testId) target = { testId };
 
   return (
     <div className="admin-txt-row">

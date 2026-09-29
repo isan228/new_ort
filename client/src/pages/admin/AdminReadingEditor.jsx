@@ -3,45 +3,26 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { adminApi } from '../../api/client';
 import { useLang } from '../../context/LangContext';
 import { PassageText } from '../../components/PassageText';
-import { LETTERS, findEvidence, splitParagraphs } from '../../lib/reading';
-import { Crumbs, contentPath, previewText } from './adminUi';
+import { findEvidence, splitParagraphs } from '../../lib/reading';
+import { Crumbs, TxtUploadButtons, contentPath, previewText } from './adminUi';
+import QuestionForm, { draftPayload, draftProblem, toDraft } from './QuestionForm';
 import '../../styles/reading-book.css';
 
-let draftSeq = 0;
-
-function blankQuestion() {
-  draftSeq += 1;
-  return {
-    _key: `new-${draftSeq}`,
-    id: null,
-    text: '',
-    explanation: '',
-    evidence: '',
-    answers: [0, 1, 2, 3].map(() => ({ text: '', isCorrect: false })),
-    dirty: true,
-  };
+async function readTextFile(file) {
+  const buffer = await file.arrayBuffer();
+  const utf8 = new TextDecoder('utf-8').decode(buffer);
+  if (!utf8.includes('\uFFFD')) return utf8.replace(/^\uFEFF/, '');
+  return new TextDecoder('windows-1251').decode(buffer);
 }
 
-function fromServer(q) {
-  return {
-    _key: `q-${q.id}`,
-    id: q.id,
-    text: q.text || '',
-    explanation: q.explanation || '',
-    evidence: q.evidence || '',
-    imageUrl: q.imageUrl || null,
-    explanationImageUrl: q.explanationImageUrl || null,
-    answers: (q.answers || []).map((a) => ({ text: a.text || '', isCorrect: !!a.isCorrect, imageUrl: a.imageUrl || null })),
-    dirty: false,
-  };
-}
-
-function questionError(q, t) {
-  if (!q.text.trim()) return t('admin.reading.errText');
-  const filled = q.answers.filter((a) => a.text.trim() || a.imageUrl);
-  if (filled.length < 2) return t('admin.reading.errAnswers');
-  if (!filled.some((a) => a.isCorrect)) return t('admin.reading.errCorrect');
-  return '';
+function pickTextFile() {
+  return new Promise((resolve) => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.txt,text/plain';
+    input.onchange = () => resolve(input.files?.[0] || null);
+    input.click();
+  });
 }
 
 function QuestionEditor({
@@ -59,19 +40,7 @@ function QuestionEditor({
 }) {
   const [hint, setHint] = useState('');
   const ranges = useMemo(() => findEvidence(paragraphs, q.evidence), [paragraphs, q.evidence]);
-  const err = questionError(q, t);
-
-  function patch(next) {
-    onChange({ ...q, ...next, dirty: true });
-  }
-
-  function patchAnswer(i, next) {
-    patch({ answers: q.answers.map((a, k) => (k === i ? { ...a, ...next } : a)) });
-  }
-
-  function markCorrect(i) {
-    patch({ answers: q.answers.map((a, k) => ({ ...a, isCorrect: k === i })) });
-  }
+  const problem = draftProblem(q);
 
   function takeSelection() {
     if (!selection) {
@@ -79,13 +48,14 @@ function QuestionEditor({
       return;
     }
     setHint('');
-    patch({ evidence: selection });
+    onChange({ ...q, evidence: selection, dirty: true });
   }
 
   return (
     <div className={`ar-q${open ? ' open' : ''}${q.dirty ? ' dirty' : ''}`}>
       <button type="button" className="ar-q-head" onClick={onToggle}>
         <span className="ar-q-num">{index + 1}</span>
+        {q.imageUrl && <img className="ar-q-thumb" src={q.imageUrl} alt="" />}
         <span className="ar-q-title">{previewText(q.text) || t('admin.reading.qText')}</span>
         {q.dirty && <span className="ar-q-dot" title={t('admin.reading.unsaved')} />}
         <span className="ar-q-chev" aria-hidden="true">{open ? '−' : '+'}</span>
@@ -93,82 +63,31 @@ function QuestionEditor({
 
       {open && (
         <div className="ar-q-body">
-          <label className="field">
-            <span>{t('admin.reading.qText')}</span>
-            <textarea rows={3} value={q.text} onChange={(e) => patch({ text: e.target.value })} />
-          </label>
-
-          <div className="field">
-            <span>{t('admin.reading.qAnswers')}</span>
-            <div className="ar-answers">
-              {q.answers.map((a, i) => (
-                <div key={i} className={`ar-answer${a.isCorrect ? ' is-correct' : ''}`}>
-                  <button
-                    type="button"
-                    className="ar-radio"
-                    onClick={() => markCorrect(i)}
-                    aria-label={t('admin.reading.qAnswer', { letter: LETTERS[i] })}
-                  >
-                    {LETTERS[i]}
-                  </button>
-                  <input
-                    value={a.text}
-                    placeholder={t('admin.reading.qAnswer', { letter: LETTERS[i] })}
-                    onChange={(e) => patchAnswer(i, { text: e.target.value })}
-                  />
-                  {q.answers.length > 2 && (
-                    <button
-                      type="button"
-                      className="btn ghost sm"
-                      onClick={() => patch({ answers: q.answers.filter((_, k) => k !== i) })}
-                      aria-label={t('common.delete')}
-                    >
-                      ×
-                    </button>
-                  )}
-                </div>
-              ))}
+          <QuestionForm draft={q} onChange={onChange}>
+            <div className="field" style={{ marginTop: 14 }}>
+              <span>{t('admin.reading.qEvidence')}</span>
+              <textarea rows={2} value={q.evidence} onChange={(e) => onChange({ ...q, evidence: e.target.value, dirty: true })} />
+              <div className="ar-evidence-row">
+                <button type="button" className="btn ghost sm" onClick={takeSelection}>
+                  {t('admin.reading.qTakeSelection')}
+                </button>
+                {hint && <span className="field-error">{hint}</span>}
+                {!hint && q.evidence.trim() && (ranges.length ? (
+                  <span className="ar-ok">{t('admin.reading.qEvidenceOk', { n: ranges[0].index + 1 })}</span>
+                ) : (
+                  <span className="field-error">{t('admin.reading.qEvidenceMissing')}</span>
+                ))}
+              </div>
             </div>
-            {q.answers.length < LETTERS.length && (
-              <button
-                type="button"
-                className="btn ghost sm"
-                style={{ alignSelf: 'flex-start' }}
-                onClick={() => patch({ answers: [...q.answers, { text: '', isCorrect: false }] })}
-              >
-                + {t('admin.reading.qAddAnswer')}
-              </button>
-            )}
-          </div>
-
-          <label className="field">
-            <span>{t('admin.reading.qExplanation')}</span>
-            <textarea rows={3} value={q.explanation} onChange={(e) => patch({ explanation: e.target.value })} />
-          </label>
-
-          <div className="field">
-            <span>{t('admin.reading.qEvidence')}</span>
-            <textarea rows={2} value={q.evidence} onChange={(e) => patch({ evidence: e.target.value })} />
-            <div className="ar-evidence-row">
-              <button type="button" className="btn ghost sm" onClick={takeSelection}>
-                {t('admin.reading.qTakeSelection')}
-              </button>
-              {hint && <span className="field-error">{hint}</span>}
-              {!hint && q.evidence.trim() && (ranges.length ? (
-                <span className="ar-ok">{t('admin.reading.qEvidenceOk', { n: ranges[0].index + 1 })}</span>
-              ) : (
-                <span className="field-error">{t('admin.reading.qEvidenceMissing')}</span>
-              ))}
-            </div>
-          </div>
+          </QuestionForm>
 
           <div className="ar-q-actions">
             <button type="button" className="btn ghost sm" onClick={onRemove} disabled={busy}>
               {t('admin.reading.qRemove')}
             </button>
             <span className="ar-q-spacer" />
-            {err && q.dirty && <span className="field-error">{err}</span>}
-            <button type="button" className="btn sm" onClick={onSave} disabled={busy || !!err || !q.dirty}>
+            {problem && q.dirty && <span className="field-error">{t(problem)}</span>}
+            <button type="button" className="btn sm" onClick={onSave} disabled={busy || !!problem || !q.dirty}>
               {t('admin.reading.qSave')}
             </button>
           </div>
@@ -229,7 +148,7 @@ export default function AdminReadingEditor() {
       };
       setForm(loaded);
       setSavedForm(loaded);
-      setQuestions((data.questions || []).map(fromServer));
+      setQuestions((data.questions || []).map(toDraft));
     })().catch((err) => setError(err.message));
     return () => { stop = true; };
   }, [subjectId, sectionId, passageId]);
@@ -259,6 +178,32 @@ export default function AdminReadingEditor() {
     setMsg(ok);
     window.clearTimeout(flashTimer.current);
     flashTimer.current = window.setTimeout(() => setMsg(''), 2500);
+  }
+
+  async function reloadQuestions() {
+    const data = await adminApi.passage(passageId);
+    setQuestions((data.questions || []).map(toDraft));
+  }
+
+  async function loadBodyFromFile() {
+    const file = await pickTextFile();
+    if (!file) return;
+    if (form.body.trim() && !window.confirm(t('admin.reading.replaceBody'))) return;
+    try {
+      const raw = (await readTextFile(file)).replace(/\r\n?/g, '\n').trim();
+      const next = { ...form, body: raw };
+      if (!form.title.trim()) {
+        const [first, ...rest] = raw.split('\n');
+        const head = first.trim();
+        if (head && head.length <= 120 && !/[.!?…]$/.test(head) && rest.join('\n').trim()) {
+          next.title = head;
+          next.body = rest.join('\n').trim();
+        }
+      }
+      setForm(next);
+    } catch (err) {
+      setError(err.message);
+    }
   }
 
   async function savePassage() {
@@ -291,23 +236,12 @@ export default function AdminReadingEditor() {
   async function saveQuestion(q) {
     setBusy(true);
     try {
-      const answers = q.answers
-        .filter((a) => a.text.trim() || a.imageUrl)
-        .map((a, i) => ({ text: a.text.trim(), isCorrect: a.isCorrect, imageUrl: a.imageUrl || null, sortOrder: i + 1 }));
-      const body = {
-        text: q.text.trim(),
-        explanation: q.explanation.trim(),
-        evidence: q.evidence.trim(),
-        imageUrl: q.imageUrl || null,
-        explanationImageUrl: q.explanationImageUrl || null,
-        answers,
-      };
+      const body = draftPayload(q);
       const order = questions.findIndex((row) => row._key === q._key) + 1;
       const res = q.id
         ? await adminApi.updateQuestion(q.id, { ...body, sortOrder: order })
         : await adminApi.createQuestion({ ...body, passageId: Number(passageId), sortOrder: order });
-      const saved = { ...fromServer(res.question), _key: q._key };
-      updateQuestion(saved);
+      updateQuestion({ ...toDraft(res.question), _key: q._key });
       flash(t('admin.saved'));
     } catch (err) {
       setError(err.message);
@@ -334,7 +268,7 @@ export default function AdminReadingEditor() {
   }
 
   function addQuestion() {
-    const q = blankQuestion();
+    const q = toDraft(null);
     setQuestions((list) => [...list, q]);
     setOpenKey(q._key);
   }
@@ -388,8 +322,13 @@ export default function AdminReadingEditor() {
               <span>{t('admin.reading.fSubtitle')}</span>
               <input value={form.subtitle} onChange={(e) => setForm({ ...form, subtitle: e.target.value })} />
             </label>
-            <label className="field">
-              <span>{t('admin.reading.fBody')}</span>
+            <div className="field">
+              <div className="ar-body-head">
+                <span>{t('admin.reading.fBody')}</span>
+                <button type="button" className="btn ghost sm" onClick={loadBodyFromFile}>
+                  {t('admin.reading.loadFile')}
+                </button>
+              </div>
               <textarea
                 className="ar-body"
                 rows={12}
@@ -397,7 +336,7 @@ export default function AdminReadingEditor() {
                 onChange={(e) => setForm({ ...form, body: e.target.value })}
               />
               <small className="field-hint">{t('admin.reading.bodyHint')}</small>
-            </label>
+            </div>
             <label className="ar-check">
               <input type="checkbox" checked={form.isActive} onChange={(e) => setForm({ ...form, isActive: e.target.checked })} />
               <span>{t('admin.reading.active')}</span>
@@ -430,6 +369,19 @@ export default function AdminReadingEditor() {
               + {t('admin.reading.qAdd')}
             </button>
           </div>
+          {!isNew && (
+            <div className="ar-txt">
+              <span className="muted">{t('admin.reading.qTxt')}</span>
+              <TxtUploadButtons
+                passageId={Number(passageId)}
+                onDone={async (ok, err) => {
+                  if (err) { setMsg(''); setError(err); return; }
+                  flash(ok);
+                  await reloadQuestions();
+                }}
+              />
+            </div>
+          )}
           {(isNew || !questions.length) && <div className="empty">{t('admin.reading.qEmpty')}</div>}
           {questions.map((q, i) => (
             <QuestionEditor

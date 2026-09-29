@@ -2,7 +2,52 @@ import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { adminApi } from '../../api/client';
 import { useLang } from '../../context/LangContext';
-import { Crumbs, TxtUploadButtons, confirmDelete, contentPath, previewText } from './adminUi';
+import { Crumbs, Modal, TxtUploadButtons, confirmDelete, contentPath, previewText } from './adminUi';
+import QuestionForm, { draftPayload, draftProblem, toDraft } from './QuestionForm';
+
+function QuestionModal({ testId, initial, onClose, onSaved }) {
+  const { t } = useLang();
+  const [draft, setDraft] = useState(() => toDraft(initial));
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  const problem = draftProblem(draft);
+
+  function close() {
+    const touched = draft.dirty && (
+      draft.id || draft.text.trim() || draft.imageUrl || draft.answers.some((a) => a.text.trim() || a.imageUrl)
+    );
+    if (touched && !window.confirm(t('admin.preview.confirmClose'))) return;
+    onClose();
+  }
+
+  async function save() {
+    if (problem) { setError(t(problem)); return; }
+    setBusy(true);
+    setError('');
+    try {
+      const body = draftPayload(draft, { withTags: true });
+      if (draft.id) await adminApi.updateQuestion(draft.id, body);
+      else await adminApi.createQuestion({ ...body, testId });
+      await onSaved(t('admin.saved'));
+    } catch (err) {
+      setError(err.message);
+      setBusy(false);
+    }
+  }
+
+  return (
+    <Modal title={draft.id ? t('admin.q.edit') : t('admin.q.new')} onClose={close}>
+      <QuestionForm draft={draft} onChange={setDraft} showTags />
+      {error && <p className="err">{error}</p>}
+      <div className="row qf-footer">
+        <button type="button" className="btn ghost" onClick={close}>{t('admin.q.cancel')}</button>
+        <button type="button" className="btn" onClick={save} disabled={busy}>
+          {busy ? t('common.loading') : t('admin.q.save')}
+        </button>
+      </div>
+    </Modal>
+  );
+}
 
 function ReadingPassages({ subjectId, section, passages, onChanged, onError }) {
   const { t } = useLang();
@@ -63,6 +108,7 @@ export default function AdminSection() {
   const [passages, setPassages] = useState([]);
   const [msg, setMsg] = useState('');
   const [error, setError] = useState('');
+  const [editing, setEditing] = useState(undefined);
 
   async function reload() {
     const list = (await adminApi.subjects()).subjects;
@@ -115,6 +161,7 @@ export default function AdminSection() {
           <p className="muted">{t('admin.questionsCount', { n: questions.length })}</p>
         </div>
         <div className="row" style={{ flexWrap: 'wrap', gap: 8 }}>
+          <button className="btn sm" type="button" onClick={() => setEditing(null)}>+ {t('admin.q.add')}</button>
           {!isReading && (
             <Link className="btn ghost" to={contentPath(subject.id, section.id, 'reading', 'new')}>
               {t('admin.reading.add')}
@@ -141,12 +188,14 @@ export default function AdminSection() {
         {!questions.length && <div className="empty">{t('admin.noQuestions')}</div>}
         {questions.map((q) => (
           <div key={q.id} className="admin-list-item">
+            {q.imageUrl && <img className="admin-q-thumb" src={q.imageUrl} alt="" />}
             <div style={{ minWidth: 0, flex: 1 }}>
-              <h4>{previewText(q.text)}</h4>
+              <h4>{previewText(q.text) || t('admin.q.imageOnly')}</h4>
               <p className="muted" style={{ margin: '4px 0 0' }}>
                 {(q.tags || []).map((tag) => tag.name).join(', ') || t('admin.noTags')}
               </p>
             </div>
+            <button className="btn sm" type="button" onClick={() => setEditing(q)}>{t('admin.q.editShort')}</button>
             <button
               className="btn ghost sm"
               type="button"
@@ -167,6 +216,21 @@ export default function AdminSection() {
           </div>
         ))}
       </div>
+
+      {editing !== undefined && (
+        <QuestionModal
+          key={editing?.id || 'new'}
+          testId={section.id}
+          initial={editing}
+          onClose={() => setEditing(undefined)}
+          onSaved={async (ok) => {
+            setEditing(undefined);
+            setError('');
+            setMsg(ok);
+            await reload();
+          }}
+        />
+      )}
     </div>
   );
 }

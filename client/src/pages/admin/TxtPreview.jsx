@@ -40,7 +40,7 @@ export function questionProblems(q) {
   return problems;
 }
 
-function imageFromClipboard(event) {
+export function imageFromClipboard(event) {
   const item = [...(event.clipboardData?.items || [])].find((it) => it.type.startsWith('image/'));
   return item ? item.getAsFile() : null;
 }
@@ -55,7 +55,7 @@ function pickImage() {
   });
 }
 
-function ImageSlot({ url, onChange, onUpload, compact = false }) {
+export function ImageSlot({ url, onChange, onUpload, compact = false }) {
   const { t } = useLang();
   const [busy, setBusy] = useState(false);
 

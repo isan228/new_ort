@@ -12,6 +12,7 @@ const {
   Flashcard,
   FlashcardTagMap,
   QuestionTagMap,
+  ReadingPassage,
 } = require('../models');
 const { parseQuestionsFromText } = require('../utils/parseQuestionsTxt');
 const { parseFlashcardsTxt } = require('../utils/parseFlashcardsTxt');
@@ -88,7 +89,7 @@ async function attachTags(questionId, tags, subjectId = null) {
   }
 }
 
-async function upsertQuestions(test, parsed) {
+async function upsertQuestions(test, parsed, passageId = null) {
   const testId = test.id;
   let created = 0;
   let updated = 0;
@@ -99,6 +100,8 @@ async function upsertQuestions(test, parsed) {
     const media = {};
     if ('imageUrl' in item) media.imageUrl = cleanImageUrl(item.imageUrl);
     if ('explanationImageUrl' in item) media.explanationImageUrl = cleanImageUrl(item.explanationImageUrl);
+    if (passageId) media.passageId = passageId;
+    if (item.evidence) media.evidence = String(item.evidence).trim();
     if (question) {
       await question.update({ text: item.text, explanation: item.explanation, isActive: true, ...media });
       updated += 1;
@@ -121,6 +124,10 @@ async function upsertQuestions(test, parsed) {
 }
 
 async function resolveTest(req) {
+  if (req.body.passageId) {
+    const passage = await ReadingPassage.findByPk(req.body.passageId);
+    return passage ? Test.findByPk(passage.testId) : null;
+  }
   if (req.body.testId) {
     return Test.findByPk(req.body.testId);
   }
@@ -215,6 +222,7 @@ router.post('/import-questions', express.json({ limit: '8mb' }), async (req, res
     }
     const groupId = item.groupId ? String(item.groupId) : null;
     prepared.push({
+      evidence: item.evidence ? String(item.evidence) : null,
       externalId: item.externalId ? String(item.externalId) : null,
       text: groupId ? encodeLinkedText(groupId, QUESTION_MARK, text || ' ') : (text || ' '),
       imageUrl: item.imageUrl,
@@ -227,7 +235,7 @@ router.post('/import-questions', express.json({ limit: '8mb' }), async (req, res
     });
   }
   if (!prepared.length) return res.status(400).json({ error: 'Нет вопросов для сохранения' });
-  const stats = await upsertQuestions(test, prepared);
+  const stats = await upsertQuestions(test, prepared, Number(req.body.passageId) || null);
   res.json({
     message: `Сохранено ${stats.total} вопросов (${stats.created} новых, ${stats.updated} обновлено)`,
     ...stats,

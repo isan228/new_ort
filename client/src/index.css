@@ -1970,3 +1970,72 @@ body.tp-open { overflow: hidden; }
 @media (max-width: 1100px) {
   .ar-grid { grid-template-columns: minmax(0, 1fr); }
 }
+
+/* Admin: simple question form */
+.qf { display: grid; gap: 6px; }
+.qf .field { margin-bottom: 0; }
+.qf textarea { resize: vertical; }
+.qf-image { display: grid; gap: 6px; justify-items: start; margin-top: 4px; }
+.qf-image small { font-size: 12px; }
+.qf-label { margin-top: 14px; font-size: 13px; font-weight: 600; }
+.qf-answers { display: grid; gap: 8px; }
+.qf-answer {
+  display: grid;
+  grid-template-columns: 38px minmax(0, 1fr) 32px;
+  gap: 8px;
+  align-items: start;
+}
+.qf-answer-body { display: grid; gap: 6px; justify-items: start; min-width: 0; }
+.qf-answer-body input {
+  width: 100%;
+  border: 1px solid var(--line);
+  background: var(--card);
+  border-radius: 12px;
+  padding: 10px 12px;
+  font-size: 15px;
+  outline: none;
+}
+.qf-answer-body input:focus { border-color: var(--brand); box-shadow: 0 0 0 4px var(--brand-soft); }
+.qf-letter {
+  width: 38px;
+  height: 38px;
+  border-radius: 999px;
+  border: 1.5px solid var(--line);
+  background: var(--card);
+  font: inherit;
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--muted);
+  cursor: pointer;
+}
+.qf-letter:hover { border-color: var(--ok); }
+.qf-answer.is-correct .qf-letter { background: var(--ok); border-color: var(--ok); color: #fff; }
+.qf-answer.is-correct .qf-answer-body input { border-color: var(--ok); }
+.qf-remove {
+  width: 32px;
+  height: 38px;
+  border: 0;
+  background: transparent;
+  font-size: 20px;
+  color: var(--muted);
+  cursor: pointer;
+}
+.qf-remove:disabled { opacity: 0.3; cursor: default; }
+.qf-add { justify-self: start; margin-top: 4px; }
+.qf-hint { margin: 10px 0 0; font-size: 12px; }
+.qf-footer { justify-content: flex-end; gap: 8px; margin-top: 16px; }
+
+.admin-q-thumb, .ar-q-thumb {
+  width: 44px;
+  height: 44px;
+  flex: none;
+  object-fit: cover;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+}
+.ar-q-thumb { width: 32px; height: 32px; border-radius: 8px; }
+.admin-list-item:has(.admin-q-thumb) { align-items: center; }
+
+.ar-body-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.ar-txt { display: grid; gap: 8px; padding: 12px 14px; border: 1px dashed var(--line); border-radius: 14px; }
+.ar-txt .muted { font-size: 12.5px; }
