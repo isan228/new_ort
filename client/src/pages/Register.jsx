@@ -63,9 +63,7 @@ export default function Register() {
     const loginValue = form.login.trim();
     if (!form.name.trim()) next.name = errText('NAME_REQUIRED');
     if (!loginValue) next.login = errText('LOGIN_REQUIRED');
-    else if (loginValue.replace(/\s+/g, '').length < 3) next.login = errText('LOGIN_INVALID');
     if (!form.password) next.password = errText('PASSWORD_REQUIRED');
-    else if (form.password.length < 6) next.password = errText('PASSWORD_SHORT');
     return next;
   }
 
@@ -193,9 +191,7 @@ export default function Register() {
                   autoComplete="new-password"
                   aria-invalid={!!fieldErr.password}
                 />
-                {fieldErr.password
-                  ? <small className="field-error">{fieldErr.password}</small>
-                  : <small className="field-hint">{t('auth.passwordHint')}</small>}
+                {fieldErr.password && <small className="field-error">{fieldErr.password}</small>}
               </label>
               <label className="field">
                 <span>{t('auth.grade')}</span>

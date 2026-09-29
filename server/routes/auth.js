@@ -5,7 +5,7 @@ const { User, SubscriptionPlan } = require('../models');
 const { requireAuth, signToken, publicUserWithPlan } = require('../middleware/auth');
 const { ensureReferralCode, findInviterByCode, referralStats } = require('../utils/referral');
 const { userStats, rankingFor } = require('../utils/userProgress');
-const { normalizeLogin, assertLogin } = require('../utils/userLogin');
+const { normalizeLogin, loginKey, assertLogin } = require('../utils/userLogin');
 const { applyPaidSubscription, startCheckout, sendCheckoutError } = require('../utils/paymentFlow');
 
 const router = express.Router();
@@ -25,23 +25,20 @@ router.post('/register', async (req, res) => {
   if (!String(name || '').trim()) return fail(400, 'NAME_REQUIRED', 'name', 'Укажите имя');
   if (!String(login || '').trim()) return fail(400, 'LOGIN_REQUIRED', 'login', 'Придумайте логин');
   if (!password) return fail(400, 'PASSWORD_REQUIRED', 'password', 'Придумайте пароль');
-  if (String(password).length < 6) {
-    return fail(400, 'PASSWORD_SHORT', 'password', 'Пароль должен быть не короче 6 символов');
-  }
   let cleanLogin;
   try {
     cleanLogin = assertLogin(login || email);
   } catch (err) {
-    return fail(400, 'LOGIN_INVALID', 'login', err.message);
+    return fail(400, 'LOGIN_REQUIRED', 'login', err.message);
   }
   const mail = email
     ? String(email).toLowerCase().trim()
     : `${cleanLogin}@ort.local`;
 
   const exists = await User.findOne({
-    where: { [Op.or]: [{ login: cleanLogin }, { email: mail }] },
+    where: { [Op.or]: [{ login: cleanLogin }, { loginKey: loginKey(cleanLogin) }, { email: mail }] },
   });
-  if (exists) return fail(409, 'LOGIN_TAKEN', 'login', 'Этот логин уже занят');
+  if (exists) return fail(409, 'LOGIN_TAKEN', 'login', 'Такой или очень похожий логин уже занят');
 
   const plan = await SubscriptionPlan.findByPk(Number(planId));
   if (!plan || !plan.isActive) return fail(400, 'PLAN_REQUIRED', null, 'Выберите тариф');

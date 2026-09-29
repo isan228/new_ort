@@ -1,5 +1,7 @@
 const crypto = require('crypto');
+const { Op } = require('sequelize');
 const { sequelize, Payment, User } = require('../models');
+const { loginKey } = require('./userLogin');
 const { ensureReferralCode, maybeGrantReferralBonus } = require('./referral');
 const { createPayment, isFinikConfigured, webhookUrl, redirectUrl, trimEnv } = require('./finikClient');
 
@@ -17,9 +19,16 @@ function allowDemoPayments() {
   return process.env.NODE_ENV !== 'production';
 }
 
+async function loginBusy(candidate, transaction) {
+  return User.findOne({
+    where: { [Op.or]: [{ login: candidate }, { loginKey: loginKey(candidate) }] },
+    transaction,
+  });
+}
+
 async function freeLogin(login, transaction) {
   let candidate = login;
-  for (let i = 2; await User.findOne({ where: { login: candidate }, transaction }); i += 1) {
+  for (let i = 2; await loginBusy(candidate, transaction); i += 1) {
     candidate = `${login}${i}`;
   }
   return candidate;
