@@ -61,6 +61,7 @@ function publicQuestionShape(question) {
     explanation: question.explanation,
     explanationImageUrl: question.explanationImageUrl,
     externalId: question.externalId,
+    passageId: question.passageId || null,
     sortOrder: question.sortOrder,
     groupId: parsed.groupId,
     role: parsed.role,
@@ -88,6 +89,7 @@ function publicQuestionWithCorrect(question) {
     sortOrder: a.sortOrder,
     isCorrect: a.isCorrect,
   }));
+  base.evidence = question.evidence || null;
   return base;
 }
 

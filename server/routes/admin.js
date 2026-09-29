@@ -18,6 +18,7 @@ const {
   Payment,
   TestResult,
   ChatMessage,
+  ReadingPassage,
   sequelize,
 } = require('../models');
 const { publicMessage } = require('./chat');
@@ -328,6 +329,7 @@ router.delete('/subjects/:id', async (req, res) => {
       await QuestionTagMap.destroy({ where: { questionId: q.id } });
     }
     await Question.destroy({ where: { testId: test.id } });
+    await ReadingPassage.destroy({ where: { testId: test.id } });
   }
   await Test.destroy({ where: { subjectId: req.params.id } });
   const tags = await QuestionTag.findAll({ where: { subjectId: req.params.id } });
@@ -397,13 +399,107 @@ router.delete('/tests/:id', async (req, res) => {
     await QuestionTagMap.destroy({ where: { questionId: q.id } });
   }
   await Question.destroy({ where: { testId: req.params.id } });
+  await ReadingPassage.destroy({ where: { testId: req.params.id } });
   await Test.destroy({ where: { id: req.params.id } });
+  res.json({ ok: true });
+});
+
+function cleanPassageBody(value) {
+  return String(value || '')
+    .replace(/\r\n?/g, '\n')
+    .split(/\n\s*\n/)
+    .map((part) => part.replace(/\s*\n\s*/g, ' ').trim())
+    .filter(Boolean)
+    .join('\n\n');
+}
+
+function passagePayload(body) {
+  return {
+    title: String(body.title || '').trim(),
+    subtitle: String(body.subtitle || '').trim() || null,
+    body: cleanPassageBody(body.body),
+  };
+}
+
+async function destroyQuestions(where) {
+  const questions = await Question.findAll({ where, attributes: ['id'] });
+  const ids = questions.map((q) => q.id);
+  if (!ids.length) return;
+  await Answer.destroy({ where: { questionId: ids } });
+  await QuestionTagMap.destroy({ where: { questionId: ids } });
+  await Question.destroy({ where: { id: ids } });
+}
+
+router.get('/reading-passages', async (req, res) => {
+  const testId = Number(req.query.testId);
+  if (!testId) return res.status(400).json({ error: 'testId обязателен' });
+  const passages = await ReadingPassage.findAll({
+    where: { testId },
+    include: [{ model: Question, attributes: ['id'], required: false }],
+    order: [['sortOrder', 'ASC'], ['id', 'ASC']],
+  });
+  res.json({
+    passages: passages.map((row) => {
+      const p = row.toJSON();
+      p.questionCount = (p.Questions || []).length;
+      delete p.Questions;
+      return p;
+    }),
+  });
+});
+
+router.get('/reading-passages/:id', async (req, res) => {
+  const passage = await ReadingPassage.findByPk(req.params.id);
+  if (!passage) return res.status(404).json({ error: 'Текст не найден' });
+  const questions = await Question.findAll({
+    where: { passageId: passage.id },
+    include: [Answer, QuestionTag],
+    order: [['sortOrder', 'ASC'], ['id', 'ASC'], [Answer, 'sortOrder', 'ASC']],
+  });
+  res.json({ passage, questions: questions.map(publicQuestionWithCorrect) });
+});
+
+router.post('/reading-passages', async (req, res) => {
+  const testId = Number(req.body.testId);
+  const data = passagePayload(req.body || {});
+  if (!testId) return res.status(400).json({ error: 'Укажите раздел' });
+  if (!data.title) return res.status(400).json({ error: 'Название текста обязательно' });
+  if (!data.body) return res.status(400).json({ error: 'Текст пустой' });
+  const count = await ReadingPassage.count({ where: { testId } });
+  const passage = await ReadingPassage.create({
+    ...data,
+    testId,
+    sortOrder: Number(req.body.sortOrder) || count + 1,
+    isActive: req.body.isActive !== false,
+  });
+  res.json({ passage });
+});
+
+router.put('/reading-passages/:id', async (req, res) => {
+  const passage = await ReadingPassage.findByPk(req.params.id);
+  if (!passage) return res.status(404).json({ error: 'Текст не найден' });
+  const data = passagePayload({ ...passage.toJSON(), ...req.body });
+  if (!data.title) return res.status(400).json({ error: 'Название текста обязательно' });
+  if (!data.body) return res.status(400).json({ error: 'Текст пустой' });
+  await passage.update({
+    ...data,
+    sortOrder: req.body.sortOrder != null ? Number(req.body.sortOrder) || 0 : passage.sortOrder,
+    isActive: req.body.isActive ?? passage.isActive,
+  });
+  res.json({ passage });
+});
+
+router.delete('/reading-passages/:id', async (req, res) => {
+  await destroyQuestions({ passageId: req.params.id });
+  await ReadingPassage.destroy({ where: { id: req.params.id } });
   res.json({ ok: true });
 });
 
 router.get('/questions', async (req, res) => {
   const where = {};
   if (req.query.testId) where.testId = req.query.testId;
+  if (req.query.passageId) where.passageId = req.query.passageId;
+  else where.passageId = null;
   const questions = await Question.findAll({
     where,
     include: [Answer, QuestionTag],
@@ -412,11 +508,28 @@ router.get('/questions', async (req, res) => {
   res.json({ questions: questions.map(publicQuestionWithCorrect) });
 });
 
+function optionalText(value) {
+  const text = String(value ?? '').trim();
+  return text || null;
+}
+
 router.post('/questions', async (req, res) => {
+  let testId = Number(req.body.testId) || null;
+  const passageId = Number(req.body.passageId) || null;
+  if (passageId) {
+    const passage = await ReadingPassage.findByPk(passageId);
+    if (!passage) return res.status(404).json({ error: 'Текст не найден' });
+    testId = passage.testId;
+  }
+  if (!testId) return res.status(400).json({ error: 'Укажите раздел' });
   const question = await Question.create({
-    testId: req.body.testId,
+    testId,
+    passageId,
     text: req.body.text,
+    imageUrl: optionalText(req.body.imageUrl),
     explanation: req.body.explanation || '',
+    explanationImageUrl: optionalText(req.body.explanationImageUrl),
+    evidence: optionalText(req.body.evidence),
     externalId: req.body.externalId || null,
     sortOrder: req.body.sortOrder || 0,
   });
@@ -424,6 +537,7 @@ router.post('/questions', async (req, res) => {
     await Answer.create({
       questionId: question.id,
       text: answer.text,
+      imageUrl: optionalText(answer.imageUrl),
       isCorrect: !!answer.isCorrect,
       sortOrder: answer.sortOrder ?? idx + 1,
     });
@@ -440,17 +554,23 @@ router.post('/questions', async (req, res) => {
 router.put('/questions/:id', async (req, res) => {
   const question = await Question.findByPk(req.params.id);
   if (!question) return res.status(404).json({ error: 'Вопрос не найден' });
-  await question.update({
+  const patch = {
     text: req.body.text ?? question.text,
     explanation: req.body.explanation ?? question.explanation,
     isActive: req.body.isActive ?? question.isActive,
-  });
+  };
+  for (const key of ['imageUrl', 'explanationImageUrl', 'evidence']) {
+    if (req.body[key] !== undefined) patch[key] = optionalText(req.body[key]);
+  }
+  if (req.body.sortOrder != null) patch.sortOrder = Number(req.body.sortOrder) || 0;
+  await question.update(patch);
   if (Array.isArray(req.body.answers)) {
     await Answer.destroy({ where: { questionId: question.id } });
     for (const [idx, answer] of req.body.answers.entries()) {
       await Answer.create({
         questionId: question.id,
         text: answer.text,
+        imageUrl: optionalText(answer.imageUrl),
         isCorrect: !!answer.isCorrect,
         sortOrder: answer.sortOrder ?? idx + 1,
       });

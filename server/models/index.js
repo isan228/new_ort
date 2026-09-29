@@ -13,6 +13,7 @@ const { SubscriptionPlan } = require('./SubscriptionPlan');
 const { TestResult } = require('./TestResult');
 const { Payment } = require('./Payment');
 const { ChatMessage } = require('./ChatMessage');
+const { ReadingPassage } = require('./ReadingPassage');
 
 Subject.hasMany(Test, { foreignKey: 'subjectId' });
 Test.belongsTo(Subject, { foreignKey: 'subjectId' });
@@ -22,6 +23,11 @@ QuestionTag.belongsTo(Subject, { foreignKey: 'subjectId' });
 
 Test.hasMany(Question, { foreignKey: 'testId' });
 Question.belongsTo(Test, { foreignKey: 'testId' });
+
+Test.hasMany(ReadingPassage, { foreignKey: 'testId' });
+ReadingPassage.belongsTo(Test, { foreignKey: 'testId' });
+ReadingPassage.hasMany(Question, { foreignKey: 'passageId', constraints: false });
+Question.belongsTo(ReadingPassage, { foreignKey: 'passageId', constraints: false });
 
 Question.hasMany(Answer, { foreignKey: 'questionId' });
 Answer.belongsTo(Question, { foreignKey: 'questionId' });
@@ -82,4 +88,5 @@ module.exports = {
   TestResult,
   Payment,
   ChatMessage,
+  ReadingPassage,
 };

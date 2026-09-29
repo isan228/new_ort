@@ -7,6 +7,8 @@ const Question = sequelize.define('Question', {
   imageUrl: { type: DataTypes.STRING, allowNull: true },
   explanation: { type: DataTypes.TEXT, allowNull: true },
   explanationImageUrl: { type: DataTypes.STRING, allowNull: true },
+  passageId: { type: DataTypes.INTEGER, allowNull: true },
+  evidence: { type: DataTypes.TEXT, allowNull: true },
   externalId: { type: DataTypes.STRING, allowNull: true },
   sortOrder: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 0 },
   isActive: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: true },

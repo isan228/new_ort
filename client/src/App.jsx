@@ -12,6 +12,7 @@ import TestBuilder from './pages/TestBuilder';
 import TestRunner from './pages/TestRunner';
 import TestResults from './pages/TestResults';
 import TestReview from './pages/TestReview';
+import ReadingBook from './pages/ReadingBook';
 import Errors from './pages/Errors';
 import Favorites from './pages/Favorites';
 import Flashcards from './pages/Flashcards';
@@ -32,6 +33,7 @@ import AdminPlans from './pages/admin/AdminPlans';
 import AdminContent from './pages/admin/AdminContent';
 import AdminSubject from './pages/admin/AdminSubject';
 import AdminSection from './pages/admin/AdminSection';
+import AdminReadingEditor from './pages/admin/AdminReadingEditor';
 import AdminChat from './pages/admin/AdminChat';
 
 export const ADMIN_PATH = '/админ';
@@ -80,6 +82,7 @@ function adminPages() {
       <Route path="content" element={<AdminContent />} />
       <Route path="content/:subjectId" element={<AdminSubject />} />
       <Route path="content/:subjectId/:sectionId" element={<AdminSection />} />
+      <Route path="content/:subjectId/:sectionId/reading/:passageId" element={<AdminReadingEditor />} />
       <Route path="flashcards" element={<Navigate to="../content" replace />} />
       <Route path="plans" element={<AdminPlans />} />
       <Route path="chat" element={<AdminChat />} />
@@ -109,6 +112,7 @@ export default function App() {
       <Route path="/app/test" element={<Private><TestRunner /></Private>} />
       <Route path="/app/results" element={<AppLayout><TestResults /></AppLayout>} />
       <Route path="/app/review" element={<Private><TestReview /></Private>} />
+      <Route path="/app/reading/:testId" element={<Private><ReadingBook /></Private>} />
       <Route path="/app/errors" element={<Private><Errors /></Private>} />
       <Route path="/app/favorites" element={<AppLayout><Favorites /></AppLayout>} />
       <Route path="/app/flashcards" element={<AppLayout><Flashcards /></AppLayout>} />

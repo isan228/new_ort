@@ -9,6 +9,7 @@ const {
   QuestionTagMap,
   Flashcard,
   TestResult,
+  ReadingPassage,
 } = require('../models');
 const { requireAuth } = require('../middleware/auth');
 const { requireOrtSubscription } = require('../middleware/requireOrtSubscription');
@@ -46,7 +47,7 @@ function shuffle(list) {
 
 async function loadQuestionsForTest(testId, extraWhere = {}) {
   return Question.findAll({
-    where: { testId, isActive: true, ...extraWhere },
+    where: { testId, isActive: true, passageId: null, ...extraWhere },
     include: [
       { model: Answer },
       { model: QuestionTag },
@@ -200,7 +201,7 @@ router.get('/ort/dashboard', async (req, res) => {
       model: Test,
       where: { isActive: true },
       required: false,
-      include: [{ model: Question, attributes: ['id'], where: { isActive: true }, required: false }],
+      include: [{ model: Question, attributes: ['id'], where: { isActive: true, passageId: null }, required: false }],
     }],
     order: [['sortOrder', 'ASC'], ['id', 'ASC'], [Test, 'sortOrder', 'ASC']],
   });
@@ -336,7 +337,7 @@ router.get('/ort/builder', async (req, res) => {
   });
 
   const questions = await Question.findAll({
-    where: { isActive: true },
+    where: { isActive: true, passageId: null },
     attributes: ['id', 'testId'],
     include: [{
       model: QuestionTag,
@@ -432,7 +433,7 @@ router.post('/ort/custom-test/questions', async (req, res) => {
   if (!tests.length) return res.status(404).json({ error: 'Разделы не найдены' });
 
   const questions = await Question.findAll({
-    where: { testId: tests.map((row) => row.id), isActive: true },
+    where: { testId: tests.map((row) => row.id), isActive: true, passageId: null },
     include: [
       { model: Answer },
       { model: QuestionTag },
@@ -522,6 +523,104 @@ router.post('/ort/check', async (req, res) => {
     examType,
   });
   res.json(payload);
+});
+
+function readingQuestionShape(question) {
+  const shaped = publicQuestionShape(question);
+  delete shaped.explanation;
+  delete shaped.explanationImageUrl;
+  return shaped;
+}
+
+async function loadReadingPassages(where) {
+  return ReadingPassage.findAll({
+    where: { isActive: true, ...where },
+    include: [{
+      model: Question,
+      where: { isActive: true },
+      required: true,
+      include: [{ model: Answer }],
+    }],
+    order: [
+      ['sortOrder', 'ASC'],
+      ['id', 'ASC'],
+      [Question, 'sortOrder', 'ASC'],
+      [Question, 'id', 'ASC'],
+      [Question, Answer, 'sortOrder', 'ASC'],
+    ],
+  });
+}
+
+router.get('/ort/reading', async (req, res) => {
+  const tests = await Test.findAll({
+    where: { isActive: true },
+    include: [
+      { model: Subject, where: { isActive: true } },
+      {
+        model: ReadingPassage,
+        where: { isActive: true },
+        required: true,
+        include: [{ model: Question, attributes: ['id'], where: { isActive: true }, required: true }],
+      },
+    ],
+    order: [['sortOrder', 'ASC'], ['id', 'ASC'], [ReadingPassage, 'sortOrder', 'ASC'], [ReadingPassage, 'id', 'ASC']],
+  });
+  const last = await loadUserLastAnswers(req.user.id);
+  res.json({
+    tests: tests.map((test) => ({
+      id: test.id,
+      name: test.name,
+      subjectName: test.Subject?.name || '',
+      passages: test.ReadingPassages.map((p) => {
+        const ids = p.Questions.map((q) => q.id);
+        return {
+          id: p.id,
+          title: p.title,
+          subtitle: p.subtitle,
+          questionCount: ids.length,
+          answered: ids.filter((id) => last.has(id)).length,
+          correct: ids.filter((id) => last.get(id) === true).length,
+        };
+      }),
+    })),
+  });
+});
+
+router.get('/ort/reading/:testId', async (req, res) => {
+  const testId = Number(req.params.testId);
+  const test = await Test.findOne({ where: { id: testId, isActive: true } });
+  if (!test) return res.status(404).json({ error: 'Раздел не найден' });
+  const passages = await loadReadingPassages({ testId });
+  res.json({
+    test: { id: test.id, name: test.name, ortPart: test.ortPart },
+    passages: passages.map((p) => ({
+      id: p.id,
+      title: p.title,
+      subtitle: p.subtitle,
+      body: p.body,
+      questions: p.Questions.map(readingQuestionShape),
+    })),
+  });
+});
+
+router.post('/ort/reading/answer', async (req, res) => {
+  const questionId = Number(req.body?.questionId);
+  const answerId = Number(req.body?.answerId);
+  const question = await Question.findOne({
+    where: { id: questionId, isActive: true, passageId: { [Op.ne]: null } },
+    include: [{ model: Answer }],
+  });
+  if (!question) return res.status(404).json({ error: 'Вопрос не найден' });
+  const right = (question.Answers || []).find((a) => a.isCorrect);
+  res.json({
+    questionId,
+    answerId,
+    correct: Boolean(right && right.id === answerId),
+    correctAnswerId: right?.id || null,
+    explanation: question.explanation || '',
+    explanationImageUrl: question.explanationImageUrl || null,
+    evidence: question.evidence || '',
+  });
 });
 
 router.get('/ort/flashcards', async (req, res) => {

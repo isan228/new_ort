@@ -10,6 +10,7 @@ export default function Tests() {
   const [data, setData] = useState({ main: [], state_lang: [], subject: [], mainExam: null });
   const [cat, setCat] = useState('all');
   const [error, setError] = useState('');
+  const [reading, setReading] = useState([]);
   const { setBank } = useBank();
   const navigate = useNavigate();
 
@@ -27,6 +28,9 @@ export default function Tests() {
         if (isOrtGate(err)) navigate('/app/premium');
         else setError(err.message);
       });
+    ortApi.readingList()
+      .then((res) => setReading(res.tests || []))
+      .catch(() => setReading([]));
   }, [navigate]);
 
   const list = cat === 'all'
@@ -102,6 +106,46 @@ export default function Tests() {
           </p>
         </div>
       )}
+      {showExam && reading.map((book) => {
+        const total = book.passages.reduce((sum, p) => sum + p.questionCount, 0);
+        const done = book.passages.reduce((sum, p) => sum + p.answered, 0);
+        return (
+          <div key={book.id} className="card ort-exam-card reading-card">
+            <div className="row" style={{ justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 12 }}>
+              <div>
+                <span className="badge brand">{t('reading.cardBadge')}</span>
+                <h2 style={{ margin: '8px 0 6px' }}>{book.name || t('reading.cardTitle')}</h2>
+                <p className="muted" style={{ margin: 0 }}>{t('reading.cardLead')}</p>
+              </div>
+              <button className="btn" type="button" onClick={() => navigate(`/app/reading/${book.id}`)}>
+                {t('reading.cardOpen')}
+              </button>
+            </div>
+            <div className="reading-card-list">
+              {book.passages.map((p, i) => (
+                <button
+                  key={p.id}
+                  type="button"
+                  className="reading-card-item"
+                  onClick={() => navigate(`/app/reading/${book.id}?p=${p.id}`)}
+                >
+                  <span className="reading-card-num">{String(i + 1).padStart(2, '0')}</span>
+                  <span className="reading-card-title">
+                    <b>{p.title}</b>
+                    <small>{t('reading.progress', { done: p.answered, total: p.questionCount })}</small>
+                  </span>
+                  <span className="reading-card-bar"><i style={{ width: `${p.questionCount ? (p.answered / p.questionCount) * 100 : 0}%` }} /></span>
+                </button>
+              ))}
+            </div>
+            <p className="muted" style={{ margin: 0 }}>
+              {t('reading.passages', { n: book.passages.length })}
+              {' · '}
+              {t('reading.progress', { done, total })}
+            </p>
+          </div>
+        );
+      })}
       <div className="cards">
         {list.map((subject) => {
           const tests = subject.Tests || subject.tests || [];

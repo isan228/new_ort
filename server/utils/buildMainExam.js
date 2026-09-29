@@ -69,7 +69,7 @@ async function loadQuestionsByPart() {
     where: { isActive: true, ortPart: { [Op.ne]: null } },
     include: [{
       model: Question,
-      where: { isActive: true },
+      where: { isActive: true, passageId: null },
       required: false,
       include: [{ model: Answer }, { model: QuestionTag }],
     }],
@@ -141,7 +141,7 @@ function toPreview(sections) {
 async function countByPart() {
   const tests = await Test.findAll({
     where: { isActive: true, ortPart: { [Op.ne]: null } },
-    include: [{ model: Question, attributes: ['id'], where: { isActive: true }, required: false }],
+    include: [{ model: Question, attributes: ['id'], where: { isActive: true, passageId: null }, required: false }],
   });
   const counts = {};
   for (const test of tests) {

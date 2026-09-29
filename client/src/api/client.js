@@ -79,6 +79,12 @@ export const ortApi = {
     method: 'POST',
     body: JSON.stringify(body),
   }),
+  readingList: () => api('/api/tests/ort/reading'),
+  reading: (testId) => api(`/api/tests/ort/reading/${testId}`),
+  readingAnswer: (questionId, answerId) => api('/api/tests/ort/reading/answer', {
+    method: 'POST',
+    body: JSON.stringify({ questionId, answerId }),
+  }),
 };
 
 export const payApi = {
@@ -134,6 +140,11 @@ export const adminApi = {
   createQuestion: (body) => api('/api/admin/questions', { method: 'POST', body: JSON.stringify(body) }),
   updateQuestion: (id, body) => api(`/api/admin/questions/${id}`, { method: 'PUT', body: JSON.stringify(body) }),
   deleteQuestion: (id) => api(`/api/admin/questions/${id}`, { method: 'DELETE' }),
+  passages: (testId) => api(`/api/admin/reading-passages?testId=${testId}`),
+  passage: (id) => api(`/api/admin/reading-passages/${id}`),
+  createPassage: (body) => api('/api/admin/reading-passages', { method: 'POST', body: JSON.stringify(body) }),
+  updatePassage: (id, body) => api(`/api/admin/reading-passages/${id}`, { method: 'PUT', body: JSON.stringify(body) }),
+  deletePassage: (id) => api(`/api/admin/reading-passages/${id}`, { method: 'DELETE' }),
   flashcards: (params = {}) => {
     const q = new URLSearchParams(params).toString();
     return api(`/api/admin/flashcards${q ? `?${q}` : ''}`);
