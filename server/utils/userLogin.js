@@ -2,14 +2,13 @@ function normalizeLogin(value) {
   return String(value || '')
     .trim()
     .toLowerCase()
-    .replace(/[^a-z0-9._-]/g, '');
+    .replace(/\s+/g, '');
 }
 
 function assertLogin(value) {
   const login = normalizeLogin(value);
-  if (login.length < 3 || login.length > 32) {
-    throw new Error('Логин: 3–32 символа, латиница, цифры, точка, _ или -');
-  }
+  if (login.length < 3) throw new Error('Логин слишком короткий — минимум 3 символа');
+  if (login.length > 64) throw new Error('Логин слишком длинный');
   return login;
 }
 

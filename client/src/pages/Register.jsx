@@ -63,7 +63,7 @@ export default function Register() {
     const loginValue = form.login.trim();
     if (!form.name.trim()) next.name = errText('NAME_REQUIRED');
     if (!loginValue) next.login = errText('LOGIN_REQUIRED');
-    else if (!/^[a-zA-Z0-9._-]{3,32}$/.test(loginValue)) next.login = errText('LOGIN_INVALID');
+    else if (loginValue.replace(/\s+/g, '').length < 3) next.login = errText('LOGIN_INVALID');
     if (!form.password) next.password = errText('PASSWORD_REQUIRED');
     else if (form.password.length < 6) next.password = errText('PASSWORD_SHORT');
     return next;
@@ -177,13 +177,11 @@ export default function Register() {
                   spellCheck={false}
                   aria-invalid={!!fieldErr.login}
                 />
-                {fieldErr.login ? (
+                {fieldErr.login && (
                   <small className="field-error">
                     {fieldErr.login}
                     {errorCode === 'LOGIN_TAKEN' && <> <Link to="/login">{t('auth.signIn')}</Link></>}
                   </small>
-                ) : (
-                  <small className="field-hint">{t('auth.loginHint2')}</small>
                 )}
               </label>
               <label className={`field ${fieldErr.password ? 'has-error' : ''}`}>
