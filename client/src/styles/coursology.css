@@ -424,7 +424,7 @@ body.cl-body::before { display: none; }
   font-size: 56px;
   line-height: 1.04;
 }
-.cl-dark p {
+.cl-dark-copy p {
   margin-top: 24px;
   font-size: 17px;
   color: rgba(255, 255, 255, 0.7);
@@ -680,6 +680,74 @@ body.cl-body::before { display: none; }
 .cl-foot-logo { display: inline-flex; align-items: center; gap: 8px; color: var(--cl-ink); font-size: 18px; }
 .cl-foot-logo img { width: 30px; height: 30px; border-radius: 8px; }
 
+.cl-footer.no-cta { padding-top: 24px; }
+.cl-footer.no-cta .cl-foot-sheet { margin-top: 0; }
+
+/* ——— Auth, pricing and status pages ——— */
+.cl-auth {
+  position: relative;
+  padding: 56px 24px 96px;
+  background:
+    radial-gradient(60% 50% at 50% 0%, var(--cl-blue-soft) 0%, rgba(237, 243, 255, 0) 100%);
+}
+.cl-auth-inner { max-width: 460px; margin: 0 auto; }
+.cl-auth-inner.wide { max-width: 1080px; }
+.cl-auth-head { text-align: center; margin-bottom: 32px; }
+.cl-auth-head h1 {
+  margin: 0 0 10px;
+  font-size: 44px;
+  line-height: 1.1;
+  font-weight: 700;
+  letter-spacing: -1.5px;
+  color: var(--cl-ink);
+}
+.cl-auth-head p { margin: 0 auto; max-width: 560px; font-size: 16px; color: var(--cl-muted); }
+.cl-auth-card {
+  background: #fff;
+  border: 1px solid var(--cl-line);
+  border-radius: 28px;
+  padding: 32px;
+  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04), 0 18px 48px rgba(16, 24, 40, 0.07);
+}
+.cl-auth-card .field span { color: var(--cl-ink); }
+.cl-auth-card .field input,
+.cl-auth-card .field select {
+  min-height: 52px;
+  border-radius: 16px;
+  background: var(--cl-gray);
+  border-color: transparent;
+}
+.cl-auth-card .field input:focus,
+.cl-auth-card .field select:focus { background: #fff; border-color: var(--cl-blue); }
+.cl-auth-submit { width: 100%; margin-top: 8px; }
+.cl-auth-alt { margin: 18px 0 0; text-align: center; font-size: 14px; color: var(--cl-muted); }
+.cl-auth-alt a { font-weight: 600; color: var(--cl-blue); }
+.cl-auth-actions { display: flex; justify-content: center; flex-wrap: wrap; gap: 12px; margin-top: 28px; }
+.cl-auth-card .cl-auth-actions { justify-content: flex-start; margin-top: 20px; }
+.cl-auth-plan {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+  padding: 12px 14px;
+  border-radius: 16px;
+  background: var(--cl-blue-soft);
+  color: var(--cl-ink);
+  font-size: 14px;
+}
+.cl-auth-plan span { color: var(--cl-muted); }
+.cl-auth-plan button {
+  margin-left: auto;
+  border: 0;
+  background: none;
+  padding: 0;
+  font-weight: 600;
+  color: var(--cl-blue);
+  cursor: pointer;
+}
+.cl-auth .error, .cl-auth .err { text-align: center; }
+
 /* ——— Responsive ——— */
 @media (max-width: 1200px) {
   .cl-h1 { font-size: 52px; }
@@ -727,11 +795,38 @@ body.cl-body::before { display: none; }
   .cl-visual-frame { padding: 16px; min-height: 340px; }
   .cl-logos-list span { font-size: 15px; }
   .cl-dark h2 { font-size: 34px; }
-  .cl-dark p { font-size: 15px; }
-  .cl-exam-body { grid-template-columns: 36px 1fr; }
+  .cl-dark-copy p { font-size: 15px; }
+  .cl-dark { margin: 0 12px; padding: 48px 18px 20px; border-radius: 28px; gap: 28px; }
+  .cl-dark-copy { text-align: center; }
+  .cl-dark-copy p { margin: 16px auto 0; }
+  .cl-dark .cl-cta { margin-top: 24px; }
+  .cl-exam { border-radius: 14px; box-shadow: 0 18px 40px rgba(0, 0, 0, 0.3); }
+  .cl-exam-top { padding: 10px 14px; font-size: 11px; }
+  .cl-exam-body { grid-template-columns: 1fr; min-height: 0; }
+  .cl-exam-nav {
+    flex-direction: row;
+    gap: 4px;
+    padding: 6px 10px;
+    overflow-x: auto;
+    scrollbar-width: none;
+    border-right: 0;
+    border-bottom: 1px solid #d5dbe6;
+  }
+  .cl-exam-nav::-webkit-scrollbar { display: none; }
+  .cl-exam-nav span { flex: none; width: 26px; height: 26px; }
+  .cl-exam-main { padding: 14px 14px 16px; text-align: left; }
+  .cl-exam-main .cl-q-stem { font-size: 13.5px; line-height: 1.5; margin-bottom: 10px; }
+  .cl-exam-main .cl-q-ans { padding: 9px 10px; font-size: 13px; line-height: 1.35; align-items: flex-start; }
+  .cl-exam-main .cl-q-radio { margin-top: 2px; flex: none; }
   .cl-steps { grid-template-columns: 1fr; }
   .cl-head h2 { font-size: 32px; }
   .cl-end h2 { font-size: 28px; }
   .cl-foot-cols { grid-template-columns: 1fr 1fr; gap: 28px 16px; }
   .cl-foot-bottom { flex-direction: column; align-items: flex-start; }
+  .cl-auth { padding: 32px 16px 64px; }
+  .cl-auth-head { margin-bottom: 24px; }
+  .cl-auth-head h1 { font-size: 32px; letter-spacing: -1px; }
+  .cl-auth-head p { font-size: 15px; }
+  .cl-auth-card { padding: 22px 18px; border-radius: 22px; }
+  .cl-auth-actions .btn { flex: 1 1 100%; }
 }

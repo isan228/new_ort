@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { authApi, payApi } from '../api/client';
 import { useAuth } from '../context/AuthContext';
-import { PublicShell } from '../components/Shells';
+import { AuthLayout, PublicShell } from '../components/Shells';
+import SiteFooter from '../components/SiteFooter';
 import { useLang } from '../context/LangContext';
 
 function extractPaymentId(searchParams) {
@@ -65,20 +66,20 @@ export default function PaymentSuccess() {
 
   return (
     <PublicShell>
-      <div className="page" style={{ maxWidth: 560, paddingTop: 64 }}>
-        <div className="card">
-          <h1>{t('pay.resultTitle')}</h1>
+      <AuthLayout title={t('pay.resultTitle')}>
+        <div className="cl-auth-card">
           {state === 'ok' && <p className="ok">{t('pay.resultOk')}</p>}
           {state === 'fail' && <p className="err">{t('pay.resultFail')}</p>}
           {state === 'missing' && <p className="err">{t('pay.resultMissing')}</p>}
           {(state === 'wait' || state === 'wait-long') && <p className="muted">{t('pay.resultWait')}</p>}
           {state === 'wait-long' && <p className="muted">{t('pay.resultLater')}</p>}
-          <div className="row" style={{ marginTop: 16 }}>
+          <div className="cl-auth-actions">
             <Link className="btn" to={user ? '/app' : '/login'}>{user ? t('nav.cabinet') : t('common.enter')}</Link>
             <Link className="btn ghost" to="/pricing">{t('nav.pricing')}</Link>
           </div>
         </div>
-      </div>
+      </AuthLayout>
+      <SiteFooter cta={false} />
     </PublicShell>
   );
 }

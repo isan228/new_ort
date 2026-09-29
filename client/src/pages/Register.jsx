@@ -3,7 +3,8 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { payApi } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import { useLang } from '../context/LangContext';
-import { PublicShell } from '../components/Shells';
+import { AuthLayout, PublicShell } from '../components/Shells';
+import SiteFooter from '../components/SiteFooter';
 import PlanPicker from '../components/PlanPicker';
 import { startCheckout } from '../lib/checkout';
 
@@ -56,15 +57,16 @@ export default function Register() {
 
   return (
     <PublicShell>
-      <div className="page" style={{ maxWidth: step === 'plan' ? 960 : 440 }}>
-        <div className={step === 'plan' ? '' : 'card'}>
-          <h1>{t('auth.registerTitle')}</h1>
-          <p className="muted">{step === 'plan' ? t('auth.pickPlanHint') : t('auth.registerHint')}</p>
+      <AuthLayout
+        wide={step === 'plan'}
+        title={t('auth.registerTitle')}
+        hint={step === 'plan' ? t('auth.pickPlanHint') : t('auth.registerHint')}
+      >
           {step === 'plan' && (
             <>
               <PlanPicker plans={plans} selectedId={planId} onSelect={pickPlan} />
               {error && <p className="err">{error}</p>}
-              <div className="row" style={{ marginTop: 16 }}>
+              <div className="cl-auth-actions">
                 <button className="btn lg" type="button" disabled={!selected} onClick={() => setStep('form')}>
                   {t('auth.toForm')}
                 </button>
@@ -73,18 +75,16 @@ export default function Register() {
             </>
           )}
           {step === 'form' && (
-            <form onSubmit={onSubmit}>
+            <form className="cl-auth-card" onSubmit={onSubmit}>
               {selected && (
-                <div className="card" style={{ marginBottom: 16, padding: 14 }}>
-                  <div className="muted">{t('auth.yourPlan')}</div>
-                  <b>{selected.title}</b>
-                  {' · '}
-                  {selected.price} {t('common.som')}
+                <div className="cl-auth-plan">
                   <div>
-                    <button className="btn ghost sm" type="button" onClick={() => setStep('plan')}>
-                      {t('auth.changePlan')}
-                    </button>
+                    <span>{t('auth.yourPlan')}</span>
+                    <b>{selected.title} · {selected.price} {t('common.som')}</b>
                   </div>
+                  <button className="btn ghost sm" type="button" onClick={() => setStep('plan')}>
+                    {t('auth.changePlan')}
+                  </button>
                 </div>
               )}
               <label className="field"><span>{t('common.name')}</span><input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required /></label>
@@ -98,14 +98,14 @@ export default function Register() {
                 </select>
               </label>
               {error && <p className="err">{error}</p>}
-              <button className="btn lg" type="submit" disabled={busy} style={{ width: '100%' }}>
+              <button className="btn lg cl-auth-submit" type="submit" disabled={busy}>
                 {busy ? t('common.loading') : t('auth.payAndStart')}
               </button>
-              <p style={{ marginTop: 14 }}><Link to="/login">{t('auth.haveAccount')}</Link></p>
+              <p className="cl-auth-alt"><Link to="/login">{t('auth.haveAccount')}</Link></p>
             </form>
           )}
-        </div>
-      </div>
+      </AuthLayout>
+      <SiteFooter cta={false} />
     </PublicShell>
   );
 }

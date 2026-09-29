@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useLang } from '../context/LangContext';
-import { PublicShell } from '../components/Shells';
+import { AuthLayout, PublicShell } from '../components/Shells';
+import SiteFooter from '../components/SiteFooter';
 
 export default function Login() {
   const { login } = useAuth();
@@ -25,19 +26,18 @@ export default function Login() {
 
   return (
     <PublicShell>
-      <div className="page" style={{ maxWidth: 440 }}>
-        <div className="card">
-          <h1>{t('auth.loginTitle')}</h1>
-          <p className="muted">{t('auth.loginHint')}</p>
-          <form onSubmit={onSubmit}>
-            <label className="field"><span>{t('common.login')}</span><input value={ident} onChange={(e) => setIdent(e.target.value)} autoComplete="username" required /></label>
-            <label className="field"><span>{t('common.password')}</span><input value={password} onChange={(e) => setPassword(e.target.value)} type="password" autoComplete="current-password" required /></label>
-            {error && <p className="err">{error}</p>}
-            <button className="btn lg" type="submit" style={{ width: '100%' }}>{t('common.enter')}</button>
-          </form>
-          <p style={{ marginTop: 14 }}><Link to="/register">{t('auth.createAccount')}</Link></p>
-        </div>
-      </div>
+      <AuthLayout title={t('auth.loginTitle')} hint={t('auth.loginHint')}>
+        <form className="cl-auth-card" onSubmit={onSubmit}>
+          <label className="field"><span>{t('common.login')}</span><input value={ident} onChange={(e) => setIdent(e.target.value)} autoComplete="username" required /></label>
+          <label className="field"><span>{t('common.password')}</span><input value={password} onChange={(e) => setPassword(e.target.value)} type="password" autoComplete="current-password" required /></label>
+          {error && <p className="err">{error}</p>}
+          <button className="btn lg cl-auth-submit" type="submit">{t('common.enter')}</button>
+          <p className="cl-auth-alt">
+            <Link to="/register">{t('auth.createAccount')}</Link>
+          </p>
+        </form>
+      </AuthLayout>
+      <SiteFooter cta={false} />
     </PublicShell>
   );
 }

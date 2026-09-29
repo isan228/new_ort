@@ -1,23 +1,50 @@
 import { useLang } from '../context/LangContext';
 
-export default function PlanPicker({ plans, selectedId, onSelect }) {
-  const { t } = useLang();
+function Check() {
   return (
-    <div className="grid-3">
-      {(plans || []).map((plan) => (
-        <button
-          key={plan.id}
-          type="button"
-          className={`card plan-card ${selectedId === plan.id ? 'on' : ''}`}
-          onClick={() => onSelect(plan)}
-        >
-          {selectedId === plan.id && <span className="badge brand">{t('pay.chosen')}</span>}
-          <strong style={{ display: 'block', fontSize: 20, margin: '8px 0 6px' }}>{plan.title}</strong>
-          <b style={{ fontSize: 32 }}>{plan.price} {t('common.som')}</b>
-          {plan.oldPrice ? <p className="muted"><s>{plan.oldPrice} {t('common.som')}</s></p> : null}
-          <p className="muted">{t('pay.full')}</p>
-        </button>
-      ))}
+    <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
+      <path d="M5 12.5 9.5 17 19 7.5" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+export default function PlanPicker({ plans, selectedId, onSelect }) {
+  const { t, copy } = useLang();
+  const perks = (copy.land.features || []).slice(0, 4).map((f) => f.title);
+
+  return (
+    <div className="plan-grid">
+      {(plans || []).map((plan) => {
+        const on = selectedId === plan.id;
+        const discount = plan.oldPrice && plan.oldPrice > plan.price
+          ? Math.round((1 - plan.price / plan.oldPrice) * 100)
+          : 0;
+        return (
+          <button
+            key={plan.id}
+            type="button"
+            className={`plan-card ${on ? 'on' : ''}`}
+            onClick={() => onSelect(plan)}
+          >
+            <div className="plan-card-top">
+              <strong>{plan.title}</strong>
+              {discount > 0 && <span className="plan-discount">−{discount}%</span>}
+            </div>
+            <div className="plan-price">
+              <b>{plan.price}</b>
+              <span>{t('common.som')}</span>
+              {plan.oldPrice ? <s>{plan.oldPrice} {t('common.som')}</s> : null}
+            </div>
+            <p className="plan-desc">{t('pay.full')}</p>
+            <ul className="plan-perks">
+              {perks.map((perk) => (
+                <li key={perk}><Check />{perk}</li>
+              ))}
+            </ul>
+            <span className="plan-cta">{on ? t('pay.chosen') : t('pay.start')}</span>
+          </button>
+        );
+      })}
     </div>
   );
 }

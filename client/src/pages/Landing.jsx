@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { PublicShell } from '../components/Shells';
 import { Reveal } from '../components/Reveal';
+import SiteFooter, { CtaArrow as Arrow, Underlined } from '../components/SiteFooter';
 import { useAuth } from '../context/AuthContext';
 import { useLang } from '../context/LangContext';
 
@@ -31,10 +32,6 @@ function Icon({ name, size = 22, fill = false }) {
       />
     </svg>
   );
-}
-
-function Arrow() {
-  return <img src="/cl/arrow.svg" alt="" aria-hidden="true" className="cl-arrow" />;
 }
 
 function Stars() {
@@ -143,11 +140,6 @@ export default function Landing() {
   const [openFaq, setOpenFaq] = useState(0);
   const startTo = user ? '/app' : '/register';
 
-  useEffect(() => {
-    document.body.classList.add('cl-body');
-    return () => document.body.classList.remove('cl-body');
-  }, []);
-
   return (
     <PublicShell>
       <div className="cl-page">
@@ -156,10 +148,7 @@ export default function Landing() {
             <div className="cl-hero-copy">
               <div className="cl-proof"><Stars /><span>{cl.proof}</span></div>
               <h1 className="cl-h1">
-                <span className="cl-hl">
-                  {cl.h1a}
-                  <img src="/cl/underline.svg" alt="" aria-hidden="true" className="cl-underline" />
-                </span>
+                <Underlined>{cl.h1a}</Underlined>
                 {' '}
                 {cl.h1b}
               </h1>
@@ -351,59 +340,7 @@ export default function Landing() {
           </div>
         </section>
 
-        <footer className="cl-footer">
-          <div className="cl-container">
-            <div className="cl-end">
-              <h2>
-                {cl.endH}
-                {' '}
-                <span className="cl-hl">
-                  {cl.endEm}
-                  <img src="/cl/underline.svg" alt="" aria-hidden="true" className="cl-underline" />
-                </span>
-              </h2>
-              <p>{cl.endP}</p>
-              <Link className="cl-cta cl-cta-center" to={startTo}>
-                <span>{cl.start}</span>
-                <Arrow />
-              </Link>
-            </div>
-          </div>
-          <div className="cl-foot-sheet">
-            <div className="cl-container">
-              <div className="cl-foot-cols">
-                <div>
-                  <p className="cl-foot-k">{cl.colProduct}</p>
-                  {CHIPS.map((key) => <Link key={key} to={startTo}>{cl.chips[key]}</Link>)}
-                </div>
-                <div>
-                  <p className="cl-foot-k">{cl.colPlatform}</p>
-                  <Link to="/login">{cl.enter}</Link>
-                  <Link to="/register">{cl.register}</Link>
-                  <Link to="/pricing">{copy.nav.pricing}</Link>
-                </div>
-                <div>
-                  <p className="cl-foot-k">{cl.colInfo}</p>
-                  <a href="/#programma">{copy.nav.program}</a>
-                  <a href="/#kak">{copy.nav.how}</a>
-                  <a href="/#faq">{land.kickerFaq}</a>
-                </div>
-                <div>
-                  <p className="cl-foot-k">ORT.KG</p>
-                  <span>{land.footer}</span>
-                  <span>{land.notOfficial}</span>
-                </div>
-              </div>
-              <div className="cl-foot-bottom">
-                <span>{cl.rights}</span>
-                <span className="cl-foot-logo">
-                  <img src="/logo-icon.png" alt="" />
-                  <b>ORT.KG</b>
-                </span>
-              </div>
-            </div>
-          </div>
-        </footer>
+        <SiteFooter />
       </div>
     </PublicShell>
   );

@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { payApi } from '../api/client';
 import { useAuth } from '../context/AuthContext';
-import { PublicShell } from '../components/Shells';
+import { AuthLayout, PublicShell } from '../components/Shells';
+import SiteFooter from '../components/SiteFooter';
 import PlanPicker from '../components/PlanPicker';
 import { useLang } from '../context/LangContext';
 import { startCheckout } from '../lib/checkout';
@@ -52,7 +53,17 @@ function Plans({ wrap }) {
     </>
   );
 
-  if (wrap === 'public') return <PublicShell><div className="page">{inner}</div></PublicShell>;
+  if (wrap === 'public') {
+    return (
+      <PublicShell>
+        <AuthLayout wide title={t('pay.title')} hint={t('pay.one')}>
+          {error && <p className="err">{error}</p>}
+          <PlanPicker plans={plans} selectedId={selectedId} onSelect={go} />
+        </AuthLayout>
+        <SiteFooter />
+      </PublicShell>
+    );
+  }
   return inner;
 }
 
