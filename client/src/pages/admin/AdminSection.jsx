@@ -4,6 +4,10 @@ import { adminApi } from '../../api/client';
 import { useLang } from '../../context/LangContext';
 import { Crumbs, Modal, TxtUploadButtons, confirmDelete, contentPath, previewText } from './adminUi';
 import QuestionForm, { draftPayload, draftProblem, toDraft } from './QuestionForm';
+import { PassageText } from '../../components/PassageText';
+import { splitParagraphs } from '../../lib/reading';
+import { pickTextFile, readTextFile, splitTitle } from '../../lib/textFile';
+import '../../styles/reading-book.css';
 
 function QuestionModal({ testId, initial, onClose, onSaved }) {
   const { t } = useLang();
@@ -49,9 +53,117 @@ function QuestionModal({ testId, initial, onClose, onSaved }) {
   );
 }
 
+export function PassageUploadPreview({ file, initial, testId, onClose, onCreated }) {
+  const { t } = useLang();
+  const [form, setForm] = useState(initial);
+  const [editing, setEditing] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  const count = splitParagraphs(form.body).length;
+
+  useEffect(() => {
+    document.body.classList.add('tp-open');
+    const onKey = (e) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', onKey);
+    return () => {
+      document.body.classList.remove('tp-open');
+      window.removeEventListener('keydown', onKey);
+    };
+  }, [onClose]);
+
+  async function save() {
+    if (!form.title.trim()) { setError(t('admin.reading.errTitle')); setEditing(true); return; }
+    if (!count) { setError(t('admin.reading.errBody')); setEditing(true); return; }
+    setBusy(true);
+    setError('');
+    try {
+      const { passage } = await adminApi.createPassage({ ...form, testId, isActive: true });
+      onCreated(passage);
+    } catch (err) {
+      setError(err.message);
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="rp-overlay" role="dialog" aria-modal="true">
+      <div className="rp-panel">
+        <header className="rp-head">
+          <div>
+            <b>{t('admin.reading.uploadTitle')}</b>
+            <span className="muted">{file} · {t('admin.reading.paragraphs', { n: count })}</span>
+          </div>
+          <button type="button" className="btn ghost sm" onClick={onClose}>×</button>
+        </header>
+
+        <div className="rp-body">
+          <div className="rp-fields">
+            <label className="field">
+              <span>{t('admin.reading.fTitle')}</span>
+              <input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
+            </label>
+            <label className="field">
+              <span>{t('admin.reading.fSubtitle')}</span>
+              <input value={form.subtitle} onChange={(e) => setForm({ ...form, subtitle: e.target.value })} />
+            </label>
+            <button type="button" className="btn ghost sm" style={{ alignSelf: 'flex-start' }} onClick={() => setEditing(!editing)}>
+              {editing ? t('admin.reading.hideEdit') : t('admin.reading.fixText')}
+            </button>
+            {editing && (
+              <label className="field">
+                <span>{t('admin.reading.fBody')}</span>
+                <textarea
+                  className="ar-body"
+                  rows={14}
+                  value={form.body}
+                  onChange={(e) => setForm({ ...form, body: e.target.value })}
+                />
+                <small className="field-hint">{t('admin.reading.bodyHint')}</small>
+              </label>
+            )}
+            <ol className="ar-steps">
+              <li className="on">{t('admin.reading.step1')}</li>
+              <li>{t('admin.reading.step2')}</li>
+            </ol>
+          </div>
+          <div className="rb rb-embed theme-light measure-normal rp-book">
+            <div className="rb-page rb-left">
+              <PassageText passage={form} number={1} pageNo={1} t={t} />
+            </div>
+          </div>
+        </div>
+
+        <footer className="rp-foot">
+          {error && <span className="err">{error}</span>}
+          <span style={{ flex: 1 }} />
+          <button type="button" className="btn ghost" onClick={onClose}>{t('admin.q.cancel')}</button>
+          <button type="button" className="btn" onClick={save} disabled={busy}>
+            {busy ? t('common.loading') : t('admin.reading.saveAndNext')}
+          </button>
+        </footer>
+      </div>
+    </div>
+  );
+}
+
 function ReadingPassages({ subjectId, section, passages, onChanged, onError }) {
   const { t } = useLang();
+  const navigate = useNavigate();
+  const [upload, setUpload] = useState(null);
   const newPath = contentPath(subjectId, section.id, 'reading', 'new');
+
+  async function chooseFile() {
+    const file = await pickTextFile();
+    if (!file) return;
+    try {
+      const raw = await readTextFile(file);
+      if (!raw) { onError(t('admin.reading.errBody')); return; }
+      const split = splitTitle(raw);
+      setUpload({ file: file.name, initial: { title: split.title, subtitle: '', body: split.body } });
+    } catch (err) {
+      onError(err.message);
+    }
+  }
 
   return (
     <div className="card admin-reading">
@@ -61,8 +173,20 @@ function ReadingPassages({ subjectId, section, passages, onChanged, onError }) {
           <h2 style={{ margin: '8px 0 4px' }}>{t('admin.reading.title')}</h2>
           <p className="muted" style={{ margin: 0 }}>{t('admin.reading.lead')}</p>
         </div>
-        <Link className="btn" to={newPath}>{t('admin.reading.add')}</Link>
+        <div className="row" style={{ gap: 8, flexWrap: 'wrap' }}>
+          <button type="button" className="btn" onClick={chooseFile}>{t('admin.reading.upload')}</button>
+          <Link className="btn ghost" to={newPath}>{t('admin.reading.write')}</Link>
+        </div>
       </div>
+      {upload && (
+        <PassageUploadPreview
+          file={upload.file}
+          initial={upload.initial}
+          testId={section.id}
+          onClose={() => setUpload(null)}
+          onCreated={(passage) => navigate(contentPath(subjectId, section.id, 'reading', passage.id))}
+        />
+      )}
       <div className="admin-list">
         {!passages.length && <div className="empty">{t('admin.reading.empty')}</div>}
         {passages.map((p, i) => (
@@ -158,30 +282,46 @@ export default function AdminSection() {
       <div className="admin-section-head" style={{ marginTop: 0 }}>
         <div>
           <h1>{section.name}</h1>
-          <p className="muted">{t('admin.questionsCount', { n: questions.length })}</p>
+          <p className="muted">
+            {isReading
+              ? t('admin.reading.summary', { texts: passages.length, n: passages.reduce((s, p) => s + p.questionCount, 0) })
+              : t('admin.questionsCount', { n: questions.length })}
+          </p>
         </div>
-        <div className="row" style={{ flexWrap: 'wrap', gap: 8 }}>
-          <button className="btn sm" type="button" onClick={() => setEditing(null)}>+ {t('admin.q.add')}</button>
-          {!isReading && (
-            <Link className="btn ghost" to={contentPath(subject.id, section.id, 'reading', 'new')}>
+        {!isReading && (
+          <div className="row" style={{ flexWrap: 'wrap', gap: 8 }}>
+            <button className="btn sm" type="button" onClick={() => setEditing(null)}>+ {t('admin.q.add')}</button>
+            <Link className="btn ghost sm" to={contentPath(subject.id, section.id, 'reading', 'new')}>
               {t('admin.reading.add')}
             </Link>
-          )}
-          <TxtUploadButtons testId={section.id} onDone={afterUpload} />
-        </div>
+            <TxtUploadButtons testId={section.id} onDone={afterUpload} />
+          </div>
+        )}
       </div>
-      <p className="muted" style={{ marginTop: 0, fontSize: 13 }}>{t('admin.txtHint')}</p>
+      {!isReading && <p className="muted" style={{ marginTop: 0, fontSize: 13 }}>{t('admin.txtHint')}</p>}
       {msg && <p className="ok">{msg}</p>}
       {error && <p className="err">{error}</p>}
 
       {isReading && (
-        <ReadingPassages
-          subjectId={subject.id}
-          section={section}
-          passages={passages}
-          onChanged={async (ok) => { setError(''); setMsg(ok); await reload(); }}
-          onError={(err) => { setMsg(''); setError(err); }}
-        />
+        <>
+          <ReadingPassages
+            subjectId={subject.id}
+            section={section}
+            passages={passages}
+            onChanged={async (ok) => { setError(''); setMsg(ok); await reload(); }}
+            onError={(err) => { setMsg(''); setError(err); }}
+          />
+          <div className="admin-section-head">
+            <div>
+              <h3 style={{ margin: 0 }}>{t('admin.reading.looseTitle')}</h3>
+              <p className="muted" style={{ margin: '4px 0 0', fontSize: 13 }}>{t('admin.reading.looseLead')}</p>
+            </div>
+            <div className="row" style={{ flexWrap: 'wrap', gap: 8 }}>
+              <button className="btn ghost sm" type="button" onClick={() => setEditing(null)}>+ {t('admin.q.add')}</button>
+              <TxtUploadButtons testId={section.id} onDone={afterUpload} />
+            </div>
+          </div>
+        </>
       )}
 
       <div className="admin-list">

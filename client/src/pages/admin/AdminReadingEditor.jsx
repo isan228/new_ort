@@ -6,24 +6,8 @@ import { PassageText } from '../../components/PassageText';
 import { findEvidence, splitParagraphs } from '../../lib/reading';
 import { Crumbs, TxtUploadButtons, contentPath, previewText } from './adminUi';
 import QuestionForm, { draftPayload, draftProblem, toDraft } from './QuestionForm';
+import { pickTextFile, readTextFile, splitTitle } from '../../lib/textFile';
 import '../../styles/reading-book.css';
-
-async function readTextFile(file) {
-  const buffer = await file.arrayBuffer();
-  const utf8 = new TextDecoder('utf-8').decode(buffer);
-  if (!utf8.includes('\uFFFD')) return utf8.replace(/^\uFEFF/, '');
-  return new TextDecoder('windows-1251').decode(buffer);
-}
-
-function pickTextFile() {
-  return new Promise((resolve) => {
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = '.txt,text/plain';
-    input.onchange = () => resolve(input.files?.[0] || null);
-    input.click();
-  });
-}
 
 function QuestionEditor({
   q,
@@ -110,6 +94,7 @@ export default function AdminReadingEditor() {
   const [questions, setQuestions] = useState([]);
   const [openKey, setOpenKey] = useState(null);
   const [selection, setSelection] = useState('');
+  const [editText, setEditText] = useState(isNew);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState('');
   const [error, setError] = useState('');
@@ -190,17 +175,9 @@ export default function AdminReadingEditor() {
     if (!file) return;
     if (form.body.trim() && !window.confirm(t('admin.reading.replaceBody'))) return;
     try {
-      const raw = (await readTextFile(file)).replace(/\r\n?/g, '\n').trim();
-      const next = { ...form, body: raw };
-      if (!form.title.trim()) {
-        const [first, ...rest] = raw.split('\n');
-        const head = first.trim();
-        if (head && head.length <= 120 && !/[.!?…]$/.test(head) && rest.join('\n').trim()) {
-          next.title = head;
-          next.body = rest.join('\n').trim();
-        }
-      }
-      setForm(next);
+      const raw = await readTextFile(file);
+      const split = form.title.trim() ? { title: form.title, body: raw } : splitTitle(raw);
+      setForm({ ...form, title: split.title || form.title, body: split.body });
     } catch (err) {
       setError(err.message);
     }
@@ -220,6 +197,7 @@ export default function AdminReadingEditor() {
         const next = { ...form, body: passage.body };
         setForm(next);
         setSavedForm(next);
+        setEditText(false);
       }
       flash(t('admin.reading.saved'));
     } catch (err) {
@@ -303,9 +281,11 @@ export default function AdminReadingEditor() {
           <button type="button" className="btn ghost" onClick={() => navigate(contentPath(subject.id, section.id))}>
             {t('admin.reading.back')}
           </button>
-          <button type="button" className="btn" onClick={savePassage} disabled={busy || (!formDirty && !isNew)}>
-            {t('admin.reading.save')}
-          </button>
+          {(isNew || formDirty) && (
+            <button type="button" className="btn" onClick={savePassage} disabled={busy}>
+              {isNew ? t('admin.reading.saveAndNext') : t('admin.reading.save')}
+            </button>
+          )}
         </div>
       </div>
       {msg && <p className="ok">{msg}</p>}
@@ -313,6 +293,15 @@ export default function AdminReadingEditor() {
 
       <div className="ar-grid">
         <div className="ar-col">
+          {!isNew && (
+            <div className="ar-text-bar">
+              <span className="muted">{t('admin.reading.textBar')}</span>
+              <button type="button" className={`btn sm${editText ? '' : ' ghost'}`} onClick={() => setEditText(!editText)}>
+                {editText ? t('admin.reading.hideEdit') : t('admin.reading.editText')}
+              </button>
+            </div>
+          )}
+          {editText && (
           <div className="card ar-form">
             <label className="field">
               <span>{t('admin.reading.fTitle')}</span>
@@ -341,12 +330,22 @@ export default function AdminReadingEditor() {
               <input type="checkbox" checked={form.isActive} onChange={(e) => setForm({ ...form, isActive: e.target.checked })} />
               <span>{t('admin.reading.active')}</span>
             </label>
+            {!isNew && (
+              <div className="row" style={{ justifyContent: 'flex-end', marginTop: 12 }}>
+                <button type="button" className="btn" onClick={savePassage} disabled={busy || !formDirty}>
+                  {t('admin.reading.save')}
+                </button>
+              </div>
+            )}
           </div>
+          )}
 
-          <div className="ar-preview-head">
-            <b>{t('admin.reading.preview')}</b>
-            <span className="muted">{t('admin.reading.previewHint')}</span>
-          </div>
+          {isNew && (
+            <div className="ar-preview-head">
+              <b>{t('admin.reading.preview')}</b>
+              <span className="muted">{t('admin.reading.previewHintNew')}</span>
+            </div>
+          )}
           <div className="rb rb-embed theme-light measure-normal">
             <div className="rb-page rb-left">
               <PassageText
@@ -364,11 +363,22 @@ export default function AdminReadingEditor() {
 
         <div className="ar-col ar-questions">
           <div className="ar-q-top">
-            <h2>{t('admin.reading.qTitle')}</h2>
-            <button type="button" className="btn sm" onClick={addQuestion} disabled={isNew}>
-              + {t('admin.reading.qAdd')}
-            </button>
+            <div>
+              <h2>{t('admin.reading.qTitle')}</h2>
+              {!isNew && <p className="muted ar-q-note">{t('admin.reading.qOnlyThis', { title: savedForm?.title || '' })}</p>}
+            </div>
+            {!isNew && (
+              <button type="button" className="btn sm" onClick={addQuestion}>
+                + {t('admin.reading.qAdd')}
+              </button>
+            )}
           </div>
+          {isNew && (
+            <ol className="ar-steps">
+              <li className="on">{t('admin.reading.step1')}</li>
+              <li>{t('admin.reading.step2')}</li>
+            </ol>
+          )}
           {!isNew && (
             <div className="ar-txt">
               <span className="muted">{t('admin.reading.qTxt')}</span>
@@ -382,7 +392,7 @@ export default function AdminReadingEditor() {
               />
             </div>
           )}
-          {(isNew || !questions.length) && <div className="empty">{t('admin.reading.qEmpty')}</div>}
+          {!isNew && !questions.length && <div className="empty">{t('admin.reading.qEmptyInside')}</div>}
           {questions.map((q, i) => (
             <QuestionEditor
               key={q._key}

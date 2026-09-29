@@ -95,7 +95,7 @@ async function upsertQuestions(test, parsed, passageId = null) {
   let updated = 0;
   for (const item of parsed) {
     let question = item.externalId
-      ? await Question.findOne({ where: { testId, externalId: item.externalId } })
+      ? await Question.findOne({ where: { testId, passageId, externalId: item.externalId } })
       : null;
     const media = {};
     if ('imageUrl' in item) media.imageUrl = cleanImageUrl(item.imageUrl);
@@ -106,7 +106,7 @@ async function upsertQuestions(test, parsed, passageId = null) {
       await question.update({ text: item.text, explanation: item.explanation, isActive: true, ...media });
       updated += 1;
     } else {
-      const maxOrder = await Question.max('sortOrder', { where: { testId } });
+      const maxOrder = await Question.max('sortOrder', { where: { testId, passageId } });
       question = await Question.create({
         testId,
         text: item.text,

@@ -2039,3 +2039,98 @@ body.tp-open { overflow: hidden; }
 .ar-body-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .ar-txt { display: grid; gap: 8px; padding: 12px 14px; border: 1px dashed var(--line); border-radius: 14px; }
 .ar-txt .muted { font-size: 12.5px; }
+
+/* Admin: uploaded passage preview */
+.rp-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 120;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(20, 20, 26, 0.45);
+}
+.rp-panel {
+  width: min(1180px, 100%);
+  height: min(900px, 100%);
+  display: flex;
+  flex-direction: column;
+  border-radius: 22px;
+  background: var(--card);
+  box-shadow: 0 40px 80px -30px rgba(0, 0, 0, 0.45);
+  overflow: hidden;
+}
+.rp-head, .rp-foot {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--line);
+}
+.rp-head { justify-content: space-between; }
+.rp-head > div { display: grid; gap: 2px; }
+.rp-head .muted { font-size: 12.5px; }
+.rp-foot { border-bottom: 0; border-top: 1px solid var(--line); flex-wrap: wrap; }
+.rp-body {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 380px) minmax(0, 1fr);
+  gap: 20px;
+  padding: 20px;
+  overflow: auto;
+  background: var(--bg);
+}
+.rp-fields { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.rp-book .rb-page { max-height: none; }
+
+.ar-steps {
+  display: grid;
+  gap: 8px;
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: step;
+}
+.ar-steps li {
+  counter-increment: step;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  color: var(--muted);
+}
+.ar-steps li::before {
+  content: counter(step);
+  width: 26px;
+  height: 26px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  border: 1.5px solid var(--line);
+  font-weight: 700;
+  font-size: 12px;
+}
+.ar-steps li.on { color: var(--ink); font-weight: 600; }
+.ar-steps li.on::before { background: var(--brand); border-color: var(--brand); color: #fff; }
+
+.ar-text-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 10px 14px;
+  border-radius: 14px;
+  background: var(--brand-soft);
+}
+.ar-text-bar .muted { font-size: 13px; flex: 1; min-width: 200px; }
+.ar-q-note { margin: 4px 0 0; font-size: 12.5px; }
+
+@media (max-width: 860px) {
+  .rp-overlay { padding: 0; }
+  .rp-panel { border-radius: 0; height: 100%; }
+  .rp-body { grid-template-columns: minmax(0, 1fr); padding: 14px; }
+}
