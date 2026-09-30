@@ -89,7 +89,14 @@ export const ortApi = {
 
 export const payApi = {
   plans: () => api('/api/payments/plans'),
-  create: (planId) => api('/api/payments/create', { method: 'POST', body: JSON.stringify({ planId }) }),
+  create: (planId, promoCode) => api('/api/payments/create', {
+    method: 'POST',
+    body: JSON.stringify({ planId, promoCode: promoCode || undefined }),
+  }),
+  checkPromo: (code, planId) => api('/api/payments/promo', {
+    method: 'POST',
+    body: JSON.stringify({ code, planId: planId || undefined }),
+  }),
   confirmDemo: (paymentId) => api('/api/payments/confirm-demo', {
     method: 'POST',
     body: JSON.stringify({ paymentId }),
@@ -116,6 +123,10 @@ export const adminApi = {
     method: 'PUT',
     body: JSON.stringify({ plans }),
   }),
+  promos: () => api('/api/admin/promo-codes'),
+  createPromo: (body) => api('/api/admin/promo-codes', { method: 'POST', body: JSON.stringify(body) }),
+  updatePromo: (id, body) => api(`/api/admin/promo-codes/${id}`, { method: 'PUT', body: JSON.stringify(body) }),
+  deletePromo: (id) => api(`/api/admin/promo-codes/${id}`, { method: 'DELETE' }),
   tags: () => api('/api/admin/question-tags'),
   createTag: (body) => api('/api/admin/question-tags', { method: 'POST', body: JSON.stringify(body) }),
   updateTag: (id, body) => api(`/api/admin/question-tags/${id}`, { method: 'PUT', body: JSON.stringify(body) }),

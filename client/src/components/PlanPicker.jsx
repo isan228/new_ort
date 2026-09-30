@@ -1,4 +1,5 @@
 import { useLang } from '../context/LangContext';
+import { promoPrice } from '../lib/promo';
 
 function Check() {
   return (
@@ -8,7 +9,7 @@ function Check() {
   );
 }
 
-export default function PlanPicker({ plans, selectedId, onSelect }) {
+export default function PlanPicker({ plans, selectedId, onSelect, promo = null }) {
   const { t, copy } = useLang();
   const perks = (copy.land.features || []).slice(0, 4).map((f) => f.title);
 
@@ -28,9 +29,10 @@ export default function PlanPicker({ plans, selectedId, onSelect }) {
     <div className="plan-grid">
       {plans.map((plan) => {
         const on = selectedId === plan.id;
-        const discount = plan.oldPrice && plan.oldPrice > plan.price
-          ? Math.round((1 - plan.price / plan.oldPrice) * 100)
-          : 0;
+        const promoted = promoPrice(promo, plan);
+        const price = promoted ?? plan.price;
+        const was = promoted != null ? plan.price : plan.oldPrice;
+        const discount = was && was > price ? Math.round((1 - price / was) * 100) : 0;
         return (
           <button
             key={plan.id}
@@ -40,12 +42,16 @@ export default function PlanPicker({ plans, selectedId, onSelect }) {
           >
             <div className="plan-card-top">
               <strong>{plan.title}</strong>
-              {discount > 0 && <span className="plan-discount">−{discount}%</span>}
+              {discount > 0 && (
+                <span className={`plan-discount ${promoted != null ? 'promo' : ''}`}>
+                  {promoted != null ? `${promo.code} ` : ''}−{discount}%
+                </span>
+              )}
             </div>
             <div className="plan-price">
-              <b>{plan.price}</b>
+              <b>{price}</b>
               <span>{t('common.som')}</span>
-              {plan.oldPrice ? <s>{plan.oldPrice} {t('common.som')}</s> : null}
+              {was && was > price ? <s>{was} {t('common.som')}</s> : null}
             </div>
             <p className="plan-desc">{t('pay.full')}</p>
             <ul className="plan-perks">

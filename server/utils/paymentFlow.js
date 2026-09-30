@@ -1,6 +1,7 @@
 const crypto = require('crypto');
 const { Op } = require('sequelize');
-const { sequelize, Payment, User } = require('../models');
+const { sequelize, Payment, User, PromoCode } = require('../models');
+const { PromoError, applyPromo } = require('./promoCodes');
 const { loginKey } = require('./userLogin');
 const { ensureReferralCode, maybeGrantReferralBonus } = require('./referral');
 const { createPayment, isFinikConfigured, webhookUrl, redirectUrl, trimEnv } = require('./finikClient');
@@ -76,6 +77,9 @@ async function applyPaidSubscription(paymentOrId) {
 
     const signup = payment.signup ? { ...payment.signup, passwordHash: undefined, login: target.login } : null;
     await payment.update({ status: 'paid', userId: target.id, signup }, { transaction });
+    if (payment.promoCodeId) {
+      await PromoCode.increment('usedCount', { by: 1, where: { id: payment.promoCodeId }, transaction });
+    }
     return target;
   });
   await ensureReferralCode(user);
@@ -83,19 +87,27 @@ async function applyPaidSubscription(paymentOrId) {
   return user;
 }
 
-async function startCheckout({ plan, userId = null, signup = null, lang = 'ru' }) {
+async function startCheckout({ plan, userId = null, signup = null, lang = 'ru', promoCode = null }) {
   const paymentId = crypto.randomUUID();
-  const payment = await Payment.create({
-    userId,
-    planId: plan.id,
-    type: 'ort_subscription',
-    status: 'pending',
-    amount: plan.price,
-    months: plan.months,
-    providerRef: paymentId,
-    signup,
-    claimToken: signup ? crypto.randomBytes(32).toString('hex') : null,
+  const payment = await sequelize.transaction(async (transaction) => {
+    const applied = promoCode ? await applyPromo({ code: promoCode, plan, userId, transaction }) : null;
+    const discount = applied ? applied.discount : 0;
+    return Payment.create({
+      userId,
+      planId: plan.id,
+      type: 'ort_subscription',
+      status: 'pending',
+      amount: plan.price - discount,
+      months: plan.months,
+      providerRef: paymentId,
+      signup,
+      claimToken: signup ? crypto.randomBytes(32).toString('hex') : null,
+      promoCodeId: applied ? applied.promo.id : null,
+      discount,
+    }, { transaction });
   });
+
+  if (payment.amount <= 0) return { payment, paymentId, free: true };
 
   if (!isFinikConfigured()) {
     if (!allowDemoPayments()) {
@@ -112,7 +124,7 @@ async function startCheckout({ plan, userId = null, signup = null, lang = 'ru' }
   let result;
   try {
     result = await createPayment({
-      amount: plan.price,
+      amount: payment.amount,
       paymentId,
       redirectUrl: originRedirect.toString(),
       webhookUrl: webhookUrl(),
@@ -143,7 +155,7 @@ async function startCheckout({ plan, userId = null, signup = null, lang = 'ru' }
 }
 
 function sendCheckoutError(res, err) {
-  if (err instanceof CheckoutError) {
+  if (err instanceof CheckoutError || err instanceof PromoError) {
     return res.status(err.status).json({ error: err.message, code: err.code });
   }
   throw err;

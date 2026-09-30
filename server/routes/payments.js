@@ -17,6 +17,12 @@ const {
   isPaidStatus,
   isFailedStatus,
 } = require('../utils/finikValidator');
+const {
+  PromoError,
+  findUsablePromo,
+  planAllowed,
+  publicPromo,
+} = require('../utils/promoCodes');
 
 const router = express.Router();
 
@@ -59,17 +65,51 @@ router.get('/plans', async (req, res) => {
   res.json({ plans, finik: isFinikConfigured() });
 });
 
+const promoHits = new Map();
+
+function promoRateLimited(req) {
+  const key = String(req.headers['x-forwarded-for'] || req.ip || '').split(',')[0].trim();
+  const now = Date.now();
+  const recent = (promoHits.get(key) || []).filter((at) => now - at < 10 * 60 * 1000);
+  recent.push(now);
+  promoHits.set(key, recent);
+  if (promoHits.size > 5000) promoHits.clear();
+  return recent.length > 30;
+}
+
+router.post('/promo', async (req, res) => {
+  if (promoRateLimited(req)) {
+    return res.status(429).json({ error: 'Слишком много попыток, попробуйте позже', code: 'PROMO_RATE' });
+  }
+  try {
+    const promo = await findUsablePromo(req.body.code);
+    const planId = Number(req.body.planId) || null;
+    if (planId && !planAllowed(promo, planId)) {
+      throw new PromoError('PROMO_PLAN', 'Промокод не действует на этот тариф');
+    }
+    return res.json({ promo: publicPromo(promo) });
+  } catch (err) {
+    if (err instanceof PromoError) return res.status(400).json({ error: err.message, code: err.code });
+    throw err;
+  }
+});
+
 router.post('/create', requireAuth, async (req, res) => {
   const plan = await SubscriptionPlan.findByPk(req.body.planId);
   if (!plan || !plan.isActive) {
     return res.status(404).json({ error: 'Тариф не найден', code: 'PLAN_NOT_FOUND' });
   }
   try {
-    const { payment, paymentId, paymentUrl, demo } = await startCheckout({
+    const { payment, paymentId, paymentUrl, demo, free } = await startCheckout({
       plan,
       userId: req.user.id,
       lang: req.user.language,
+      promoCode: req.body.promoCode || null,
     });
+    if (free) {
+      const user = await applyPaidSubscription(payment);
+      return res.json({ free: true, user: await publicUserWithPlan(user) });
+    }
     return res.json({ payment, paymentId, paymentUrl, demo: !!demo });
   } catch (err) {
     return sendCheckoutError(res, err);

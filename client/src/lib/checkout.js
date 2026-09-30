@@ -29,8 +29,12 @@ export function clearPendingPayment() {
   }
 }
 
-export async function startCheckout(plan, { setUser } = {}) {
-  const created = await payApi.create(plan.id);
+export async function startCheckout(plan, { setUser, promoCode } = {}) {
+  const created = await payApi.create(plan.id, promoCode);
+  if (created.free) {
+    if (setUser) setUser(created.user);
+    return 'demo';
+  }
   if (created.paymentUrl) {
     window.location.href = created.paymentUrl;
     return 'redirect';

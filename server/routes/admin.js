@@ -20,8 +20,10 @@ const {
   ChatMessage,
   ReadingPassage,
   ReadingPassageTagMap,
+  PromoCode,
   sequelize,
 } = require('../models');
+const { normalizeCode, reservedCount } = require('../utils/promoCodes');
 const { publicMessage } = require('./chat');
 const { inferOrtPart, normalizeOrtPart } = require('../utils/ortScoring');
 const { slugify, normalizeTagName } = require('../utils/ortTagNormalize');
@@ -174,6 +176,99 @@ router.put('/ort-subscription-plans', async (req, res) => {
     return res.status(400).json({ error: err.message });
   }
   res.json({ plans: saved });
+});
+
+function parseDate(value) {
+  if (value === '' || value == null) return null;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) throw new Error('Дата указана неверно');
+  return date;
+}
+
+function normalizePromoBody(body) {
+  const code = normalizeCode(body.code);
+  if (!/^[A-Z0-9_-]{3,40}$/.test(code)) {
+    throw new Error('Код: от 3 до 40 символов — латинские буквы, цифры, «-» или «_»');
+  }
+  const discountType = body.discountType === 'fixed' ? 'fixed' : 'percent';
+  const discountValue = Math.round(Number(body.discountValue));
+  if (!Number.isFinite(discountValue) || discountValue < 1) throw new Error('Укажите размер скидки');
+  if (discountType === 'percent' && discountValue > 100) throw new Error('Скидка не может быть больше 100%');
+  const startsAt = parseDate(body.startsAt);
+  const endsAt = parseDate(body.endsAt);
+  if (startsAt && endsAt && endsAt < startsAt) throw new Error('Дата окончания раньше даты начала');
+  const maxRaw = body.maxUses;
+  const maxUses = maxRaw === '' || maxRaw == null ? null : Math.round(Number(maxRaw));
+  if (maxUses != null && (!Number.isFinite(maxUses) || maxUses < 1)) {
+    throw new Error('Количество использований должно быть от 1');
+  }
+  const planIds = Array.isArray(body.planIds)
+    ? [...new Set(body.planIds.map(Number).filter((id) => Number.isInteger(id) && id > 0))]
+    : [];
+  return {
+    code,
+    discountType,
+    discountValue,
+    startsAt,
+    endsAt,
+    maxUses,
+    planIds: planIds.length ? planIds : null,
+    isActive: body.isActive !== false,
+    note: String(body.note || '').trim().slice(0, 300) || null,
+  };
+}
+
+async function promoRow(promo) {
+  const [reserved, paidStats] = await Promise.all([
+    reservedCount(promo),
+    Payment.findOne({
+      where: { promoCodeId: promo.id, status: 'paid' },
+      attributes: [
+        [sequelize.fn('COALESCE', sequelize.fn('SUM', sequelize.col('amount')), 0), 'revenue'],
+        [sequelize.fn('COALESCE', sequelize.fn('SUM', sequelize.col('discount')), 0), 'discounted'],
+      ],
+      raw: true,
+    }),
+  ]);
+  return {
+    ...promo.toJSON(),
+    reserved,
+    revenue: Number(paidStats?.revenue || 0),
+    discounted: Number(paidStats?.discounted || 0),
+  };
+}
+
+async function savePromo(res, promo, body) {
+  let patch;
+  try {
+    patch = normalizePromoBody(body);
+  } catch (err) {
+    return res.status(400).json({ error: err.message });
+  }
+  const clash = await PromoCode.findOne({ where: { code: patch.code } });
+  if (clash && (!promo || clash.id !== promo.id)) {
+    return res.status(409).json({ error: 'Такой промокод уже есть' });
+  }
+  const saved = promo ? await promo.update(patch) : await PromoCode.create(patch);
+  return res.json({ promo: await promoRow(saved) });
+}
+
+router.get('/promo-codes', async (req, res) => {
+  const promos = await PromoCode.findAll({ order: [['id', 'DESC']] });
+  res.json({ promos: await Promise.all(promos.map(promoRow)) });
+});
+
+router.post('/promo-codes', async (req, res) => savePromo(res, null, req.body || {}));
+
+router.put('/promo-codes/:id', async (req, res) => {
+  const promo = await PromoCode.findByPk(req.params.id);
+  if (!promo) return res.status(404).json({ error: 'Промокод не найден' });
+  return savePromo(res, promo, req.body || {});
+});
+
+router.delete('/promo-codes/:id', async (req, res) => {
+  await PromoCode.destroy({ where: { id: req.params.id } });
+  res.json({ ok: true });
 });
 
 router.get('/question-tags', async (req, res) => {

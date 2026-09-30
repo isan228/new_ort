@@ -30,7 +30,7 @@ import AdminLogin from './pages/admin/AdminLogin';
 import AdminHome from './pages/admin/AdminHome';
 import AdminUsers from './pages/admin/AdminUsers';
 import AdminPlans from './pages/admin/AdminPlans';
-import AdminContent from './pages/admin/AdminContent';
+import AdminPromos from './pages/admin/AdminPromos';import AdminContent from './pages/admin/AdminContent';
 import AdminSubject from './pages/admin/AdminSubject';
 import AdminSection from './pages/admin/AdminSection';
 import AdminReadingEditor from './pages/admin/AdminReadingEditor';
@@ -85,6 +85,7 @@ function adminPages() {
       <Route path="content/:subjectId/:sectionId/reading/:passageId" element={<AdminReadingEditor />} />
       <Route path="flashcards" element={<Navigate to="../content" replace />} />
       <Route path="plans" element={<AdminPlans />} />
+      <Route path="promo" element={<AdminPromos />} />
       <Route path="chat" element={<AdminChat />} />
     </>
   );
@@ -101,8 +102,7 @@ export default function App() {
       />
       <Route path="/login" element={<LoggedInRedirect><Login /></LoggedInRedirect>} />
       <Route path="/register" element={<LoggedInRedirect><Register /></LoggedInRedirect>} />
-      <Route path="/pricing" element={<PricingPublic />} />
-      <Route path="/pay/success" element={<PaymentSuccess />} />
+      <Route path="/pricing" element={<PricingPublic />} />      <Route path="/pay/success" element={<PaymentSuccess />} />
       <Route path="/payment/success" element={<PaymentSuccess />} />
 
       <Route path="/app" element={<AppLayout><Home /></AppLayout>} />

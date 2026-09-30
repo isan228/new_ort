@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { authApi, payApi } from '../api/client';
+import { ApiError, authApi, payApi } from '../api/client';
+import PromoField, { promoErrorText } from '../components/PromoField';
+import { promoApplies } from '../lib/promo';
 import { useAuth } from '../context/AuthContext';
 import { useLang } from '../context/LangContext';
 import PlanPicker from '../components/PlanPicker';
@@ -15,6 +17,7 @@ export default function Profile() {
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const [selectedId, setSelectedId] = useState(user?.subscriptionPlanId || null);
+  const [promo, setPromo] = useState(null);
 
   useEffect(() => {
     payApi.plans().then((d) => setPlans(d.plans || [])).catch((err) => setError(err.message));
@@ -30,10 +33,19 @@ export default function Profile() {
     setError('');
     setBusy(true);
     try {
-      const result = await startCheckout(plan, { setUser });
-      if (result === 'demo') setError('');
+      const promoCode = promoApplies(promo, plan) ? promo.code : undefined;
+      const result = await startCheckout(plan, { setUser, promoCode });
+      if (result === 'demo') {
+        setError('');
+        setPromo(null);
+      }
     } catch (err) {
-      setError(err.message === 'no-url' ? t('pay.noUrl') : err.message);
+      if (err instanceof ApiError && err.code?.startsWith('PROMO_')) {
+        setPromo(null);
+        setError(promoErrorText(t, err));
+      } else {
+        setError(err.message === 'no-url' ? t('pay.noUrl') : err.message);
+      }
     } finally {
       setBusy(false);
     }
@@ -65,7 +77,8 @@ export default function Profile() {
         <h3 style={{ marginTop: 20 }}>{active ? t('profile.renew') : t('profile.buy')}</h3>
         <p className="muted">{t('pay.renewHint')}</p>
         {error && <p className="err">{error}</p>}
-        <PlanPicker plans={plans} selectedId={selectedId} onSelect={renew} />
+        <PromoField promo={promo} onChange={setPromo} />
+        <PlanPicker plans={plans} selectedId={selectedId} onSelect={renew} promo={promo} />
         {busy && <p className="muted" style={{ marginTop: 12 }}>{t('common.loading')}</p>}
       </div>
 

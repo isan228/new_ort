@@ -38,6 +38,7 @@ const ADMIN_SIDE = [
   [`${ADMIN_ROOT}/users`, 'admin.users'],
   [`${ADMIN_ROOT}/content`, 'admin.program'],
   [`${ADMIN_ROOT}/plans`, 'admin.plans'],
+  [`${ADMIN_ROOT}/promo`, 'admin.promos'],
   [`${ADMIN_ROOT}/chat`, 'admin.chat'],
 ];
 
@@ -60,6 +61,7 @@ const ICON_PATHS = {
   book: 'M4 19.5A2.5 2.5 0 0 1 6.5 17H20V3H6.5A2.5 2.5 0 0 0 4 5.5zM4 19.5A2.5 2.5 0 0 0 6.5 22H20v-5',
   tag: 'M20.6 13.4 13.4 20.6a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8M7.5 7.5h.01',
   chat: 'M21 12a8 8 0 0 1-11.6 7.1L3 21l1.9-6.4A8 8 0 1 1 21 12',
+  ticket: 'M3 9V6a1 1 0 0 1 1-1h16a1 1 0 0 1 1 1v3a3 3 0 0 0 0 6v3a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-3a3 3 0 0 0 0-6M14 5v2M14 11v2M14 17v2',
   sun: 'M12 17a5 5 0 1 0 0-10 5 5 0 0 0 0 10M12 1v2M12 21v2M4.2 4.2l1.4 1.4M18.4 18.4l1.4 1.4M1 12h2M21 12h2M4.2 19.8l1.4-1.4M18.4 5.6l1.4-1.4',
   moon: 'M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8',
   logout: 'M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9',
@@ -84,6 +86,7 @@ const ROUTE_ICON = {
   [`${ADMIN_ROOT}/users`]: 'users',
   [`${ADMIN_ROOT}/content`]: 'book',
   [`${ADMIN_ROOT}/plans`]: 'tag',
+  [`${ADMIN_ROOT}/promo`]: 'ticket',
   [`${ADMIN_ROOT}/chat`]: 'chat',
 };
 

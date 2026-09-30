@@ -2197,3 +2197,106 @@ body.tp-open { overflow: hidden; }
   cursor: pointer;
 }
 .field .tag-chip { color: var(--brand); font-size: 12px; }
+
+/* Promo codes */
+.promo-field { margin: 14px 0; }
+.promo-toggle {
+  background: none;
+  border: 0;
+  padding: 0;
+  color: var(--brand);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: underline dashed;
+  text-underline-offset: 4px;
+}
+.promo-row { display: flex; gap: 8px; align-items: stretch; }
+.promo-row input {
+  flex: 1;
+  min-width: 0;
+  border: 1px solid var(--line);
+  background: var(--card);
+  color: var(--ink);
+  border-radius: 14px;
+  padding: 10px 14px;
+  font: inherit;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  outline: none;
+}
+.promo-row input:focus { border-color: var(--brand); box-shadow: 0 0 0 4px var(--brand-soft); }
+.promo-row .btn { flex: none; min-height: 44px; }
+.promo-field .field-error { display: block; margin-top: 6px; }
+.promo-applied {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: var(--brand-soft);
+  color: var(--ink);
+  font-size: 14px;
+}
+.promo-applied .btn { margin-left: auto; }
+.promo-chip {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 8px;
+  border: 1.5px dashed var(--brand);
+  color: var(--brand);
+  background: var(--card);
+  font-weight: 800;
+  font-size: 13px;
+  letter-spacing: 0.06em;
+}
+.promo-chip.lg { font-size: 16px; padding: 5px 12px; }
+.plan-discount.promo { background: var(--ok); color: #fff; }
+.promo-was { margin-left: 8px; color: var(--muted); font-weight: 500; }
+
+.promo-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px; }
+.promo-card { display: flex; flex-direction: column; gap: 12px; }
+.promo-card.off, .promo-card.expired, .promo-card.exhausted { opacity: 0.72; }
+.promo-card-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.promo-off { font-size: 20px; letter-spacing: -0.02em; }
+.promo-status {
+  margin-left: auto;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  background: var(--bg-soft, var(--bg));
+  color: var(--muted);
+}
+.promo-status.active { background: var(--brand-soft); color: var(--brand); }
+.promo-status.scheduled { background: var(--warn-soft); color: var(--warn); }
+.promo-status.expired, .promo-status.exhausted { background: var(--bad-soft); color: var(--bad); }
+.promo-note { margin: -4px 0 0; font-size: 13px; }
+.promo-meta { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+.promo-meta b { color: var(--ink); font-weight: 600; }
+.promo-usage { display: grid; gap: 6px; font-size: 14px; }
+.promo-usage-top { display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+.promo-bar { height: 8px; border-radius: 999px; background: var(--line); overflow: hidden; }
+.promo-bar i { display: block; height: 100%; background: var(--brand); border-radius: inherit; }
+.promo-card.exhausted .promo-bar i { background: var(--bad); }
+.promo-money { font-size: 13px; }
+.promo-actions { flex-wrap: wrap; gap: 6px; margin-top: auto; }
+.promo-form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 12px; }
+.promo-plan-list { display: flex; flex-wrap: wrap; gap: 8px; }
+.promo-plan-opt {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  cursor: pointer;
+}
+.promo-plan-opt.on { border-color: var(--brand); background: var(--brand-soft); }
+.promo-plan-opt input { width: auto; margin: 0; }
+.promo-plan-opt span { font-weight: 500 !important; }
+@media (max-width: 640px) {
+  .promo-form-grid { grid-template-columns: 1fr; }
+  .promo-list { grid-template-columns: 1fr; }
+}

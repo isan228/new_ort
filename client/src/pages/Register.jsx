@@ -6,7 +6,9 @@ import { useLang } from '../context/LangContext';
 import { AuthLayout, PublicShell } from '../components/Shells';
 import SiteFooter from '../components/SiteFooter';
 import PlanPicker from '../components/PlanPicker';
+import PromoField from '../components/PromoField';
 import { rememberPendingPayment, startCheckout } from '../lib/checkout';
+import { promoPrice } from '../lib/promo';
 
 const FIELD_BY_CODE = {
   NAME_REQUIRED: 'name',
@@ -31,6 +33,8 @@ export default function Register() {
   const [errorCode, setErrorCode] = useState('');
   const [fieldErr, setFieldErr] = useState({});
   const [busy, setBusy] = useState(false);
+  const [promo, setPromo] = useState(null);
+  const [promoSeed, setPromoSeed] = useState(() => params.get('promo') || '');
 
   useEffect(() => {
     if (params.get('ref')) sessionStorage.setItem('ortRef', params.get('ref'));
@@ -40,6 +44,8 @@ export default function Register() {
   }, [params]);
 
   const selected = (plans || []).find((plan) => plan.id === planId) || null;
+  const promoted = promoPrice(promo, selected);
+  const promoCode = promoted != null ? promo.code : undefined;
 
   function pickPlan(plan) {
     setPlanId(plan.id);
@@ -76,6 +82,12 @@ export default function Register() {
       setErrorCode('PAYMENT_FAILED');
       return;
     }
+    if (code.startsWith('PROMO_')) {
+      setPromo(null);
+      setError(t(`promo.err.${code}`));
+      setErrorCode(code);
+      return;
+    }
     const field = FIELD_BY_CODE[code];
     if (field) {
       setFieldErr({ [field]: errText(code) });
@@ -104,11 +116,11 @@ export default function Register() {
     setBusy(true);
     try {
       if (user) {
-        const result = await startCheckout(selected, { setUser });
+        const result = await startCheckout(selected, { setUser, promoCode });
         if (result === 'demo') navigate('/app');
         return;
       }
-      const data = await register({ ...form, language: lang, planId: selected.id, ref: ref || undefined });
+      const data = await register({ ...form, language: lang, planId: selected.id, ref: ref || undefined, promoCode });
       if (data.token) {
         navigate('/app');
         return;
@@ -132,7 +144,8 @@ export default function Register() {
       >
           {step === 'plan' && (
             <>
-              <PlanPicker plans={plans} selectedId={planId} onSelect={pickPlan} />
+              <PlanPicker plans={plans} selectedId={planId} onSelect={pickPlan} promo={promo} />
+              <PromoField promo={promo} onChange={setPromo} initialCode={promoSeed} onInitialDone={() => setPromoSeed('')} />
               {error && <div className="form-alert" role="alert">{error}</div>}
               <div className="cl-auth-actions">
                 <button className="btn lg" type="button" disabled={!selected} onClick={() => setStep('form')}>
@@ -148,13 +161,18 @@ export default function Register() {
                 <div className="cl-auth-plan">
                   <div>
                     <span>{t('auth.yourPlan')}</span>
-                    <b>{selected.title} · {selected.price} {t('common.som')}</b>
+                    <b>
+                      {selected.title} · {promoted ?? selected.price} {t('common.som')}
+                      {promoted != null && <s className="promo-was">{selected.price} {t('common.som')}</s>}
+                    </b>
                   </div>
                   <button className="btn ghost sm" type="button" onClick={() => setStep('plan')}>
                     {t('auth.changePlan')}
                   </button>
                 </div>
               )}
+              <PromoField promo={promo} onChange={setPromo} initialCode={promoSeed} onInitialDone={() => setPromoSeed('')} />
+              {promo && selected && promoted == null && <small className="field-error">{t('promo.err.PROMO_PLAN')}</small>}
               <label className={`field ${fieldErr.name ? 'has-error' : ''}`}>
                 <span>{t('common.name')}</span>
                 <input

@@ -20,7 +20,7 @@ async function findByLoginOrEmail(ident) {
 }
 
 router.post('/register', async (req, res) => {
-  const { name, login, email, password, phone, language, grade, planId, ref } = req.body || {};
+  const { name, login, email, password, phone, language, grade, planId, ref, promoCode } = req.body || {};
   const fail = (status, code, field, error) => res.status(status).json({ error, code, field });
   if (!String(name || '').trim()) return fail(400, 'NAME_REQUIRED', 'name', 'Укажите имя');
   if (!String(login || '').trim()) return fail(400, 'LOGIN_REQUIRED', 'login', 'Придумайте логин');
@@ -58,12 +58,12 @@ router.post('/register', async (req, res) => {
 
   let checkout;
   try {
-    checkout = await startCheckout({ plan, signup, lang });
+    checkout = await startCheckout({ plan, signup, lang, promoCode: promoCode || null });
   } catch (err) {
     return sendCheckoutError(res, err);
   }
 
-  if (checkout.demo) {
+  if (checkout.demo || checkout.free) {
     const user = await applyPaidSubscription(checkout.payment);
     return res.json({ token: signToken(user), user: await publicUserWithPlan(user) });
   }

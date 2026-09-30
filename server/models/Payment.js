@@ -12,6 +12,8 @@ const Payment = sequelize.define('Payment', {
   // Registration data (with password hash) kept until the payment succeeds and the account is created.
   signup: { type: DataTypes.JSONB, allowNull: true },
   claimToken: { type: DataTypes.STRING(80), allowNull: true },
+  promoCodeId: { type: DataTypes.INTEGER, allowNull: true },
+  discount: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 0 },
 });
 
 module.exports = { Payment };
