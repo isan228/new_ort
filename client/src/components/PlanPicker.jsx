@@ -1,5 +1,5 @@
 import { useLang } from '../context/LangContext';
-import { promoPrice } from '../lib/promo';
+import { checkoutPrice, promoPrice } from '../lib/promo';
 
 function Check() {
   return (
@@ -9,7 +9,7 @@ function Check() {
   );
 }
 
-export default function PlanPicker({ plans, selectedId, onSelect, promo = null }) {
+export default function PlanPicker({ plans, selectedId, onSelect, promo = null, coins = 0 }) {
   const { t, copy } = useLang();
   const perks = (copy.land.features || []).slice(0, 4).map((f) => f.title);
 
@@ -30,9 +30,9 @@ export default function PlanPicker({ plans, selectedId, onSelect, promo = null }
       {plans.map((plan) => {
         const on = selectedId === plan.id;
         const promoted = promoPrice(promo, plan);
-        const price = promoted ?? plan.price;
-        const was = promoted != null ? plan.price : plan.oldPrice;
-        const discount = was && was > price ? Math.round((1 - price / was) * 100) : 0;
+        const { afterPromo, coinsUsed, total: price } = checkoutPrice(plan, promo, coins);
+        const was = promoted != null || coinsUsed ? plan.price : plan.oldPrice;
+        const discount = was && was > afterPromo ? Math.round((1 - afterPromo / was) * 100) : 0;
         return (
           <button
             key={plan.id}
@@ -53,6 +53,9 @@ export default function PlanPicker({ plans, selectedId, onSelect, promo = null }
               <span>{t('common.som')}</span>
               {was && was > price ? <s>{was} {t('common.som')}</s> : null}
             </div>
+            {coinsUsed > 0 && (
+              <div className="plan-coins"><i className="coin-dot" />{t('coins.minus', { n: coinsUsed })}</div>
+            )}
             <p className="plan-desc">{t('pay.full')}</p>
             <ul className="plan-perks">
               {perks.map((perk) => (

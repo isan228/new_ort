@@ -60,6 +60,7 @@ function publicUser(user, plan) {
     subscriptionTitle: resolved?.title || null,
     subscriptionMonths: resolved?.months || null,
     referralCode: user.referralCode || null,
+    coins: user.coins || 0,
   };
 }
 

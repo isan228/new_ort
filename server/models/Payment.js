@@ -14,6 +14,7 @@ const Payment = sequelize.define('Payment', {
   claimToken: { type: DataTypes.STRING(80), allowNull: true },
   promoCodeId: { type: DataTypes.INTEGER, allowNull: true },
   discount: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 0 },
+  coinsUsed: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 0 },
 });
 
 module.exports = { Payment };

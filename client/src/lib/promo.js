@@ -14,3 +14,9 @@ export function promoPrice(promo, plan) {
 export function promoLabel(promo, som) {
   return promo.discountType === 'fixed' ? `−${promo.discountValue} ${som}` : `−${promo.discountValue}%`;
 }
+
+export function checkoutPrice(plan, promo, coins = 0) {
+  const afterPromo = promoPrice(promo, plan) ?? plan.price;
+  const coinsUsed = Math.min(Math.max(0, coins), afterPromo);
+  return { afterPromo, coinsUsed, total: afterPromo - coinsUsed };
+}

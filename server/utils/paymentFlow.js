@@ -2,6 +2,7 @@ const crypto = require('crypto');
 const { Op } = require('sequelize');
 const { sequelize, Payment, User, PromoCode } = require('../models');
 const { PromoError, applyPromo } = require('./promoCodes');
+const { COIN_VALUE_SOM, addCoins, reservedCoins, grantReferralCoins } = require('./coins');
 const { loginKey } = require('./userLogin');
 const { ensureReferralCode, maybeGrantReferralBonus } = require('./referral');
 const { createPayment, isFinikConfigured, webhookUrl, redirectUrl, trimEnv } = require('./finikClient');
@@ -63,8 +64,13 @@ async function applyPaidSubscription(paymentOrId) {
     const payment = await Payment.findByPk(id, { transaction, lock: transaction.LOCK.UPDATE });
     if (payment.status === 'paid') return User.findByPk(payment.userId, { transaction });
 
-    let target = payment.userId ? await User.findByPk(payment.userId, { transaction }) : null;
-    if (!target && payment.signup) target = await createUserFromSignup(payment, transaction);
+    let target = payment.userId
+      ? await User.findByPk(payment.userId, { transaction, lock: transaction.LOCK.UPDATE })
+      : null;
+    if (!target && payment.signup) {
+      target = await createUserFromSignup(payment, transaction);
+      await grantReferralCoins(target, transaction);
+    }
     if (!target) throw new Error(`Оплата ${payment.id}: нет пользователя и данных регистрации`);
 
     const base = target.subscriptionEndDate && new Date(target.subscriptionEndDate) > new Date()
@@ -80,6 +86,13 @@ async function applyPaidSubscription(paymentOrId) {
     if (payment.promoCodeId) {
       await PromoCode.increment('usedCount', { by: 1, where: { id: payment.promoCodeId }, transaction });
     }
+    if (payment.coinsUsed > 0) {
+      const spend = Math.min(payment.coinsUsed, target.coins || 0);
+      if (spend < payment.coinsUsed) {
+        console.warn(`Оплата ${payment.id}: списано ${spend} монет вместо ${payment.coinsUsed}`);
+      }
+      await addCoins(target, -spend, 'payment', { paymentId: payment.id, transaction });
+    }
     return target;
   });
   await ensureReferralCode(user);
@@ -87,17 +100,32 @@ async function applyPaidSubscription(paymentOrId) {
   return user;
 }
 
-async function startCheckout({ plan, userId = null, signup = null, lang = 'ru', promoCode = null }) {
+async function coinsForCheckout(userId, due, transaction) {
+  const user = await User.findByPk(userId, { transaction, lock: transaction.LOCK.UPDATE });
+  const available = Math.max(0, (user?.coins || 0) - await reservedCoins(userId, transaction));
+  return Math.min(available, Math.ceil(due / COIN_VALUE_SOM));
+}
+
+async function startCheckout({
+  plan,
+  userId = null,
+  signup = null,
+  lang = 'ru',
+  promoCode = null,
+  useCoins = false,
+}) {
   const paymentId = crypto.randomUUID();
   const payment = await sequelize.transaction(async (transaction) => {
     const applied = promoCode ? await applyPromo({ code: promoCode, plan, userId, transaction }) : null;
     const discount = applied ? applied.discount : 0;
+    const coinsUsed = useCoins && userId ? await coinsForCheckout(userId, plan.price - discount, transaction) : 0;
     return Payment.create({
       userId,
       planId: plan.id,
       type: 'ort_subscription',
       status: 'pending',
-      amount: plan.price - discount,
+      amount: Math.max(0, plan.price - discount - coinsUsed * COIN_VALUE_SOM),
+      coinsUsed,
       months: plan.months,
       providerRef: paymentId,
       signup,

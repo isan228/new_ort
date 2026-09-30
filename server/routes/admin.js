@@ -24,6 +24,7 @@ const {
   sequelize,
 } = require('../models');
 const { normalizeCode, reservedCount } = require('../utils/promoCodes');
+const { addCoins } = require('../utils/coins');
 const { publicMessage } = require('./chat');
 const { inferOrtPart, normalizeOrtPart } = require('../utils/ortScoring');
 const { slugify, normalizeTagName } = require('../utils/ortTagNormalize');
@@ -884,6 +885,22 @@ router.post('/chat/threads/:userId', async (req, res) => {
     text,
   });
   res.json({ message: publicMessage(row) });
+});
+
+router.post('/users/:id/coins', async (req, res) => {
+  const amount = Math.round(Number(req.body.amount));
+  if (!Number.isFinite(amount) || !amount || Math.abs(amount) > 100000) {
+    return res.status(400).json({ error: 'Укажите количество монет' });
+  }
+  const result = await sequelize.transaction(async (transaction) => {
+    const user = await User.findByPk(req.params.id, { transaction, lock: transaction.LOCK.UPDATE });
+    if (!user || user.role === 'admin') return null;
+    const delta = Math.max(amount, -(user.coins || 0));
+    await addCoins(user, delta, 'admin', { transaction });
+    return user;
+  });
+  if (!result) return res.status(404).json({ error: 'Пользователь не найден' });
+  res.json({ coins: result.coins });
 });
 
 router.post('/users/:id/grant-subscription', async (req, res) => {

@@ -16,6 +16,7 @@ const { ChatMessage } = require('./ChatMessage');
 const { ReadingPassage } = require('./ReadingPassage');
 const { ReadingPassageTagMap } = require('./ReadingPassageTagMap');
 const { PromoCode } = require('./PromoCode');
+const { CoinTransaction } = require('./CoinTransaction');
 
 Subject.hasMany(Test, { foreignKey: 'subjectId' });
 Test.belongsTo(Subject, { foreignKey: 'subjectId' });
@@ -84,6 +85,10 @@ PromoCode.hasMany(Payment, { foreignKey: 'promoCodeId', constraints: false });
 User.belongsTo(SubscriptionPlan, { foreignKey: 'subscriptionPlanId' });
 SubscriptionPlan.hasMany(User, { foreignKey: 'subscriptionPlanId' });
 
+User.hasMany(CoinTransaction, { foreignKey: 'userId', constraints: false });
+CoinTransaction.belongsTo(User, { foreignKey: 'userId', constraints: false });
+CoinTransaction.belongsTo(User, { as: 'Related', foreignKey: 'relatedUserId', constraints: false });
+
 User.hasMany(ChatMessage, { foreignKey: 'userId' });
 ChatMessage.belongsTo(User, { foreignKey: 'userId' });
 ChatMessage.belongsTo(User, { as: 'Author', foreignKey: 'authorId' });
@@ -107,4 +112,5 @@ module.exports = {
   ReadingPassage,
   ReadingPassageTagMap,
   PromoCode,
+  CoinTransaction,
 };

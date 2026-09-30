@@ -105,6 +105,7 @@ router.post('/create', requireAuth, async (req, res) => {
       userId: req.user.id,
       lang: req.user.language,
       promoCode: req.body.promoCode || null,
+      useCoins: req.body.useCoins === true,
     });
     if (free) {
       const user = await applyPaidSubscription(payment);

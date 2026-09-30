@@ -29,8 +29,8 @@ export function clearPendingPayment() {
   }
 }
 
-export async function startCheckout(plan, { setUser, promoCode } = {}) {
-  const created = await payApi.create(plan.id, promoCode);
+export async function startCheckout(plan, { setUser, promoCode, useCoins } = {}) {
+  const created = await payApi.create(plan.id, promoCode, useCoins);
   if (created.free) {
     if (setUser) setUser(created.user);
     return 'demo';

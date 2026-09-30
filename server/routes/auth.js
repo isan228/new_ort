@@ -5,6 +5,7 @@ const { User, SubscriptionPlan } = require('../models');
 const { requireAuth, signToken, publicUserWithPlan } = require('../middleware/auth');
 const { ensureReferralCode, findInviterByCode, referralStats } = require('../utils/referral');
 const { userStats, rankingFor } = require('../utils/userProgress');
+const { REFERRAL_COINS, coinHistory } = require('../utils/coins');
 const { normalizeLogin, loginKey, assertLogin } = require('../utils/userLogin');
 const { applyPaidSubscription, startCheckout, sendCheckoutError } = require('../utils/paymentFlow');
 
@@ -112,11 +113,17 @@ router.get('/me', requireAuth, async (req, res) => {
 
 router.get('/referral', requireAuth, async (req, res) => {
   const code = await ensureReferralCode(req.user);
-  const stats = await referralStats(req.user.id);
+  const [stats, history] = await Promise.all([
+    referralStats(req.user.id),
+    coinHistory(req.user.id),
+  ]);
   res.json({
     code,
     ...stats,
     bonusGranted: !!req.user.referralBonusGranted,
+    coins: req.user.coins || 0,
+    coinsPerFriend: REFERRAL_COINS,
+    coinHistory: history,
   });
 });
 

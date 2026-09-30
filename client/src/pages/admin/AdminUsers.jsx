@@ -25,6 +25,18 @@ export default function AdminUsers() {
     await load();
   }
 
+  async function changeCoins(u) {
+    const raw = window.prompt(t('admin.coinsPrompt', { name: u.name, n: u.coins || 0 }), '50');
+    const amount = Math.round(Number(raw));
+    if (!raw || !amount) return;
+    try {
+      const data = await adminApi.addCoins(u.id, amount);
+      setUsers((list) => list.map((row) => (row.id === u.id ? { ...row, coins: data.coins } : row)));
+    } catch (e) {
+      setError(e.message);
+    }
+  }
+
   return (
     <div>
       <div className="admin-section-head" style={{ marginTop: 0 }}>
@@ -52,6 +64,7 @@ export default function AdminUsers() {
               <th>{t('common.login')}</th>
               <th>Email</th>
               <th>{t('admin.subUntil')}</th>
+              <th>{t('admin.coins')}</th>
               <th></th>
             </tr>
           </thead>
@@ -68,6 +81,11 @@ export default function AdminUsers() {
                     <span className={`badge ${active ? 'ok' : ''}`}>
                       {end ? end.toLocaleDateString(locale) : t('admin.noSub')}
                     </span>
+                  </td>
+                  <td>
+                    <button className="btn sm ghost coins-cell" type="button" onClick={() => changeCoins(u)}>
+                      <i className="coin-dot" />{u.coins || 0}
+                    </button>
                   </td>
                   <td>
                     <div className="row">

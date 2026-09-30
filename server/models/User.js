@@ -17,6 +17,8 @@ const User = sequelize.define('User', {
   referralCode: { type: DataTypes.STRING, allowNull: true, unique: true },
   referredById: { type: DataTypes.INTEGER, allowNull: true },
   referralBonusGranted: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },
+  coins: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 0 },
+  referralCoinsGranted: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },
 }, {
   indexes: [{ fields: ['loginKey'] }],
   hooks: {

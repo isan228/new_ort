@@ -89,9 +89,9 @@ export const ortApi = {
 
 export const payApi = {
   plans: () => api('/api/payments/plans'),
-  create: (planId, promoCode) => api('/api/payments/create', {
+  create: (planId, promoCode, useCoins) => api('/api/payments/create', {
     method: 'POST',
-    body: JSON.stringify({ planId, promoCode: promoCode || undefined }),
+    body: JSON.stringify({ planId, promoCode: promoCode || undefined, useCoins: !!useCoins }),
   }),
   checkPromo: (code, planId) => api('/api/payments/promo', {
     method: 'POST',
@@ -170,6 +170,10 @@ export const adminApi = {
   grant: (id, months) => api(`/api/admin/users/${id}/grant-subscription`, {
     method: 'POST',
     body: JSON.stringify({ months }),
+  }),
+  addCoins: (id, amount) => api(`/api/admin/users/${id}/coins`, {
+    method: 'POST',
+    body: JSON.stringify({ amount }),
   }),
   chatThreads: () => api('/api/admin/chat/threads'),
   chatThread: (userId) => api(`/api/admin/chat/threads/${userId}`),

@@ -172,6 +172,7 @@ export default function Register() {
                 </div>
               )}
               <PromoField promo={promo} onChange={setPromo} initialCode={promoSeed} onInitialDone={() => setPromoSeed('')} />
+              {ref && <p className="coins-ref-note"><i className="coin-dot" />{t('coins.refInvite')}</p>}
               {promo && selected && promoted == null && <small className="field-error">{t('promo.err.PROMO_PLAN')}</small>}
               <label className={`field ${fieldErr.name ? 'has-error' : ''}`}>
                 <span>{t('common.name')}</span>

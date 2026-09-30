@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ApiError, authApi, payApi } from '../api/client';
 import PromoField, { promoErrorText } from '../components/PromoField';
+import CoinsToggle from '../components/CoinsToggle';
 import { promoApplies } from '../lib/promo';
 import { useAuth } from '../context/AuthContext';
 import { useLang } from '../context/LangContext';
@@ -18,6 +19,8 @@ export default function Profile() {
   const [busy, setBusy] = useState(false);
   const [selectedId, setSelectedId] = useState(user?.subscriptionPlanId || null);
   const [promo, setPromo] = useState(null);
+  const [useCoins, setUseCoins] = useState(false);
+  const coins = useCoins ? user?.coins || 0 : 0;
 
   useEffect(() => {
     payApi.plans().then((d) => setPlans(d.plans || [])).catch((err) => setError(err.message));
@@ -34,10 +37,11 @@ export default function Profile() {
     setBusy(true);
     try {
       const promoCode = promoApplies(promo, plan) ? promo.code : undefined;
-      const result = await startCheckout(plan, { setUser, promoCode });
+      const result = await startCheckout(plan, { setUser, promoCode, useCoins: coins > 0 });
       if (result === 'demo') {
         setError('');
         setPromo(null);
+        setUseCoins(false);
       }
     } catch (err) {
       if (err instanceof ApiError && err.code?.startsWith('PROMO_')) {
@@ -78,7 +82,8 @@ export default function Profile() {
         <p className="muted">{t('pay.renewHint')}</p>
         {error && <p className="err">{error}</p>}
         <PromoField promo={promo} onChange={setPromo} />
-        <PlanPicker plans={plans} selectedId={selectedId} onSelect={renew} promo={promo} />
+        <CoinsToggle balance={user?.coins || 0} checked={useCoins} onChange={setUseCoins} />
+        <PlanPicker plans={plans} selectedId={selectedId} onSelect={renew} promo={promo} coins={coins} />
         {busy && <p className="muted" style={{ marginTop: 12 }}>{t('common.loading')}</p>}
       </div>
 
