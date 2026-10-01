@@ -9,8 +9,8 @@ export default function Login() {
   const { login } = useAuth();
   const { t } = useLang();
   const navigate = useNavigate();
-  const [ident, setIdent] = useState('demo');
-  const [password, setPassword] = useState('demo123');
+  const [ident, setIdent] = useState('');
+  const [password, setPassword] = useState('');
   const [error, setError] = useState('');
 
   async function onSubmit(e) {

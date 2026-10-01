@@ -205,7 +205,7 @@ export const dict = {
     public: { prep: 'Системная подготовка к ОРТ' },
     auth: {
       loginTitle: 'Вход',
-      loginHint: 'Демо ученик: demo / demo123',
+      loginHint: 'Войдите по логину и паролю',
       createAccount: 'Создать аккаунт',
       registerTitle: 'Регистрация',
       registerHint: 'Заполните данные и оплатите тариф — аккаунт создастся сразу после оплаты.',
@@ -943,7 +943,7 @@ export const dict = {
     public: { prep: 'ОРТ га системалуу даярдык' },
     auth: {
       loginTitle: 'Кирүү',
-      loginHint: 'Демо окуучу: demo / demo123',
+      loginHint: 'Логин жана сырсөз менен кириңиз',
       createAccount: 'Аккаунт түзүү',
       registerTitle: 'Каттоо',
       registerHint: 'Маалыматты толтуруп, тарифти төлөңүз — аккаунт төлөмдөн кийин дароо түзүлөт.',
