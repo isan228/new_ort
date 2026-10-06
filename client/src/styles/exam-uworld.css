@@ -825,3 +825,6 @@ a.uworld-sf-tool {
   object-fit: contain;
 }
 .q-media-answer { max-height: 180px; margin: 8px 0 2px; }
+
+.uworld-review-split.no-expl { grid-template-columns: minmax(0, 1fr); }
+.uworld-review-split.no-expl .uworld-review-left { border-right: none; border-bottom: none; }

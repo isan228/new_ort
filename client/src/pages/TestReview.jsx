@@ -79,6 +79,7 @@ export default function TestReview({ onlyWrong = false } = {}) {
   const correctLetter = correct ? LETTERS[answers.indexOf(correct)] : '—';
   const userLetter = user ? LETTERS[answers.indexOf(user)] : '—';
   const userText = user && isCompare(item.question) ? compareAnswerText(t, user, answers.indexOf(user)) : user?.text;
+  const hasExplanation = Boolean(item.question?.explanation?.trim() || item.question?.explanationImageUrl);
 
   function toggleFullscreen() {
     if (!document.fullscreenElement) document.documentElement.requestFullscreen?.().catch(() => {});
@@ -146,7 +147,7 @@ export default function TestReview({ onlyWrong = false } = {}) {
           </ol>
         </aside>
 
-        <div className="uworld-review-split">
+        <div className={`uworld-review-split${hasExplanation ? '' : ' no-expl'}`}>
           <section className="uworld-review-pane uworld-review-left">
             <QuestionStem q={item.question} className="uworld-review-stem" />
             <div className="uworld-review-choices">
@@ -184,17 +185,17 @@ export default function TestReview({ onlyWrong = false } = {}) {
               </div>
             </div>
           </section>
-          <section className="uworld-review-pane uworld-review-right">
-            <div className="uworld-review-expl-head">{t('review.explanation')}</div>
-            <div className="uworld-review-expl-body">
-              {item.question?.explanation
-                ? item.question.explanation
-                : !item.question?.explanationImageUrl && <p className="uworld-review-no-expl">{t('review.noExpl')}</p>}
-              {item.question?.explanationImageUrl && (
-                <img className="q-media" src={item.question.explanationImageUrl} alt="" />
-              )}
-            </div>
-          </section>
+          {hasExplanation && (
+            <section className="uworld-review-pane uworld-review-right">
+              <div className="uworld-review-expl-head">{t('review.explanation')}</div>
+              <div className="uworld-review-expl-body">
+                {item.question?.explanation?.trim() && item.question.explanation}
+                {item.question?.explanationImageUrl && (
+                  <img className="q-media" src={item.question.explanationImageUrl} alt="" />
+                )}
+              </div>
+            </section>
+          )}
         </div>
       </div>
 

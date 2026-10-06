@@ -66,8 +66,8 @@ function parseHint(stats, { requireExplanation, requireTags, linked }) {
     return `Найдено вопросов без темы/тегов (Topic/Skill или Subject/System/Tags): ${stats.missingTags}.`;
   }
   return linked
-    ? 'Нужны поля GroupID, ID, Q, A1–A30, Correct, E.'
-    : 'Нужны поля ID, Q, A1–A30, Correct, E.';
+    ? 'Нужны поля GroupID, ID, Q, A1–A30, Correct. Объяснение E — по желанию.'
+    : 'Нужны поля ID, Q, A1–A30, Correct. Объяснение E — по желанию.';
 }
 
 function parseQuestionsFromText(text, options = {}) {

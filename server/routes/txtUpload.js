@@ -83,38 +83,60 @@ async function replaceAnswers(questionId, answers) {
   }
 }
 
+function freeExternalId(id, taken) {
+  if (/^\d+$/.test(id)) {
+    let max = 0;
+    for (const value of taken) if (/^\d+$/.test(value)) max = Math.max(max, Number(value));
+    return String(max + 1);
+  }
+  let n = 2;
+  while (taken.has(`${id}-${n}`)) n += 1;
+  return `${id}-${n}`;
+}
+
+// A repeated ID never overwrites an existing question: the new one is saved under the next free ID.
 async function upsertQuestions(test, parsed, passageId = null) {
   const testId = test.id;
-  let created = 0;
-  let updated = 0;
+  const existing = await Question.findAll({ where: { testId, passageId }, attributes: ['externalId'] });
+  const taken = new Set(existing.map((row) => row.externalId).filter(Boolean));
+  let maxOrder = (await Question.max('sortOrder', { where: { testId, passageId } })) || 0;
+  const renamed = [];
   for (const item of parsed) {
-    let question = item.externalId
-      ? await Question.findOne({ where: { testId, passageId, externalId: item.externalId } })
-      : null;
+    let externalId = item.externalId ? String(item.externalId).trim() : null;
+    if (externalId && taken.has(externalId)) {
+      const next = freeExternalId(externalId, taken);
+      renamed.push({ from: externalId, to: next });
+      externalId = next;
+    }
+    if (externalId) taken.add(externalId);
     const media = {};
     if ('imageUrl' in item) media.imageUrl = cleanImageUrl(item.imageUrl);
     if ('explanationImageUrl' in item) media.explanationImageUrl = cleanImageUrl(item.explanationImageUrl);
     if (passageId) media.passageId = passageId;
     if (item.evidence) media.evidence = String(item.evidence).trim();
     if (isCompare(item)) Object.assign(media, { kind: COMPARE_KIND, compareA: item.compareA, compareB: item.compareB });
-    if (question) {
-      await question.update({ text: item.text, explanation: item.explanation, isActive: true, ...media });
-      updated += 1;
-    } else {
-      const maxOrder = await Question.max('sortOrder', { where: { testId, passageId } });
-      question = await Question.create({
-        testId,
-        text: item.text,
-        explanation: item.explanation,
-        externalId: item.externalId,
-        sortOrder: (maxOrder || 0) + 1,
-        ...media,
-      });
-      created += 1;
-    }
+    maxOrder += 1;
+    const question = await Question.create({
+      testId,
+      text: item.text,
+      explanation: item.explanation,
+      externalId,
+      sortOrder: maxOrder,
+      ...media,
+    });
     await replaceAnswers(question.id, item.answers);
   }
-  return { created, updated, total: parsed.length };
+  return { created: parsed.length, renamed, total: parsed.length };
+}
+
+function uploadMessage(verb, stats) {
+  let text = `${verb} ${stats.total} вопросов`;
+  if (stats.renamed.length) {
+    const list = stats.renamed.slice(0, 8).map((row) => `${row.from}→${row.to}`).join(', ');
+    const more = stats.renamed.length > 8 ? ` и ещё ${stats.renamed.length - 8}` : '';
+    text += `. Совпали ID, сохранены под новыми: ${list}${more}`;
+  }
+  return text;
 }
 
 async function resolveTest(req) {
@@ -165,15 +187,15 @@ async function handleQuestionTxt(req, res, options) {
   }
   const stats = await upsertQuestions(test, parsed);
   res.json({
-    message: `Загружено ${stats.total} вопросов (${stats.created} новых, ${stats.updated} обновлено)`,
+    message: uploadMessage('Загружено', stats),
     ...stats,
     testId: test.id,
   });
 }
 
 const PARSE_OPTIONS = {
-  explained: { linked: false, requireExplanation: true, requireTags: false, parseTags: false },
-  linked: { linked: true, requireExplanation: true, requireTags: false, parseTags: false },
+  explained: { linked: false, requireExplanation: false, requireTags: false, parseTags: false },
+  linked: { linked: true, requireExplanation: false, requireTags: false, parseTags: false },
 };
 
 router.post('/parse-txt', fileField, async (req, res) => {
@@ -273,7 +295,7 @@ router.post('/import-questions', express.json({ limit: '8mb' }), async (req, res
   if (!prepared.length) return res.status(400).json({ error: 'Нет вопросов для сохранения' });
   const stats = await upsertQuestions(test, prepared, Number(req.body.passageId) || null);
   res.json({
-    message: `Сохранено ${stats.total} вопросов (${stats.created} новых, ${stats.updated} обновлено)`,
+    message: uploadMessage('Сохранено', stats),
     ...stats,
     testId: test.id,
   });
@@ -283,7 +305,7 @@ router.post('/upload-txt-explained', fileField, async (req, res) => {
   try {
     await handleQuestionTxt(req, res, {
       linked: false,
-      requireExplanation: true,
+      requireExplanation: false,
       requireTags: false,
       parseTags: false,
     });
@@ -297,7 +319,7 @@ router.post('/upload-txt-linked', fileField, async (req, res) => {
   try {
     await handleQuestionTxt(req, res, {
       linked: true,
-      requireExplanation: true,
+      requireExplanation: false,
       requireTags: false,
       parseTags: false,
     });

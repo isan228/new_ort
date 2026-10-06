@@ -514,11 +514,13 @@ export default function ReadingBook() {
                       <b>{result.correct ? t('reading.correct') : t('reading.wrong')}</b>
                       {!result.correct && correctLetter && <span>{t('reading.rightIs', { letter: correctLetter })}</span>}
                     </p>
-                    <div className="rb-why">
-                      <h3>{t('reading.why')}</h3>
-                      <p>{result.explanation || t('reading.noWhy')}</p>
-                      {result.explanationImageUrl && <img src={result.explanationImageUrl} alt="" />}
-                    </div>
+                    {(result.explanation?.trim() || result.explanationImageUrl) && (
+                      <div className="rb-why">
+                        <h3>{t('reading.why')}</h3>
+                        {result.explanation?.trim() && <p>{result.explanation}</p>}
+                        {result.explanationImageUrl && <img src={result.explanationImageUrl} alt="" />}
+                      </div>
+                    )}
                     {result.evidence && (
                       <div className="rb-proof">
                         <h3><Svg d={ICONS.marker} size={15} />{t('reading.evidence')}</h3>
