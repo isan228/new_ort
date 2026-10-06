@@ -3,6 +3,7 @@ import { adminApi } from '../../api/client';
 import { useLang } from '../../context/LangContext';
 import { LETTERS } from '../../lib/reading';
 import { ImageSlot, imageFromClipboard } from './TxtPreview';
+import { MathLive } from '../../components/MathText';
 
 let seq = 0;
 const nextKey = () => `qf${Date.now()}-${seq++}`;
@@ -112,6 +113,7 @@ export default function QuestionForm({ draft: q, onChange, children }) {
           onPaste={(e) => paste(e, (url) => set({ imageUrl: url }))}
         />
       </label>
+      <MathLive text={q.text} />
       <div className="qf-image">
         <small className="muted">{t('admin.q.imageOptional')}</small>
         <ImageSlot url={q.imageUrl} onChange={(url) => set({ imageUrl: url })} onUpload={upload} compact />
@@ -136,6 +138,7 @@ export default function QuestionForm({ draft: q, onChange, children }) {
                 onChange={(e) => setAnswer(a._key, { text: e.target.value })}
                 onPaste={(e) => paste(e, (url) => setAnswer(a._key, { imageUrl: url }))}
               />
+              <MathLive text={a.text} />
               <ImageSlot compact url={a.imageUrl} onChange={(url) => setAnswer(a._key, { imageUrl: url })} onUpload={upload} />
             </div>
             <button
@@ -169,6 +172,7 @@ export default function QuestionForm({ draft: q, onChange, children }) {
           onPaste={(e) => paste(e, (url) => set({ explanationImageUrl: url }))}
         />
       </label>
+      <MathLive text={q.explanation} />
       <div className="qf-image">
         <small className="muted">{t('admin.q.imageOptional')}</small>
         <ImageSlot compact url={q.explanationImageUrl} onChange={(url) => set({ explanationImageUrl: url })} onUpload={upload} />

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { adminApi } from '../../api/client';
 import { useLang } from '../../context/LangContext';
-import MathText, { hasMath } from '../../components/MathText';
+import { MathLive } from '../../components/MathText';
 
 const LETTERS = 'ABCDEFGHIJ';
 
@@ -141,6 +141,7 @@ export function QuestionCard({ q, index, onChange, onRemove, onUpload, requireIm
           onPaste={(e) => pasteInto(e, 'imageUrl')}
         />
       </label>
+      <MathLive text={q.text} />
       {requireImage && (
         <div className={`tp-section-label${q.imageUrl ? '' : ' tp-required'}`}>{t('admin.preview.imageRequired')}</div>
       )}
@@ -170,6 +171,7 @@ export function QuestionCard({ q, index, onChange, onRemove, onUpload, requireIm
                   }
                 }}
               />
+              <MathLive text={a.text} />
               <ImageSlot compact url={a.imageUrl} onChange={(url) => setAnswer(a._key, { imageUrl: url })} onUpload={onUpload} />
             </div>
             <button
@@ -204,24 +206,9 @@ export function QuestionCard({ q, index, onChange, onRemove, onUpload, requireIm
           onPaste={(e) => pasteInto(e, 'explanationImageUrl')}
         />
       </label>
+      <MathLive text={q.explanation} />
       <ImageSlot url={q.explanationImageUrl} onChange={(url) => set({ explanationImageUrl: url })} onUpload={onUpload} />
-      <MathPreview q={q} />
     </article>
-  );
-}
-
-export function MathPreview({ q }) {
-  const { t } = useLang();
-  if (![q.text, q.explanation, ...q.answers.map((a) => a.text)].some(hasMath)) return null;
-  return (
-    <div className="cmp-preview mt-preview">
-      <div className="qf-label">{t('admin.cmp.preview')}</div>
-      <p><MathText text={q.text} /></p>
-      <ol type="A">
-        {q.answers.map((a) => <li key={a._key}><MathText text={a.text} /></li>)}
-      </ol>
-      {q.explanation?.trim() && <p className="muted"><MathText text={q.explanation} /></p>}
-    </div>
   );
 }
 

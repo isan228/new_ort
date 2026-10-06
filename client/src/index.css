@@ -2511,3 +2511,15 @@ sup, sub { font-size: 0.72em; line-height: 0; }
 
 .mt-root-idx { font-size: 0.6em; vertical-align: 0.9em; margin-right: -0.35em; line-height: 0; }
 
+
+.mt-live {
+  margin: -4px 0 10px;
+  padding: 6px 12px;
+  border-radius: 10px;
+  background: var(--brand-soft);
+  color: var(--ink);
+  font-size: 17px;
+  line-height: 2;
+}
+.tp-answer-body .mt-live, .qf-answer-body .mt-live { margin: 4px 0 6px; padding: 2px 10px; font-size: 16px; }
+

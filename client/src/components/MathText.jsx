@@ -176,6 +176,11 @@ function render(nodes) {
   });
 }
 
+export function MathLive({ text }) {
+  if (!hasMath(text)) return null;
+  return <div className="mt-live"><MathText text={text} /></div>;
+}
+
 export default function MathText({ text }) {
   const value = String(text ?? '');
   if (!hasMath(value)) return value;

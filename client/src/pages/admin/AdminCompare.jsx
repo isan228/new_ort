@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { adminApi } from '../../api/client';
 import { useLang } from '../../context/LangContext';
 import { CompareColumns } from '../../components/QuestionStem';
-import MathText from '../../components/MathText';
+import MathText, { MathLive } from '../../components/MathText';
 import { COMPARE_LETTERS, compareCorrectLetter } from '../../lib/compare';
 import { pickTextFile } from '../../lib/textFile';
 import { Modal, confirmDelete, previewText } from './adminUi';
@@ -108,15 +108,22 @@ export function CompareFields({ d, onChange, onUpload }) {
           onPaste={(e) => pasteInto(e, 'imageUrl')}
         />
       </label>
+      <MathLive text={d.text} />
       <div className="cmp-form-cols">
-        <label className="field">
-          <span>{t('compare.colA')}</span>
-          <textarea rows={2} value={d.compareA || ''} onChange={(e) => set({ compareA: e.target.value })} />
-        </label>
-        <label className="field">
-          <span>{t('compare.colB')}</span>
-          <textarea rows={2} value={d.compareB || ''} onChange={(e) => set({ compareB: e.target.value })} />
-        </label>
+        <div>
+          <label className="field">
+            <span>{t('compare.colA')}</span>
+            <textarea rows={2} value={d.compareA || ''} onChange={(e) => set({ compareA: e.target.value })} />
+          </label>
+          <MathLive text={d.compareA} />
+        </div>
+        <div>
+          <label className="field">
+            <span>{t('compare.colB')}</span>
+            <textarea rows={2} value={d.compareB || ''} onChange={(e) => set({ compareB: e.target.value })} />
+          </label>
+          <MathLive text={d.compareB} />
+        </div>
       </div>
       <div className="qf-image">
         <small className="muted">{t('admin.q.imageOptional')}</small>
@@ -133,6 +140,7 @@ export function CompareFields({ d, onChange, onUpload }) {
           onPaste={(e) => pasteInto(e, 'explanationImageUrl')}
         />
       </label>
+      <MathLive text={d.explanation} />
       <div className="qf-image">
         <small className="muted">{t('admin.q.imageOptional')}</small>
         <ImageSlot compact url={d.explanationImageUrl} onChange={(url) => set({ explanationImageUrl: url })} onUpload={onUpload} />
