@@ -14,6 +14,7 @@ const {
   ReadingPassage,
 } = require('../models');
 const { Op } = require('sequelize');
+const { requiresImage } = require('../utils/sectionKinds');
 const { parseQuestionsFromText } = require('../utils/parseQuestionsTxt');
 const {
   COMPARE_KIND,
@@ -176,6 +177,9 @@ function testError(res, test) {
 async function handleQuestionTxt(req, res, options) {
   const test = await resolveTest(req);
   if (testError(res, test)) return;
+  if (requiresImage(test)) {
+    return res.status(400).json({ error: 'В геометрию загружайте TXT через превью — там к каждому вопросу добавляется рисунок' });
+  }
   const raw = readUploaded(req);
   if (!raw) return res.status(400).json({ error: 'TXT файл не загружен. Поле: pdf или file' });
   const parsed = parseQuestionsFromText(raw, options);
@@ -277,6 +281,9 @@ router.post('/import-questions', express.json({ limit: '8mb' }), async (req, res
       .map((a) => ({ text: String(a.text || '').trim(), imageUrl: a.imageUrl, isCorrect: !!a.isCorrect }))
       .filter((a) => a.text || a.imageUrl);
     if (!text && !item.imageUrl) return res.status(400).json({ error: `Вопрос №${idx + 1}: пустой текст` });
+    if (requiresImage(test) && !cleanImageUrl(item.imageUrl)) {
+      return res.status(400).json({ error: `Вопрос №${idx + 1}: добавьте рисунок — в геометрии он обязателен` });
+    }
     if (answers.length < 2) return res.status(400).json({ error: `Вопрос №${idx + 1}: нужно минимум 2 ответа` });
     if (!answers.some((a) => a.isCorrect)) {
       return res.status(400).json({ error: `Вопрос №${idx + 1}: отметьте правильный ответ` });

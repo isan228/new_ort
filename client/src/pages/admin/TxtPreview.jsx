@@ -28,9 +28,10 @@ function emptyQuestion() {
   };
 }
 
-export function questionProblems(q) {
+export function questionProblems(q, { requireImage = false } = {}) {
   const problems = [];
-  if (!q.text.trim() && !q.imageUrl) problems.push('errText');
+  if (requireImage && !q.imageUrl) problems.push('errImage');
+  else if (!q.text.trim() && !q.imageUrl) problems.push('errText');
   const filled = q.answers.filter((a) => a.text.trim() || a.imageUrl);
   if (filled.length < 2) problems.push('errAnswers');
   if (!filled.some((a) => a.isCorrect)) problems.push('errCorrect');
@@ -87,9 +88,9 @@ export function ImageSlot({ url, onChange, onUpload, compact = false }) {
   );
 }
 
-function QuestionCard({ q, index, onChange, onRemove, onUpload }) {
+function QuestionCard({ q, index, onChange, onRemove, onUpload, requireImage }) {
   const { t } = useLang();
-  const problems = questionProblems(q);
+  const problems = questionProblems(q, { requireImage });
 
   function set(patch) {
     onChange({ ...q, ...patch });
@@ -140,6 +141,9 @@ function QuestionCard({ q, index, onChange, onRemove, onUpload }) {
           onPaste={(e) => pasteInto(e, 'imageUrl')}
         />
       </label>
+      {requireImage && (
+        <div className={`tp-section-label${q.imageUrl ? '' : ' tp-required'}`}>{t('admin.preview.imageRequired')}</div>
+      )}
       <ImageSlot url={q.imageUrl} onChange={(url) => set({ imageUrl: url })} onUpload={onUpload} />
 
       <div className="tp-section-label">{t('admin.preview.answers')}</div>
@@ -205,14 +209,16 @@ function QuestionCard({ q, index, onChange, onRemove, onUpload }) {
   );
 }
 
-export default function TxtPreview({ fileName, parsed, target, onClose, onSaved }) {
+export default function TxtPreview({ fileName, parsed, target, requireImage = false, onClose, onSaved }) {
   const { t } = useLang();
   const [items, setItems] = useState(() => withKeys(parsed.items || []));
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const dirty = useRef(false);
 
-  const invalid = useMemo(() => items.filter((q) => questionProblems(q).length), [items]);
+  const problemsOf = (q) => questionProblems(q, { requireImage });
+  const invalid = useMemo(() => items.filter((q) => problemsOf(q).length), [items, requireImage]);
+  const missingImages = requireImage ? items.filter((q) => !q.imageUrl).length : 0;
 
   useEffect(() => {
     document.body.classList.add('tp-open');
@@ -295,7 +301,7 @@ export default function TxtPreview({ fileName, parsed, target, onClose, onSaved 
             <button
               key={q._key}
               type="button"
-              className={questionProblems(q).length ? 'bad' : ''}
+              className={problemsOf(q).length ? 'bad' : ''}
               onClick={() => jumpTo(q._key)}
             >
               {i + 1}
@@ -305,6 +311,7 @@ export default function TxtPreview({ fileName, parsed, target, onClose, onSaved 
 
         <main className="tp-main">
           {parsed.hint && <div className="tp-hint">{parsed.hint}</div>}
+          {missingImages > 0 && <div className="tp-hint">{t('admin.preview.needImagesN', { n: missingImages })}</div>}
           {invalid.length > 0 && <div className="form-alert">{t('admin.preview.invalidN', { n: invalid.length })}</div>}
           {error && <div className="form-alert">{error}</div>}
           <p className="muted tp-paste-hint">{t('admin.preview.pasteHint')}</p>
@@ -314,6 +321,7 @@ export default function TxtPreview({ fileName, parsed, target, onClose, onSaved 
               key={q._key}
               q={q}
               index={i}
+              requireImage={requireImage}
               onUpload={upload}
               onChange={(next) => update(items.map((x) => (x._key === q._key ? next : x)))}
               onRemove={() => update(items.filter((x) => x._key !== q._key))}

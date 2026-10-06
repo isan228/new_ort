@@ -2227,3 +2227,22 @@ Object.assign(dict.ky.admin, {
   confirmDeleteSection: '«{name}» бөлүмчөлөрү жана ичиндеги бардык суроолору менен өчүрүлсүнбү?',
   tree: { main: 'Негизги тест', subjects: 'Предметтик тесттер' },
 });
+
+dict.ru.admin.kinds.geometry = 'Геометрия';
+dict.ky.admin.kinds.geometry = 'Геометрия';
+dict.ru.admin.kindHints.geometry = 'Как обычные вопросы, но к каждому обязателен рисунок';
+dict.ky.admin.kindHints.geometry = 'Кадимки суроолордой, бирок ар бирине сүрөт милдеттүү';
+dict.ru.admin.geoHint = 'В геометрии после загрузки TXT вставьте рисунок в каждый вопрос — без него сохранить нельзя.';
+dict.ky.admin.geoHint = 'Геометрияда TXT жүктөгөндөн кийин ар бир суроого сүрөт коюңуз — сүрөтсүз сактоого болбойт.';
+Object.assign(dict.ru.admin.preview, {
+  errImage: 'Нет рисунка',
+  imageRequired: 'Рисунок к вопросу (обязательно)',
+  needImagesN: 'Осталось вставить рисунки: {n}. Нажмите «+ Картинка» или вставьте её из буфера (Ctrl+V) в поле текста вопроса.',
+});
+Object.assign(dict.ky.admin.preview, {
+  errImage: 'Сүрөт жок',
+  imageRequired: 'Суроонун сүрөтү (милдеттүү)',
+  needImagesN: 'Дагы сүрөт коюу керек: {n}. «+ Сүрөт» баскычын басыңыз же суроонун текст талаасына буферден коюңуз (Ctrl+V).',
+});
+dict.ru.admin.q.errImage = 'Добавьте рисунок — в геометрии он обязателен';
+dict.ky.admin.q.errImage = 'Сүрөт кошуңуз — геометрияда ал милдеттүү';

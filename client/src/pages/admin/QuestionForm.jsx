@@ -39,7 +39,8 @@ export function toDraft(q) {
   };
 }
 
-export function draftProblem(q) {
+export function draftProblem(q, { requireImage = false } = {}) {
+  if (requireImage && !q.imageUrl) return 'admin.q.errImage';
   if (!q.text.trim() && !q.imageUrl) return 'admin.q.errText';
   const filled = q.answers.filter((a) => a.text.trim() || a.imageUrl);
   if (filled.length < 2) return 'admin.q.errAnswers';

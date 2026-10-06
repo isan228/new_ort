@@ -78,7 +78,8 @@ export function ortPartLabel(t, part) {
   return t(`admin.ortParts.${part}`);
 }
 
-export const SECTION_KINDS = ['standard', 'compare', 'reading', 'group'];
+export const SECTION_KINDS = ['standard', 'geometry', 'compare', 'reading', 'group'];
+export const QUESTION_KINDS = ['standard', 'geometry'];
 
 export function sectionKind(section) {
   return section?.kind || (section?.ortPart === 'reading' ? 'reading' : 'standard');
@@ -229,7 +230,7 @@ function pickTxtFile() {
   });
 }
 
-export function TxtUploadButtons({ testId, subjectId, passageId, disabled, onDone }) {
+export function TxtUploadButtons({ testId, subjectId, passageId, disabled, requireImage = false, onDone }) {
   const { t } = useLang();
   const [busy, setBusy] = useState(false);
   const [preview, setPreview] = useState(null);
@@ -265,6 +266,7 @@ export function TxtUploadButtons({ testId, subjectId, passageId, disabled, onDon
           fileName={preview.fileName}
           parsed={preview.parsed}
           target={target}
+          requireImage={requireImage}
           onClose={() => setPreview(null)}
           onSaved={async (message) => {
             setPreview(null);

@@ -33,7 +33,7 @@ const {
 } = require('../utils/compareQuestions');
 const { publicMessage } = require('./chat');
 const { inferOrtPart, normalizeOrtPart } = require('../utils/ortScoring');
-const { normalizeKind } = require('../utils/sectionKinds');
+const { normalizeKind, requiresImage } = require('../utils/sectionKinds');
 const { findOrCreateTag } = require('../utils/findOrCreateTag');
 const { publicQuestionWithCorrect, parseLinkedText, encodeLinkedText } = require('../utils/ortLinkedQuestions');
 const txtUpload = require('./txtUpload');
@@ -384,6 +384,7 @@ router.get('/tests', async (req, res) => {
 });
 
 const GROUP_HAS_NO_QUESTIONS = 'В разделе-группе нет вопросов — добавьте их в подраздел';
+const GEOMETRY_NEEDS_IMAGE = 'В геометрии к вопросу нужен рисунок';
 
 async function descendantIds(testId) {
   const ids = [];
@@ -623,6 +624,9 @@ router.post('/questions', async (req, res) => {
   const parentTest = await Test.findByPk(testId);
   if (!parentTest) return res.status(404).json({ error: 'Раздел не найден' });
   if (parentTest.kind === 'group') return res.status(400).json({ error: GROUP_HAS_NO_QUESTIONS });
+  if (requiresImage(parentTest) && !optionalText(req.body.imageUrl)) {
+    return res.status(400).json({ error: GEOMETRY_NEEDS_IMAGE });
+  }
   let compare = null;
   if (isCompare(req.body)) {
     compare = comparePayload(req.body);
@@ -671,6 +675,9 @@ router.put('/questions/:id', async (req, res) => {
     if (req.body[key] !== undefined) patch[key] = optionalText(req.body[key]);
   }
   if (req.body.sortOrder != null) patch.sortOrder = Number(req.body.sortOrder) || 0;
+  if ('imageUrl' in patch && !patch.imageUrl && requiresImage(await Test.findByPk(question.testId))) {
+    return res.status(400).json({ error: GEOMETRY_NEEDS_IMAGE });
+  }
   if (isCompare(question) || isCompare(req.body)) {
     const compare = comparePayload({
       text: req.body.text ?? question.text,

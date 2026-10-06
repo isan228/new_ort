@@ -5,6 +5,7 @@ import { useLang } from '../../context/LangContext';
 import {
   Crumbs,
   Modal,
+  QUESTION_KINDS,
   SectionForm,
   SectionList,
   TxtUploadButtons,
@@ -24,12 +25,12 @@ import CompareBlock from './AdminCompare';
 import { isCompare } from '../../lib/compare';
 import '../../styles/reading-book.css';
 
-function QuestionModal({ testId, initial, onClose, onSaved }) {
+function QuestionModal({ testId, initial, requireImage = false, onClose, onSaved }) {
   const { t } = useLang();
   const [draft, setDraft] = useState(() => toDraft(initial));
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
-  const problem = draftProblem(draft);
+  const problem = draftProblem(draft, { requireImage });
 
   function close() {
     const touched = draft.dirty && (
@@ -337,6 +338,8 @@ export default function AdminSection() {
   const onChanged = (ok) => done(ok);
   const onError = (err) => done(null, err);
 
+  const requireImage = kind === 'geometry';
+  const isQuestions = QUESTION_KINDS.includes(kind) && !isReading;
   let summary = t('admin.questionsCount', { n: plainQuestions.length });
   if (kind === 'group') summary = t('admin.subsectionsCount', { n: children.length });
   else if (kind === 'compare') summary = t('admin.cmp.count', { n: compares.length });
@@ -365,16 +368,19 @@ export default function AdminSection() {
               {t('admin.addSubsection')}
             </button>
           )}
-          {kind === 'standard' && !isReading && (
+          {isQuestions && (
             <>
               <button className="btn sm" type="button" onClick={() => setEditing(null)}>+ {t('admin.q.add')}</button>
-              <TxtUploadButtons testId={section.id} onDone={done} />
+              <TxtUploadButtons testId={section.id} requireImage={requireImage} onDone={done} />
             </>
           )}
         </div>
       </div>
-      {kind === 'standard' && !isReading && (
-        <p className="muted" style={{ marginTop: 0, fontSize: 13 }}>{t('admin.txtHint')}</p>
+      {isQuestions && (
+        <p className="muted" style={{ marginTop: 0, fontSize: 13 }}>
+          {t('admin.txtHint')}
+          {requireImage && <> <b>{t('admin.geoHint')}</b></>}
+        </p>
       )}
       {msg && <p className="ok">{msg}</p>}
       {error && <p className="err">{error}</p>}
@@ -434,6 +440,7 @@ export default function AdminSection() {
         <QuestionModal
           key={editing?.id || 'new'}
           testId={section.id}
+          requireImage={requireImage}
           initial={editing}
           onClose={() => setEditing(undefined)}
           onSaved={async (ok) => {
