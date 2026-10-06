@@ -25,6 +25,12 @@ const {
 } = require('../models');
 const { normalizeCode, reservedCount } = require('../utils/promoCodes');
 const { addCoins } = require('../utils/coins');
+const {
+  COMPARE_KIND,
+  compareAnswers,
+  compareCorrectIndex,
+  isCompare,
+} = require('../utils/compareQuestions');
 const { publicMessage } = require('./chat');
 const { inferOrtPart, normalizeOrtPart } = require('../utils/ortScoring');
 const { slugify, normalizeTagName } = require('../utils/ortTagNormalize');
@@ -643,6 +649,20 @@ function optionalText(value) {
   return text || null;
 }
 
+function comparePayload(body, { requireCorrect = true } = {}) {
+  const compareA = String(body.compareA ?? '').trim();
+  const compareB = String(body.compareB ?? '').trim();
+  if (!compareA || !compareB) return { error: 'Заполните обе колонки: А и Б' };
+  const correct = body.correct == null || body.correct === '' ? null : compareCorrectIndex(body.correct);
+  if (correct == null && (requireCorrect || body.correct != null)) {
+    return { error: 'Выберите правильный ответ: А, Б, В или Г' };
+  }
+  return {
+    fields: { kind: COMPARE_KIND, compareA, compareB, text: String(body.text ?? '').trim() },
+    answers: correct == null ? null : compareAnswers(correct),
+  };
+}
+
 router.post('/questions', async (req, res) => {
   let testId = Number(req.body.testId) || null;
   const passageId = Number(req.body.passageId) || null;
@@ -652,10 +672,17 @@ router.post('/questions', async (req, res) => {
     testId = passage.testId;
   }
   if (!testId) return res.status(400).json({ error: 'Укажите раздел' });
+  let compare = null;
+  if (isCompare(req.body)) {
+    compare = comparePayload(req.body);
+    if (compare.error) return res.status(400).json({ error: compare.error });
+    req.body.answers = compare.answers;
+  }
   const question = await Question.create({
     testId,
     passageId,
-    text: req.body.text,
+    ...(compare ? compare.fields : {}),
+    text: compare ? compare.fields.text : req.body.text,
     imageUrl: optionalText(req.body.imageUrl),
     explanation: req.body.explanation || '',
     explanationImageUrl: optionalText(req.body.explanationImageUrl),
@@ -699,6 +726,17 @@ router.put('/questions/:id', async (req, res) => {
     if (req.body[key] !== undefined) patch[key] = optionalText(req.body[key]);
   }
   if (req.body.sortOrder != null) patch.sortOrder = Number(req.body.sortOrder) || 0;
+  if (isCompare(question) || isCompare(req.body)) {
+    const compare = comparePayload({
+      text: req.body.text ?? question.text,
+      compareA: req.body.compareA ?? question.compareA,
+      compareB: req.body.compareB ?? question.compareB,
+      correct: req.body.correct,
+    }, { requireCorrect: false });
+    if (compare.error) return res.status(400).json({ error: compare.error });
+    Object.assign(patch, compare.fields);
+    req.body.answers = compare.answers || undefined;
+  }
   await question.update(patch);
   if (Array.isArray(req.body.answers)) {
     await Answer.destroy({ where: { questionId: question.id } });

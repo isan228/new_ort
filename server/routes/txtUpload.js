@@ -14,7 +14,14 @@ const {
   QuestionTagMap,
   ReadingPassage,
 } = require('../models');
-const { parseQuestionsFromText } = require('../utils/parseQuestionsTxt');
+const { parseQuestionsFromText, extractTagsFromBlock } = require('../utils/parseQuestionsTxt');
+const {
+  COMPARE_KIND,
+  compareAnswers,
+  compareCorrectIndex,
+  isCompare,
+  parseCompareFromText,
+} = require('../utils/compareQuestions');
 const { parseFlashcardsTxt } = require('../utils/parseFlashcardsTxt');
 const { findOrCreateTag } = require('../utils/findOrCreateTag');
 const { applyPassageTags } = require('../utils/passageTags');
@@ -103,6 +110,7 @@ async function upsertQuestions(test, parsed, passageId = null) {
     if ('explanationImageUrl' in item) media.explanationImageUrl = cleanImageUrl(item.explanationImageUrl);
     if (passageId) media.passageId = passageId;
     if (item.evidence) media.evidence = String(item.evidence).trim();
+    if (isCompare(item)) Object.assign(media, { kind: COMPARE_KIND, compareA: item.compareA, compareB: item.compareB });
     if (question) {
       await question.update({ text: item.text, explanation: item.explanation, isActive: true, ...media });
       updated += 1;
@@ -176,9 +184,27 @@ const PARSE_OPTIONS = {
 };
 
 router.post('/parse-txt', fileField, async (req, res) => {
-  const mode = req.body.mode === 'linked' ? 'linked' : 'explained';
   const raw = readUploaded(req);
   if (!raw) return res.status(400).json({ error: 'TXT файл не загружен' });
+  if (req.body.mode === COMPARE_KIND) {
+    const items = parseCompareFromText(raw, { parseTags: extractTagsFromBlock });
+    const stats = items._parseStats;
+    if (!items.length) {
+      return res.status(400).json({ error: `Не удалось найти сравнения в TXT. ${items._parseHint}`.trim(), stats });
+    }
+    return res.json({
+      mode: COMPARE_KIND,
+      items: items.map((item) => ({
+        ...item,
+        correct: 'АБВГ'[item.answers.findIndex((a) => a.isCorrect)],
+        imageUrl: null,
+        explanationImageUrl: null,
+      })),
+      skipped: stats.idBlocks - stats.accepted,
+      hint: stats.idBlocks > stats.accepted ? items._parseHint : '',
+    });
+  }
+  const mode = req.body.mode === 'linked' ? 'linked' : 'explained';
   const parsed = parseQuestionsFromText(raw, PARSE_OPTIONS[mode]);
   const stats = parsed._parseStats || {};
   if (!parsed.length) {
@@ -213,6 +239,28 @@ router.post('/import-questions', express.json({ limit: '8mb' }), async (req, res
   const items = Array.isArray(req.body.items) ? req.body.items : [];
   const prepared = [];
   for (const [idx, item] of items.entries()) {
+    if (isCompare(item)) {
+      const compareA = String(item.compareA || '').trim();
+      const compareB = String(item.compareB || '').trim();
+      const correct = compareCorrectIndex(item.correct);
+      if (!compareA || !compareB) return res.status(400).json({ error: `Сравнение №${idx + 1}: заполните обе колонки` });
+      if (correct == null) return res.status(400).json({ error: `Сравнение №${idx + 1}: выберите правильный ответ` });
+      prepared.push({
+        kind: COMPARE_KIND,
+        compareA,
+        compareB,
+        externalId: item.externalId ? String(item.externalId) : null,
+        text: String(item.text || '').trim(),
+        imageUrl: item.imageUrl,
+        explanation: String(item.explanation || ''),
+        explanationImageUrl: item.explanationImageUrl,
+        answers: compareAnswers(correct),
+        tags: (Array.isArray(item.tags) ? item.tags : [])
+          .map((tag) => ({ name: String(tag.name || '').trim(), kind: tag.kind || 'topic' }))
+          .filter((tag) => tag.name),
+      });
+      continue;
+    }
     const text = String(item.text || '').trim();
     const answers = (Array.isArray(item.answers) ? item.answers : [])
       .map((a) => ({ text: String(a.text || '').trim(), imageUrl: a.imageUrl, isCorrect: !!a.isCorrect }))

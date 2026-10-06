@@ -4,6 +4,8 @@ import { ortApi } from '../api/client';
 import { useBank } from '../context/BankContext';
 import { useLang } from '../context/LangContext';
 import { bumpToday, loadProgress, saveProgress, toggleFavorite } from '../lib/progress';
+import QuestionStem from '../components/QuestionStem';
+import { compareAnswerText, isCompare } from '../lib/compare';
 import '../styles/exam-uworld.css';
 
 const SIM_KEY = 'ortSimState';
@@ -350,8 +352,7 @@ export default function TestRunner() {
             {simulation && section && (
               <p className="usmle-section-label">{section.title}</p>
             )}
-            <div className="usmle-question-stem">{q.text}</div>
-            {q.imageUrl && <img className="q-media" src={q.imageUrl} alt="" />}
+            <QuestionStem q={q} className="usmle-question-stem" />
             <div className="answers-list" role="radiogroup" aria-label={t('runner.items')}>
               {q.answers.map((a, i) => {
                 const selected = picked[q.id] === a.id;
@@ -368,7 +369,7 @@ export default function TestRunner() {
                     <span className="answer-option-text">
                       <span className="answer-option-letter">{LETTERS[i]}.</span>
                       {' '}
-                      {a.text}
+                      {isCompare(q) ? compareAnswerText(t, a, i) : a.text}
                       {a.imageUrl && <img className="q-media q-media-answer" src={a.imageUrl} alt="" />}
                     </span>
                   </button>

@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useLang } from '../context/LangContext';
+import QuestionStem from '../components/QuestionStem';
+import { compareAnswerText, isCompare } from '../lib/compare';
 import '../styles/exam-uworld.css';
 
 const LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
@@ -76,6 +78,7 @@ export default function TestReview({ onlyWrong = false } = {}) {
   const statusText = omitted ? t('review.omitted') : (item.correct ? t('review.correct') : t('review.incorrect'));
   const correctLetter = correct ? LETTERS[answers.indexOf(correct)] : '—';
   const userLetter = user ? LETTERS[answers.indexOf(user)] : '—';
+  const userText = user && isCompare(item.question) ? compareAnswerText(t, user, answers.indexOf(user)) : user?.text;
 
   function toggleFullscreen() {
     if (!document.fullscreenElement) document.documentElement.requestFullscreen?.().catch(() => {});
@@ -145,8 +148,7 @@ export default function TestReview({ onlyWrong = false } = {}) {
 
         <div className="uworld-review-split">
           <section className="uworld-review-pane uworld-review-left">
-            <div className="uworld-review-stem">{item.question?.text}</div>
-            {item.question?.imageUrl && <img className="q-media" src={item.question.imageUrl} alt="" />}
+            <QuestionStem q={item.question} className="uworld-review-stem" />
             <div className="uworld-review-choices">
               {answers.map((a, i) => {
                 const ok = !!a.isCorrect;
@@ -160,7 +162,7 @@ export default function TestReview({ onlyWrong = false } = {}) {
                     <span className="uworld-review-choice-mark">{ok ? '✓' : (isUser ? '✗' : '')}</span>
                     <span className="uworld-review-choice-letter">{LETTERS[i]}.</span>
                     <span className="uworld-review-choice-text">
-                      {a.text}
+                      {isCompare(item.question) ? compareAnswerText(t, a, i) : a.text}
                       {a.imageUrl && <img className="q-media q-media-answer" src={a.imageUrl} alt="" />}
                     </span>
                   </div>
@@ -176,7 +178,7 @@ export default function TestReview({ onlyWrong = false } = {}) {
               </div>
               <div className="uworld-review-resultbar-meta">
                 {!omitted && (
-                  <span>{t('review.yourAnswer')}: <strong>{userLetter}</strong>{user?.text ? ` — ${user.text}` : ''}</span>
+                  <span>{t('review.yourAnswer')}: <strong>{userLetter}</strong>{userText?.trim() ? ` — ${userText}` : ''}</span>
                 )}
                 {omitted && <span>{t('review.noAnswer')}</span>}
               </div>

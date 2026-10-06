@@ -8,6 +8,8 @@ import { PassageText } from '../../components/PassageText';
 import { splitParagraphs } from '../../lib/reading';
 import { pickTextFile, readTextFile, splitTitle } from '../../lib/textFile';
 import TagInput, { TagChips } from './TagInput';
+import CompareBlock from './AdminCompare';
+import { isCompare } from '../../lib/compare';
 import '../../styles/reading-book.css';
 
 function QuestionModal({ testId, initial, onClose, onSaved }) {
@@ -274,6 +276,9 @@ export default function AdminSection() {
   if (!subject || !section) return <p className="muted">{t('common.loading')}</p>;
 
   const isReading = section.ortPart === 'reading' || passages.length > 0;
+  const compares = questions.filter(isCompare);
+  const plainQuestions = questions.filter((q) => !isCompare(q));
+  const showCompare = ['math', 'math1'].includes(section.ortPart) || compares.length > 0;
 
   return (
     <div>
@@ -288,7 +293,8 @@ export default function AdminSection() {
           <p className="muted">
             {isReading
               ? t('admin.reading.summary', { texts: passages.length, n: passages.reduce((s, p) => s + p.questionCount, 0) })
-              : t('admin.questionsCount', { n: questions.length })}
+              : t('admin.questionsCount', { n: plainQuestions.length })}
+            {showCompare && !isReading ? ` · ${t('admin.cmp.count', { n: compares.length })}` : ''}
           </p>
         </div>
         {!isReading && (
@@ -327,9 +333,26 @@ export default function AdminSection() {
         </>
       )}
 
+      {showCompare && !isReading && (
+        <>
+          <CompareBlock
+            testId={section.id}
+            questions={compares}
+            onChanged={async (ok) => { setError(''); setMsg(ok); await reload(); }}
+            onError={(err) => { setMsg(''); setError(err); }}
+          />
+          <div className="admin-section-head">
+            <div>
+              <h3 style={{ margin: 0 }}>{t('admin.cmp.otherTitle')}</h3>
+              <p className="muted" style={{ margin: '4px 0 0', fontSize: 13 }}>{t('admin.cmp.otherLead')}</p>
+            </div>
+          </div>
+        </>
+      )}
+
       <div className="admin-list">
-        {!questions.length && <div className="empty">{t('admin.noQuestions')}</div>}
-        {questions.map((q) => (
+        {!plainQuestions.length && <div className="empty">{t('admin.noQuestions')}</div>}
+        {plainQuestions.map((q) => (
           <div key={q.id} className="admin-list-item">
             {q.imageUrl && <img className="admin-q-thumb" src={q.imageUrl} alt="" />}
             <div style={{ minWidth: 0, flex: 1 }}>

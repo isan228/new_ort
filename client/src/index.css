@@ -2351,3 +2351,88 @@ body.tp-open { overflow: hidden; }
 }
 
 .coins-ref-note { display: flex; align-items: center; margin: 0 0 14px; padding: 10px 12px; border-radius: 14px; background: var(--warn-soft); font-size: 14px; }
+
+/* Comparison questions (ORT math) */
+.cmp-table {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  margin: 12px 0 18px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--card);
+}
+.cmp-cell { padding: 12px 16px; text-align: center; white-space: pre-wrap; overflow-wrap: anywhere; }
+.cmp-cell:nth-child(odd) { border-right: 1px solid var(--line); }
+.cmp-head { background: var(--bg-soft, var(--bg)); font-size: 13px; font-weight: 700; color: var(--muted); border-bottom: 1px solid var(--line); }
+.cmp-value { font-size: 18px; font-weight: 600; color: var(--ink); min-height: 56px; display: flex; align-items: center; justify-content: center; }
+.cmp-form-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 0 12px; }
+.cmp-pick { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.cmp-pick-opt {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--card);
+  color: var(--ink);
+  font: inherit;
+  font-size: 14px;
+  text-align: left;
+  cursor: pointer;
+}
+.cmp-pick-opt b {
+  flex: none;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-soft, var(--bg));
+}
+.cmp-pick-opt.on { border-color: var(--ok); background: var(--ok-soft); }
+.cmp-pick-opt.on b { background: var(--ok); color: #fff; }
+.cmp-preview { margin-top: 16px; padding: 14px; border-radius: 14px; background: var(--bg-soft, var(--bg)); }
+.cmp-preview .cmp-table { margin-bottom: 0; }
+.cmp-letter {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  height: 28px;
+  padding: 0 6px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--card);
+  color: var(--ink);
+  font: inherit;
+  font-weight: 700;
+  font-size: 14px;
+  cursor: pointer;
+}
+.cmp-letter.on { border-color: var(--ok); background: var(--ok); color: #fff; }
+.cmp-row-title { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.cmp-row-title .cmp-letter { cursor: default; height: 24px; min-width: 24px; font-size: 13px; }
+.cmp-format { margin: 0 0 12px; font-size: 14px; }
+.cmp-format summary { cursor: pointer; color: var(--brand); font-weight: 600; }
+.cmp-format pre {
+  margin: 8px 0;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--bg-soft, var(--bg));
+  font-size: 12.5px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.cmp-txt-list { display: grid; gap: 12px; max-height: 60vh; overflow-y: auto; padding-right: 4px; }
+.cmp-txt-item { padding: 12px 14px; border: 1px solid var(--line); border-radius: 14px; }
+.cmp-txt-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+.cmp-txt-item .cmp-table { margin: 6px 0 10px; }
+.cmp-txt-correct { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; font-size: 14px; }
+.cmp-txt-expl { margin: 8px 0 0; font-size: 13px; }
+@media (max-width: 640px) {
+  .cmp-form-cols, .cmp-pick { grid-template-columns: 1fr; }
+  .cmp-value { font-size: 16px; }
+}

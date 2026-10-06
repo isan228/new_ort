@@ -51,6 +51,11 @@ function pickQuestionsKeepingLinkedOrder(questions, limit) {
   return picked;
 }
 
+function rawAnswers(question) {
+  const list = question.Answers || question.answers || [];
+  return question.kind === 'compare' ? [...list].sort((a, b) => a.sortOrder - b.sortOrder) : list;
+}
+
 function publicQuestionShape(question) {
   const parsed = parseLinkedText(question.text);
   return {
@@ -62,10 +67,13 @@ function publicQuestionShape(question) {
     explanationImageUrl: question.explanationImageUrl,
     externalId: question.externalId,
     passageId: question.passageId || null,
+    kind: question.kind || null,
+    compareA: question.compareA || null,
+    compareB: question.compareB || null,
     sortOrder: question.sortOrder,
     groupId: parsed.groupId,
     role: parsed.role,
-    answers: (question.Answers || question.answers || []).map((a) => ({
+    answers: rawAnswers(question).map((a) => ({
       id: a.id,
       text: a.text,
       imageUrl: a.imageUrl || null,
@@ -82,7 +90,7 @@ function publicQuestionShape(question) {
 
 function publicQuestionWithCorrect(question) {
   const base = publicQuestionShape(question);
-  base.answers = (question.Answers || question.answers || []).map((a) => ({
+  base.answers = rawAnswers(question).map((a) => ({
     id: a.id,
     text: a.text,
     imageUrl: a.imageUrl || null,

@@ -21,6 +21,7 @@ const {
 const { scoreAnswers } = require('../utils/ortScoring');
 const { previewMainExam, assembleMainExam } = require('../utils/buildMainExam');
 const { passageTagInclude, publicTags } = require('../utils/passageTags');
+const { isCompare } = require('../utils/compareQuestions');
 
 const router = express.Router();
 
@@ -458,7 +459,7 @@ router.post('/ort/custom-test/questions', async (req, res) => {
 
   const payload = picked.map((question) => {
     const shaped = publicQuestionShape(question);
-    if (randomizeAnswers) shaped.answers = shuffle(shaped.answers);
+    if (randomizeAnswers && !isCompare(shaped)) shaped.answers = shuffle(shaped.answers);
     return shaped;
   });
 
@@ -490,7 +491,7 @@ router.post('/ort/main-exam', async (req, res) => {
   const randomize = req.body?.randomizeAnswers !== false;
   const payload = questions.map((q) => {
     const shaped = publicQuestionShape(q);
-    if (randomize) shaped.answers = shuffle(shaped.answers);
+    if (randomize && !isCompare(shaped)) shaped.answers = shuffle(shaped.answers);
     return shaped;
   });
   res.json({
