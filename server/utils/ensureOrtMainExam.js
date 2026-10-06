@@ -41,13 +41,23 @@ async function migrateMainSubject(subject, legacy) {
     hasExplanations: true,
     isActive: true,
   });
+  await Test.create({
+    name: 'Вычисления',
+    subjectId: subject.id,
+    parentId: math.id,
+    kind: 'standard',
+    ortPart: 'math',
+    sortOrder: 1,
+    hasExplanations: true,
+    isActive: true,
+  });
   const compare = await Test.create({
     name: 'Сравнения',
     subjectId: subject.id,
     parentId: math.id,
     kind: 'compare',
     ortPart: 'math',
-    sortOrder: 1,
+    sortOrder: 2,
     hasExplanations: true,
     isActive: true,
   });
