@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useLang } from '../context/LangContext';
 import QuestionStem from '../components/QuestionStem';
+import MathText from '../components/MathText';
 import { compareAnswerText, isCompare } from '../lib/compare';
 import '../styles/exam-uworld.css';
 
@@ -163,7 +164,7 @@ export default function TestReview({ onlyWrong = false } = {}) {
                     <span className="uworld-review-choice-mark">{ok ? '✓' : (isUser ? '✗' : '')}</span>
                     <span className="uworld-review-choice-letter">{LETTERS[i]}.</span>
                     <span className="uworld-review-choice-text">
-                      {isCompare(item.question) ? compareAnswerText(t, a, i) : a.text}
+                      {isCompare(item.question) ? compareAnswerText(t, a, i) : <MathText text={a.text} />}
                       {a.imageUrl && <img className="q-media q-media-answer" src={a.imageUrl} alt="" />}
                     </span>
                   </div>
@@ -189,7 +190,7 @@ export default function TestReview({ onlyWrong = false } = {}) {
             <section className="uworld-review-pane uworld-review-right">
               <div className="uworld-review-expl-head">{t('review.explanation')}</div>
               <div className="uworld-review-expl-body">
-                {item.question?.explanation?.trim() && item.question.explanation}
+                {item.question?.explanation?.trim() && <MathText text={item.question.explanation} />}
                 {item.question?.explanationImageUrl && (
                   <img className="q-media" src={item.question.explanationImageUrl} alt="" />
                 )}

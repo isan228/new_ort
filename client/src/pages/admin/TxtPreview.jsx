@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { adminApi } from '../../api/client';
 import { useLang } from '../../context/LangContext';
+import MathText, { hasMath } from '../../components/MathText';
 
 const LETTERS = 'ABCDEFGHIJ';
 
@@ -204,7 +205,23 @@ export function QuestionCard({ q, index, onChange, onRemove, onUpload, requireIm
         />
       </label>
       <ImageSlot url={q.explanationImageUrl} onChange={(url) => set({ explanationImageUrl: url })} onUpload={onUpload} />
+      <MathPreview q={q} />
     </article>
+  );
+}
+
+export function MathPreview({ q }) {
+  const { t } = useLang();
+  if (![q.text, q.explanation, ...q.answers.map((a) => a.text)].some(hasMath)) return null;
+  return (
+    <div className="cmp-preview mt-preview">
+      <div className="qf-label">{t('admin.cmp.preview')}</div>
+      <p><MathText text={q.text} /></p>
+      <ol type="A">
+        {q.answers.map((a) => <li key={a._key}><MathText text={a.text} /></li>)}
+      </ol>
+      {q.explanation?.trim() && <p className="muted"><MathText text={q.explanation} /></p>}
+    </div>
   );
 }
 

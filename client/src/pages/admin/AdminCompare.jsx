@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { adminApi } from '../../api/client';
 import { useLang } from '../../context/LangContext';
 import { CompareColumns } from '../../components/QuestionStem';
+import MathText from '../../components/MathText';
 import { COMPARE_LETTERS, compareCorrectLetter } from '../../lib/compare';
 import { pickTextFile } from '../../lib/textFile';
 import { Modal, confirmDelete, previewText } from './adminUi';
@@ -139,7 +140,7 @@ export function CompareFields({ d, onChange, onUpload }) {
       {(d.compareA?.trim() || d.compareB?.trim()) && (
         <div className="cmp-preview">
           <div className="qf-label">{t('admin.cmp.preview')}</div>
-          {d.text?.trim() && <p style={{ margin: '0 0 8px' }}>{d.text}</p>}
+          {d.text?.trim() && <p style={{ margin: '0 0 8px' }}><MathText text={d.text} /></p>}
           <CompareColumns a={d.compareA} b={d.compareB} />
         </div>
       )}

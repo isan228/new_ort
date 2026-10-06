@@ -5,6 +5,7 @@ import { useBank } from '../context/BankContext';
 import { useLang } from '../context/LangContext';
 import { bumpToday, loadProgress, saveProgress, toggleFavorite } from '../lib/progress';
 import QuestionStem from '../components/QuestionStem';
+import MathText from '../components/MathText';
 import { compareAnswerText, isCompare } from '../lib/compare';
 import '../styles/exam-uworld.css';
 
@@ -369,7 +370,7 @@ export default function TestRunner() {
                     <span className="answer-option-text">
                       <span className="answer-option-letter">{LETTERS[i]}.</span>
                       {' '}
-                      {isCompare(q) ? compareAnswerText(t, a, i) : a.text}
+                      {isCompare(q) ? compareAnswerText(t, a, i) : <MathText text={a.text} />}
                       {a.imageUrl && <img className="q-media q-media-answer" src={a.imageUrl} alt="" />}
                     </span>
                   </button>

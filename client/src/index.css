@@ -2490,3 +2490,21 @@ body.tp-open { overflow: hidden; }
 .cmp-txt-item.has-problems { border-color: var(--bad); }
 .cmp-txt-item .qf { margin-top: 4px; }
 
+
+.mt-frac {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  vertical-align: middle;
+  margin: 0 2px;
+  line-height: 1.15;
+  font-size: 0.92em;
+}
+.mt-num { padding: 0 3px 1px; border-bottom: 1.5px solid currentColor; }
+.mt-den { padding: 1px 3px 0; }
+.mt-root { white-space: nowrap; }
+.mt-root-body { border-top: 1.5px solid currentColor; padding: 0 2px; margin-left: 1px; }
+sup, sub { font-size: 0.72em; line-height: 0; }
+.mt-preview p { margin: 0 0 8px; line-height: 1.9; }
+.mt-preview ol { margin: 0 0 8px; padding-left: 22px; line-height: 1.9; }
+
