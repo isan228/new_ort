@@ -243,8 +243,7 @@ function Drawer({ open, onClose, children }) {
 export function BrandLogo({ to = '/', className = '' }) {
   return (
     <Link to={to} className={`logo ${className}`.trim()}>
-      <img src="/logo-icon.png" alt="" className="logo-img" />
-      <span>ORT.KG</span>
+      <img src="/logo.png" alt="ORT.KG" className="logo-img" />
     </Link>
   );
 }

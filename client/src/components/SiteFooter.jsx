@@ -70,8 +70,7 @@ export default function SiteFooter({ cta = true }) {
           <div className="cl-foot-bottom">
             <span>{cl.rights}</span>
             <span className="cl-foot-logo">
-              <img src="/logo-icon.png" alt="" />
-              <b>ORT.KG</b>
+              <img src="/logo.png" alt="ORT.KG" />
             </span>
           </div>
         </div>
