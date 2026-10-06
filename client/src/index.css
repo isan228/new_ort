@@ -2508,3 +2508,6 @@ sup, sub { font-size: 0.72em; line-height: 0; }
 .mt-preview p { margin: 0 0 8px; line-height: 1.9; }
 .mt-preview ol { margin: 0 0 8px; padding-left: 22px; line-height: 1.9; }
 
+
+.mt-root-idx { font-size: 0.6em; vertical-align: 0.9em; margin-right: -0.35em; line-height: 0; }
+

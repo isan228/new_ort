@@ -1,8 +1,12 @@
 import { Fragment } from 'react';
 
-const MATH_HINT = /[\^_/√]|sqrt|<=|>=|!=|\bpi\b/;
+const MATH_HINT = /[\^_/√∛∜]|sqrt|cbrt|root\(|<=|>=|!=|\d\s?deg\b|(?<![A-Za-z])(pi|alpha|beta|gamma|phi)(?![A-Za-z])/;
+const WORDS = [['alpha', 'α'], ['beta', 'β'], ['gamma', 'γ'], ['phi', 'φ'], ['pi', 'π']];
+const ROOT_SIGNS = { '√': 2, '∛': 3, '∜': 4 };
 const CLOSE = { '(': ')', '{': '}' };
 const WORD = /[0-9A-Za-zА-Яа-яЁё]/;
+const LETTER = /[A-Za-zА-Яа-яЁё]/;
+const GREEK_OPERAND = /^(pi|alpha|beta|gamma|phi)(?![A-Za-z])/;
 const NUMBER = /^\d+(?:[.,]\d+)?/;
 const SCRIPT = /^-?\d+(?:[.,]\d+)?|^[A-Za-z]/;
 const SYMBOLS = [['<=', '≤'], ['>=', '≥'], ['!=', '≠']];
@@ -35,6 +39,8 @@ function readOperand(s, i, { letters = true } = {}) {
   const rest = s.slice(i);
   const num = rest.match(NUMBER);
   if (num) return { inner: num[0], end: i + num[0].length };
+  const greek = rest.match(GREEK_OPERAND);
+  if (greek) return { inner: greek[0], end: i + greek[0].length };
   if (letters && /^[A-Za-z](?![A-Za-z])/.test(rest)) return { inner: rest[0], end: i + 1 };
   return null;
 }
@@ -64,19 +70,47 @@ function parse(s) {
       continue;
     }
 
-    if (s.startsWith('pi', i) && !WORD.test(prev) && !WORD.test(s[i + 2] || '')) {
-      buf += 'π';
-      i += 2;
+    const word = !LETTER.test(prev) && WORDS.find(([from]) => s.startsWith(from, i) && !WORD.test(s[i + from.length] || ''));
+    if (word && s[i + word[0].length] !== '/') {
+      buf += word[1];
+      i += word[0].length;
       continue;
     }
 
-    const isRoot = ch === '√' || (s.startsWith('sqrt', i) && !WORD.test(prev) && CLOSE[s[i + 4]]);
-    if (isRoot) {
-      const op = readOperand(s, i + (ch === '√' ? 1 : 4));
+    if (s.startsWith('deg', i) && /[\d\s]/.test(prev) && /\d/.test(s.slice(0, i).trimEnd().slice(-1)) && !WORD.test(s[i + 3] || '')) {
+      buf = buf.trimEnd();
+      buf += '°';
+      i += 3;
+      continue;
+    }
+
+    if (s.startsWith('root(', i) && !WORD.test(prev)) {
+      const end = groupEnd(s, i + 4);
+      const inner = end > 0 ? s.slice(i + 5, end) : '';
+      const comma = inner.indexOf(',');
+      if (comma > 0) {
+        flush();
+        out.push({ type: 'root', index: inner.slice(0, comma).trim(), body: parse(inner.slice(comma + 1).trim()) });
+        i = end + 1;
+        continue;
+      }
+    }
+
+    const fn = ['sqrt', 'cbrt'].find((name) => s.startsWith(name, i) && !WORD.test(prev) && CLOSE[s[i + 4]]);
+    if (ROOT_SIGNS[ch] || fn) {
+      const op = readOperand(s, i + (fn ? 4 : 1));
       if (op) {
         flush();
-        out.push({ type: 'root', body: parse(op.inner) });
-        i = op.end;
+        const degree = fn ? (fn === 'cbrt' ? 3 : 2) : ROOT_SIGNS[ch];
+        const root = { type: 'root', index: degree > 2 ? String(degree) : '', body: parse(op.inner) };
+        const den = s[op.end] === '/' ? readOperand(s, op.end + 1) : null;
+        if (den) {
+          out.push({ type: 'frac', num: [root], den: parse(den.inner) });
+          i = den.end;
+        } else {
+          out.push(root);
+          i = op.end;
+        }
         continue;
       }
     }
@@ -126,7 +160,12 @@ function render(nodes) {
     if (node.type === 'sup') return <sup key={i}>{render(node.body)}</sup>;
     if (node.type === 'sub') return <sub key={i}>{render(node.body)}</sub>;
     if (node.type === 'root') {
-      return <span key={i} className="mt-root">√<span className="mt-root-body">{render(node.body)}</span></span>;
+      return (
+        <span key={i} className="mt-root">
+          {node.index && <span className="mt-root-idx">{node.index}</span>}
+          √<span className="mt-root-body">{render(node.body)}</span>
+        </span>
+      );
     }
     return (
       <span key={i} className="mt-frac">
