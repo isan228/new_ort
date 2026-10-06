@@ -17,7 +17,6 @@ function toDraft(q) {
     imageUrl: q?.imageUrl || null,
     explanation: q?.explanation || '',
     explanationImageUrl: q?.explanationImageUrl || null,
-    tagsText: (q?.tags || []).map((tag) => tag.name).join(', '),
   };
 }
 
@@ -37,7 +36,6 @@ function draftPayload(d) {
     imageUrl: d.imageUrl || null,
     explanation: d.explanation.trim(),
     explanationImageUrl: d.explanationImageUrl || null,
-    tags: d.tagsText.split(',').map((name) => name.trim()).filter(Boolean).map((name) => ({ name, kind: 'topic' })),
   };
 }
 
@@ -125,10 +123,6 @@ function CompareModal({ testId, initial, onClose, onSaved }) {
           <small className="muted">{t('admin.q.imageOptional')}</small>
           <ImageSlot compact url={d.explanationImageUrl} onChange={(url) => set({ explanationImageUrl: url })} onUpload={upload} />
         </div>
-        <label className="field" style={{ marginTop: 14, marginBottom: 0 }}>
-          <span>{t('admin.q.tags')}</span>
-          <input value={d.tagsText} onChange={(e) => set({ tagsText: e.target.value })} />
-        </label>
         {(d.compareA.trim() || d.compareB.trim()) && (
           <div className="cmp-preview">
             <div className="qf-label">{t('admin.cmp.preview')}</div>
@@ -265,10 +259,7 @@ export default function CompareBlock({ testId, questions, onChanged, onError }) 
                 <span>{t('admin.cmp.short', { a: previewText(q.compareA), b: previewText(q.compareB) })}</span>
                 <span className="cmp-letter on">{compareCorrectLetter(q) || '?'}</span>
               </h4>
-              <p className="muted" style={{ margin: '4px 0 0' }}>
-                {q.text?.trim() ? `${previewText(q.text)} · ` : ''}
-                {(q.tags || []).map((tag) => tag.name).join(', ') || t('admin.noTags')}
-              </p>
+              {q.text?.trim() && <p className="muted" style={{ margin: '4px 0 0' }}>{previewText(q.text)}</p>}
             </div>
             <button className="btn sm" type="button" onClick={() => setEditing(q)}>{t('admin.q.editShort')}</button>
             <button

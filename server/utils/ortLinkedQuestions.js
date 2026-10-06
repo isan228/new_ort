@@ -79,12 +79,6 @@ function publicQuestionShape(question) {
       imageUrl: a.imageUrl || null,
       sortOrder: a.sortOrder,
     })),
-    tags: (question.QuestionTags || question.questionTags || []).map((t) => ({
-      id: t.id,
-      name: t.name,
-      slug: t.slug,
-      kind: t.kind,
-    })),
   };
 }
 

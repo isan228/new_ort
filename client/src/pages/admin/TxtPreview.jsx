@@ -10,7 +10,6 @@ const nextKey = () => `k${Date.now()}-${keySeq++}`;
 function withKeys(items) {
   return items.map((item) => ({
     ...item,
-    tagsText: (item.tags || []).map((tag) => tag.name).join(', '),
     _key: nextKey(),
     answers: (item.answers || []).map((a) => ({ ...a, _key: nextKey() })),
   }));
@@ -26,8 +25,6 @@ function emptyQuestion() {
     explanation: '',
     explanationImageUrl: null,
     answers: [0, 1, 2, 3].map((i) => ({ _key: nextKey(), text: '', imageUrl: null, isCorrect: i === 0 })),
-    tags: [],
-    tagsText: '',
   };
 }
 
@@ -204,11 +201,6 @@ function QuestionCard({ q, index, onChange, onRemove, onUpload }) {
         />
       </label>
       <ImageSlot url={q.explanationImageUrl} onChange={(url) => set({ explanationImageUrl: url })} onUpload={onUpload} />
-
-      <label className="field" style={{ marginTop: 16, marginBottom: 0 }}>
-        <span>{t('admin.preview.tags')}</span>
-        <input value={q.tagsText} onChange={(e) => set({ tagsText: e.target.value })} />
-      </label>
     </article>
   );
 }
@@ -266,15 +258,10 @@ export default function TxtPreview({ fileName, parsed, target, onClose, onSaved 
     setBusy(true);
     setError('');
     try {
-      const payload = items.map(({ _key, answers, tags, tagsText, ...rest }) => {
-        const kinds = new Map(tags.map((tag) => [tag.name.toLowerCase(), tag.kind]));
-        return {
-          ...rest,
-          answers: answers.map(({ _key: k, ...a }) => a),
-          tags: [...new Set(tagsText.split(',').map((name) => name.trim()).filter(Boolean))]
-            .map((name) => ({ name, kind: kinds.get(name.toLowerCase()) || 'topic' })),
-        };
-      });
+      const payload = items.map(({ _key, answers, ...rest }) => ({
+        ...rest,
+        answers: answers.map(({ _key: k, ...a }) => a),
+      }));
       const data = await adminApi.importQuestions(target, payload);
       onSaved(data.message);
     } catch (err) {

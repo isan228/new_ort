@@ -134,7 +134,6 @@ export default function Tests() {
                     <b>{p.title}</b>
                     <small>
                       {t('reading.progress', { done: p.answered, total: p.questionCount })}
-                      {p.tags?.length ? ` · ${p.tags.map((tag) => tag.name).join(', ')}` : ''}
                     </small>
                   </span>
                   <span className="reading-card-bar"><i style={{ width: `${p.questionCount ? (p.answered / p.questionCount) * 100 : 0}%` }} /></span>

@@ -33,17 +33,13 @@ const {
 } = require('../utils/compareQuestions');
 const { publicMessage } = require('./chat');
 const { inferOrtPart, normalizeOrtPart } = require('../utils/ortScoring');
-const { slugify, normalizeTagName } = require('../utils/ortTagNormalize');
+const { normalizeKind } = require('../utils/sectionKinds');
 const { findOrCreateTag } = require('../utils/findOrCreateTag');
 const { publicQuestionWithCorrect, parseLinkedText, encodeLinkedText } = require('../utils/ortLinkedQuestions');
 const txtUpload = require('./txtUpload');
 const { ensurePlansForOrt } = require('../utils/subscriptionPlans');
 const {
-  setPassageTags,
-  applyPassageTags,
-  publicTags,
   destroyPassageTags,
-  passageTagInclude,
 } = require('../utils/passageTags');
 
 const uploadDir = path.join(__dirname, '..', 'uploads');
@@ -53,34 +49,6 @@ const upload = multer({ dest: uploadDir });
 const router = express.Router();
 
 router.use(txtUpload);
-
-async function mergeTagInto(sourceId, targetId) {
-  const maps = await QuestionTagMap.findAll({ where: { tagId: sourceId } });
-  for (const map of maps) {
-    await QuestionTagMap.findOrCreate({
-      where: { questionId: map.questionId, tagId: targetId },
-      defaults: { questionId: map.questionId, tagId: targetId },
-    });
-  }
-  const fmaps = await FlashcardTagMap.findAll({ where: { tagId: sourceId } });
-  for (const map of fmaps) {
-    await FlashcardTagMap.findOrCreate({
-      where: { flashcardId: map.flashcardId, tagId: targetId },
-      defaults: { flashcardId: map.flashcardId, tagId: targetId },
-    });
-  }
-  const pmaps = await ReadingPassageTagMap.findAll({ where: { tagId: sourceId } });
-  for (const map of pmaps) {
-    await ReadingPassageTagMap.findOrCreate({
-      where: { passageId: map.passageId, tagId: targetId },
-      defaults: { passageId: map.passageId, tagId: targetId },
-    });
-  }
-  await QuestionTagMap.destroy({ where: { tagId: sourceId } });
-  await FlashcardTagMap.destroy({ where: { tagId: sourceId } });
-  await ReadingPassageTagMap.destroy({ where: { tagId: sourceId } });
-  await QuestionTag.destroy({ where: { id: sourceId } });
-}
 
 router.get('/ort-stats', async (req, res) => {
   const now = new Date();
@@ -278,78 +246,6 @@ router.delete('/promo-codes/:id', async (req, res) => {
   res.json({ ok: true });
 });
 
-router.get('/question-tags', async (req, res) => {
-  const where = {};
-  if (req.query.subjectId) where.subjectId = req.query.subjectId;
-  const tags = await QuestionTag.findAll({ where, order: [['name', 'ASC']] });
-  res.json({ tags });
-});
-
-router.post('/question-tags', async (req, res) => {
-  const name = normalizeTagName(req.body.name);
-  if (!name) return res.status(400).json({ error: 'Название обязательно' });
-  const subjectId = req.body.subjectId ? Number(req.body.subjectId) : null;
-  if (!subjectId) return res.status(400).json({ error: 'Укажите предмет' });
-  const tag = await findOrCreateTag(name, req.body.kind === 'skill' ? 'skill' : 'topic', subjectId);
-  res.json({ tag });
-});
-
-router.put('/question-tags/:id', async (req, res) => {
-  const tag = await QuestionTag.findByPk(req.params.id);
-  if (!tag) return res.status(404).json({ error: 'Тег не найден' });
-  const name = normalizeTagName(req.body.name || tag.name);
-  const subjectId = tag.subjectId;
-  const slug = subjectId ? `${slugify(name)}-${subjectId}` : slugify(name);
-  await tag.update({
-    name,
-    slug,
-    kind: req.body.kind || tag.kind,
-    isActive: req.body.isActive !== false,
-  });
-  res.json({ tag });
-});
-
-router.delete('/question-tags/:id', async (req, res) => {
-  await QuestionTagMap.destroy({ where: { tagId: req.params.id } });
-  await FlashcardTagMap.destroy({ where: { tagId: req.params.id } });
-  await ReadingPassageTagMap.destroy({ where: { tagId: req.params.id } });
-  await QuestionTag.destroy({ where: { id: req.params.id } });
-  res.json({ ok: true });
-});
-
-router.post('/question-tags/merge', async (req, res) => {
-  const { sourceId, targetId } = req.body || {};
-  if (!sourceId || !targetId || Number(sourceId) === Number(targetId)) {
-    return res.status(400).json({ error: 'Укажите sourceId и targetId' });
-  }
-  await mergeTagInto(sourceId, targetId);
-  res.json({ ok: true });
-});
-
-router.post('/question-tags/merge-duplicates', async (req, res) => {
-  const tags = await QuestionTag.findAll({ order: [['id', 'ASC']] });
-  const groups = new Map();
-  for (const tag of tags) {
-    const key = `${tag.kind}:${tag.slug}`;
-    if (!groups.has(key)) groups.set(key, []);
-    groups.get(key).push(tag);
-  }
-  let mergedTags = 0;
-  for (const group of groups.values()) {
-    if (group.length < 2) continue;
-    const [keep, ...dupes] = group;
-    for (const dupe of dupes) {
-      await mergeTagInto(dupe.id, keep.id);
-      mergedTags += 1;
-    }
-  }
-  res.json({
-    ok: true,
-    mergedTags,
-    message: mergedTags ? `Слито тегов: ${mergedTags}` : 'Совпадающих тегов нет',
-  });
-});
-
 router.get('/term-images', async (req, res) => {
   const items = await TermImage.findAll({ order: [['title', 'ASC']] });
   res.json({ items });
@@ -389,12 +285,14 @@ router.get('/subjects', async (req, res) => {
     include: [
       {
         model: Test,
-        attributes: ['id', 'name', 'sortOrder', 'ortPart'],
+        attributes: ['id', 'name', 'sortOrder', 'ortPart', 'parentId', 'kind'],
         separate: true,
         order: [['sortOrder', 'ASC'], ['id', 'ASC']],
-        include: [{ model: Question, attributes: ['id'] }],
+        include: [
+          { model: Question, attributes: ['id'] },
+          { model: ReadingPassage, attributes: ['id'] },
+        ],
       },
-      { model: QuestionTag, attributes: ['id', 'name', 'kind'], separate: true, order: [['name', 'ASC']] },
     ],
     order: [['sortOrder', 'ASC'], ['id', 'ASC']],
   });
@@ -402,11 +300,15 @@ router.get('/subjects', async (req, res) => {
     subjects: subjects.map((row) => {
       const subject = row.toJSON();
       subject.sections = (subject.Tests || []).map((test) => {
-        const { Questions, ...rest } = test;
-        return { ...rest, questionCount: (Questions || []).length };
+        const { Questions, ReadingPassages, ...rest } = test;
+        return {
+          ...rest,
+          questionCount: (Questions || []).length,
+          passageCount: (ReadingPassages || []).length,
+        };
       });
-      subject.tags = subject.QuestionTags || [];
-      subject.testCount = subject.sections.length;
+      delete subject.Tests;
+      subject.testCount = subject.sections.filter((test) => test.kind !== 'group').length;
       subject.questionCount = subject.sections.reduce((sum, test) => sum + test.questionCount, 0);
       return subject;
     }),
@@ -481,19 +383,53 @@ router.get('/tests', async (req, res) => {
   });
 });
 
+const GROUP_HAS_NO_QUESTIONS = 'В разделе-группе нет вопросов — добавьте их в подраздел';
+
+async function descendantIds(testId) {
+  const ids = [];
+  let frontier = [Number(testId)];
+  while (frontier.length) {
+    const children = await Test.findAll({ where: { parentId: frontier }, attributes: ['id'] });
+    frontier = children.map((row) => row.id).filter((id) => !ids.includes(id));
+    ids.push(...frontier);
+  }
+  return ids;
+}
+
+async function hasContent(testId) {
+  const [questions, passages] = await Promise.all([
+    Question.count({ where: { testId } }),
+    ReadingPassage.count({ where: { testId } }),
+  ]);
+  return questions + passages > 0;
+}
+
 router.post('/tests', async (req, res) => {
   const name = String(req.body.name || '').trim();
-  const subjectId = Number(req.body.subjectId);
+  let subjectId = Number(req.body.subjectId);
+  const parentId = Number(req.body.parentId) || null;
   if (!name) return res.status(400).json({ error: 'Название обязательно' });
+  let parent = null;
+  if (parentId) {
+    parent = await Test.findByPk(parentId);
+    if (!parent) return res.status(404).json({ error: 'Родительский раздел не найден' });
+    if (parent.kind !== 'group') {
+      return res.status(400).json({ error: 'Подразделы можно добавлять только в раздел-группу' });
+    }
+    subjectId = parent.subjectId;
+  }
   if (!subjectId) return res.status(400).json({ error: 'Укажите предмет' });
+  const kind = normalizeKind(req.body.kind) || 'standard';
   const test = await Test.create({
     name,
     description: req.body.description || '',
     subjectId,
+    parentId,
+    kind,
     hasExplanations: req.body.hasExplanations !== false,
     isActive: req.body.isActive !== false,
     sortOrder: req.body.sortOrder || 0,
-    ortPart: normalizeOrtPart(req.body.ortPart) || inferOrtPart(name),
+    ortPart: parent ? parent.ortPart : (normalizeOrtPart(req.body.ortPart) || inferOrtPart(name)),
   });
   res.json({ test });
 });
@@ -501,28 +437,45 @@ router.post('/tests', async (req, res) => {
 router.put('/tests/:id', async (req, res) => {
   const test = await Test.findByPk(req.params.id);
   if (!test) return res.status(404).json({ error: 'Тест не найден' });
-  const patch = { ...req.body };
-  if (patch.name != null) {
-    patch.name = String(patch.name).trim();
+  const patch = {};
+  for (const key of ['description', 'hasExplanations', 'isActive', 'sortOrder']) {
+    if (req.body[key] !== undefined) patch[key] = req.body[key];
+  }
+  if (req.body.name != null) {
+    patch.name = String(req.body.name).trim();
     if (!patch.name) return res.status(400).json({ error: 'Название обязательно' });
   }
-  if (patch.ortPart !== undefined) {
-    patch.ortPart = normalizeOrtPart(patch.ortPart);
+  if (req.body.kind !== undefined) {
+    const kind = normalizeKind(req.body.kind);
+    if (!kind) return res.status(400).json({ error: 'Неизвестный тип раздела' });
+    if (kind !== test.kind) {
+      if (kind === 'group' && await hasContent(test.id)) {
+        return res.status(400).json({ error: 'В разделе есть вопросы — сначала удалите или перенесите их' });
+      }
+      if (test.kind === 'group' && (await descendantIds(test.id)).length) {
+        return res.status(400).json({ error: 'В разделе есть подразделы — сначала удалите их' });
+      }
+    }
+    patch.kind = kind;
   }
+  if (req.body.ortPart !== undefined && !test.parentId) {
+    patch.ortPart = normalizeOrtPart(req.body.ortPart);
+  }
+  const prevOrtPart = test.ortPart;
   await test.update(patch);
+  if (patch.ortPart !== undefined && patch.ortPart !== prevOrtPart) {
+    const ids = await descendantIds(test.id);
+    if (ids.length) await Test.update({ ortPart: patch.ortPart }, { where: { id: ids } });
+  }
   res.json({ test });
 });
 
 router.delete('/tests/:id', async (req, res) => {
-  const questions = await Question.findAll({ where: { testId: req.params.id } });
-  for (const q of questions) {
-    await Answer.destroy({ where: { questionId: q.id } });
-    await QuestionTagMap.destroy({ where: { questionId: q.id } });
-  }
-  await Question.destroy({ where: { testId: req.params.id } });
-  await destroyPassageTags({ testId: req.params.id });
-  await ReadingPassage.destroy({ where: { testId: req.params.id } });
-  await Test.destroy({ where: { id: req.params.id } });
+  const ids = [Number(req.params.id), ...await descendantIds(req.params.id)];
+  await destroyQuestions({ testId: ids });
+  await destroyPassageTags({ testId: ids });
+  await ReadingPassage.destroy({ where: { testId: ids } });
+  await Test.destroy({ where: { id: ids } });
   res.json({ ok: true });
 });
 
@@ -557,36 +510,30 @@ router.get('/reading-passages', async (req, res) => {
   if (!testId) return res.status(400).json({ error: 'testId обязателен' });
   const passages = await ReadingPassage.findAll({
     where: { testId },
-    include: [{ model: Question, attributes: ['id'], required: false }, passageTagInclude],
+    include: [{ model: Question, attributes: ['id'], required: false }],
     order: [['sortOrder', 'ASC'], ['id', 'ASC']],
   });
   res.json({
     passages: passages.map((row) => {
       const p = row.toJSON();
       p.questionCount = (p.Questions || []).length;
-      p.tags = publicTags(row);
       delete p.Questions;
-      delete p.QuestionTags;
       return p;
     }),
   });
 });
 
-async function passageWithTags(id) {
-  const row = await ReadingPassage.findByPk(id, { include: [passageTagInclude] });
-  if (!row) return null;
-  const passage = row.toJSON();
-  passage.tags = publicTags(row);
-  delete passage.QuestionTags;
-  return passage;
+async function passageById(id) {
+  const row = await ReadingPassage.findByPk(id);
+  return row ? row.toJSON() : null;
 }
 
 router.get('/reading-passages/:id', async (req, res) => {
-  const passage = await passageWithTags(req.params.id);
+  const passage = await passageById(req.params.id);
   if (!passage) return res.status(404).json({ error: 'Текст не найден' });
   const questions = await Question.findAll({
     where: { passageId: passage.id },
-    include: [Answer, QuestionTag],
+    include: [Answer],
     order: [['sortOrder', 'ASC'], ['id', 'ASC'], [Answer, 'sortOrder', 'ASC']],
   });
   res.json({ passage, questions: questions.map(publicQuestionWithCorrect) });
@@ -596,6 +543,9 @@ router.post('/reading-passages', async (req, res) => {
   const testId = Number(req.body.testId);
   const data = passagePayload(req.body || {});
   if (!testId) return res.status(400).json({ error: 'Укажите раздел' });
+  const test = await Test.findByPk(testId);
+  if (!test) return res.status(404).json({ error: 'Раздел не найден' });
+  if (test.kind === 'group') return res.status(400).json({ error: GROUP_HAS_NO_QUESTIONS });
   if (!data.title) return res.status(400).json({ error: 'Название текста обязательно' });
   if (!data.body) return res.status(400).json({ error: 'Текст пустой' });
   const count = await ReadingPassage.count({ where: { testId } });
@@ -605,8 +555,7 @@ router.post('/reading-passages', async (req, res) => {
     sortOrder: Number(req.body.sortOrder) || count + 1,
     isActive: req.body.isActive !== false,
   });
-  if (req.body.tags !== undefined) await setPassageTags(passage, req.body.tags);
-  res.json({ passage: await passageWithTags(passage.id) });
+  res.json({ passage: await passageById(passage.id) });
 });
 
 router.put('/reading-passages/:id', async (req, res) => {
@@ -620,8 +569,7 @@ router.put('/reading-passages/:id', async (req, res) => {
     sortOrder: req.body.sortOrder != null ? Number(req.body.sortOrder) || 0 : passage.sortOrder,
     isActive: req.body.isActive ?? passage.isActive,
   });
-  if (req.body.tags !== undefined) await setPassageTags(passage, req.body.tags);
-  res.json({ passage: await passageWithTags(passage.id) });
+  res.json({ passage: await passageById(passage.id) });
 });
 
 router.delete('/reading-passages/:id', async (req, res) => {
@@ -638,7 +586,7 @@ router.get('/questions', async (req, res) => {
   else where.passageId = null;
   const questions = await Question.findAll({
     where,
-    include: [Answer, QuestionTag],
+    include: [Answer],
     order: [['sortOrder', 'ASC'], ['id', 'ASC']],
   });
   res.json({ questions: questions.map(publicQuestionWithCorrect) });
@@ -672,6 +620,9 @@ router.post('/questions', async (req, res) => {
     testId = passage.testId;
   }
   if (!testId) return res.status(400).json({ error: 'Укажите раздел' });
+  const parentTest = await Test.findByPk(testId);
+  if (!parentTest) return res.status(404).json({ error: 'Раздел не найден' });
+  if (parentTest.kind === 'group') return res.status(400).json({ error: GROUP_HAS_NO_QUESTIONS });
   let compare = null;
   if (isCompare(req.body)) {
     compare = comparePayload(req.body);
@@ -699,13 +650,7 @@ router.post('/questions', async (req, res) => {
       sortOrder: answer.sortOrder ?? idx + 1,
     });
   }
-  const parentTest = await Test.findByPk(question.testId);
-  for (const tag of req.body.tags || []) {
-    const row = await findOrCreateTag(tag.name, tag.kind || 'topic', parentTest?.subjectId || null);
-    if (row) await QuestionTagMap.create({ questionId: question.id, tagId: row.id });
-  }
-  await applyPassageTags(passageId, [question.id]);
-  const full = await Question.findByPk(question.id, { include: [Answer, QuestionTag] });
+  const full = await Question.findByPk(question.id, { include: [Answer] });
   res.json({ question: publicQuestionWithCorrect(full) });
 });
 
@@ -750,20 +695,7 @@ router.put('/questions/:id', async (req, res) => {
       });
     }
   }
-  if (Array.isArray(req.body.tags)) {
-    await QuestionTagMap.destroy({ where: { questionId: question.id } });
-    const parentTest = await Test.findByPk(question.testId);
-    for (const tag of req.body.tags) {
-      const row = await findOrCreateTag(tag.name, tag.kind || 'topic', parentTest?.subjectId || null);
-      if (row) {
-        await QuestionTagMap.findOrCreate({
-          where: { questionId: question.id, tagId: row.id },
-          defaults: { questionId: question.id, tagId: row.id },
-        });
-      }
-    }
-  }
-  const full = await Question.findByPk(question.id, { include: [Answer, QuestionTag] });
+  const full = await Question.findByPk(question.id, { include: [Answer] });
   res.json({ question: publicQuestionWithCorrect(full) });
 });
 

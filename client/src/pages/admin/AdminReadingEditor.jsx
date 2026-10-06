@@ -4,9 +4,8 @@ import { adminApi } from '../../api/client';
 import { useLang } from '../../context/LangContext';
 import { PassageText } from '../../components/PassageText';
 import { findEvidence, splitParagraphs } from '../../lib/reading';
-import { Crumbs, TxtUploadButtons, contentPath, previewText } from './adminUi';
+import { Crumbs, TxtUploadButtons, contentPath, previewText, sectionChain } from './adminUi';
 import QuestionForm, { draftPayload, draftProblem, toDraft } from './QuestionForm';
-import TagInput, { TagChips } from './TagInput';
 import { pickTextFile, readTextFile, splitTitle } from '../../lib/textFile';
 import '../../styles/reading-book.css';
 
@@ -90,7 +89,7 @@ export default function AdminReadingEditor() {
 
   const [subject, setSubject] = useState(null);
   const [section, setSection] = useState(null);
-  const [form, setForm] = useState({ title: '', subtitle: '', body: '', isActive: true, tags: [] });
+  const [form, setForm] = useState({ title: '', subtitle: '', body: '', isActive: true });
   const [savedForm, setSavedForm] = useState(null);
   const [questions, setQuestions] = useState([]);
   const [openKey, setOpenKey] = useState(null);
@@ -118,7 +117,7 @@ export default function AdminReadingEditor() {
       setSubject(foundSubject);
       setSection(foundSection);
       if (isNew) {
-        const empty = { title: '', subtitle: '', body: '', isActive: true, tags: [] };
+        const empty = { title: '', subtitle: '', body: '', isActive: true };
         setForm(empty);
         setSavedForm(empty);
         setQuestions([]);
@@ -131,7 +130,6 @@ export default function AdminReadingEditor() {
         subtitle: data.passage.subtitle || '',
         body: data.passage.body || '',
         isActive: data.passage.isActive !== false,
-        tags: (data.passage.tags || []).map((tag) => tag.name),
       };
       setForm(loaded);
       setSavedForm(loaded);
@@ -268,7 +266,8 @@ export default function AdminReadingEditor() {
       <Crumbs items={[
         { label: t('admin.subjects'), to: contentPath() },
         { label: subject.name, to: contentPath(subject.id) },
-        { label: section.name, to: contentPath(subject.id, section.id) },
+        ...sectionChain(subject.sections || [], section.id)
+          .map((row) => ({ label: row.name, to: contentPath(subject.id, row.id) })),
         { label: title },
       ]} />
 
@@ -299,9 +298,6 @@ export default function AdminReadingEditor() {
             <div className="ar-text-bar">
               <span className="ar-text-bar-copy">
                 <span className="muted">{t('admin.reading.textBar')}</span>
-                {savedForm?.tags?.length ? <TagChips tags={savedForm.tags} /> : (
-                  <button type="button" className="ar-link" onClick={() => setEditText(true)}>+ {t('admin.reading.addTags')}</button>
-                )}
               </span>
               <button type="button" className={`btn sm${editText ? '' : ' ghost'}`} onClick={() => setEditText(!editText)}>
                 {editText ? t('admin.reading.hideEdit') : t('admin.reading.editText')}
@@ -333,7 +329,6 @@ export default function AdminReadingEditor() {
               />
               <small className="field-hint">{t('admin.reading.bodyHint')}</small>
             </div>
-            <TagInput value={form.tags} onChange={(tags) => setForm({ ...form, tags })} label={t('admin.reading.fTags')} />
             <label className="ar-check">
               <input type="checkbox" checked={form.isActive} onChange={(e) => setForm({ ...form, isActive: e.target.checked })} />
               <span>{t('admin.reading.active')}</span>

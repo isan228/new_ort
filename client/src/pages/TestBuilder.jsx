@@ -19,11 +19,9 @@ export default function TestBuilder() {
   const presetId = Number(params.get('bank')) || bank?.testId || null;
 
   const [groups, setGroups] = useState([]);
-  const [tags, setTags] = useState([]);
   const [status, setStatus] = useState({ all: 0, unused: 0, solved: 0, correct: 0, incorrect: 0 });
   const [available, setAvailable] = useState(0);
   const [testIds, setTestIds] = useState(presetId ? [presetId] : []);
-  const [tagIds, setTagIds] = useState([]);
   const [modes, setModes] = useState(['unused']);
   const [questionCount, setQuestionCount] = useState(20);
   const [minutes, setMinutes] = useState(20);
@@ -34,11 +32,10 @@ export default function TestBuilder() {
 
   useEffect(() => {
     let stop = false;
-    ortApi.builder({ testIds, tagIds, modes })
+    ortApi.builder({ testIds, modes })
       .then((data) => {
         if (stop) return;
         setGroups(data.groups || []);
-        setTags(data.tags || []);
         setStatus(data.status || { all: 0, unused: 0, solved: 0, correct: 0, incorrect: 0 });
         setAvailable(data.available || 0);
       })
@@ -48,7 +45,7 @@ export default function TestBuilder() {
         else setError(err.message);
       });
     return () => { stop = true; };
-  }, [modes, navigate, tagIds, testIds]);
+  }, [modes, navigate, testIds]);
 
   const sections = useMemo(() => groups.flatMap((group) => group.sections), [groups]);
   const maxCount = Math.max(1, Math.min(150, available || 1));
@@ -65,17 +62,12 @@ export default function TestBuilder() {
     setTestIds(on ? sections.map((row) => row.id) : []);
   }
 
-  function setAllTags(on) {
-    setTagIds(on ? tags.map((row) => row.id) : []);
-  }
-
   async function start() {
     setError('');
     setBusy(true);
     try {
       const data = await ortApi.customTest({
         testIds,
-        tagIds,
         modes,
         questionCount,
         minutes: timed ? minutes : 0,
@@ -163,7 +155,7 @@ export default function TestBuilder() {
         </div>
       </div>
 
-      <div className="builder-cols">
+      <div className="builder-cols builder-cols-one">
         <div className="card builder-card">
           <div className="builder-block-head">
             <h3>{t('builder.sections')}</h3>
@@ -191,32 +183,6 @@ export default function TestBuilder() {
                   </label>
                 ))}
               </div>
-            ))}
-          </div>
-        </div>
-
-        <div className="card builder-card">
-          <div className="builder-block-head">
-            <h3>{t('builder.tags')}</h3>
-            <div className="row">
-              <button type="button" className="btn ghost sm" onClick={() => setAllTags(true)}>{t('builder.allOn')}</button>
-              <button type="button" className="btn ghost sm" onClick={() => setAllTags(false)}>{t('builder.allOff')}</button>
-            </div>
-          </div>
-          <div className="builder-scroll builder-tags">
-            {!tags.length && <p className="empty">{t('builder.noTags')}</p>}
-            {tags.map((tag) => (
-              <label key={tag.id} className={`builder-check ${tagIds.includes(tag.id) ? 'on' : ''}`}>
-                <span>
-                  <input
-                    type="checkbox"
-                    checked={tagIds.includes(tag.id)}
-                    onChange={() => setTagIds((prev) => toggleId(prev, tag.id))}
-                  />
-                  {tag.name}
-                </span>
-                <b>{tag.available}</b>
-              </label>
             ))}
           </div>
         </div>

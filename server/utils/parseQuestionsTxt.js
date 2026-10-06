@@ -67,7 +67,7 @@ function parseHint(stats, { requireExplanation, requireTags, linked }) {
   }
   return linked
     ? 'Нужны поля GroupID, ID, Q, A1–A30, Correct, E.'
-    : 'Нужны поля ID, Q, A1–A30, Correct, E и теги Topic/Skill или Subject/System/Tags.';
+    : 'Нужны поля ID, Q, A1–A30, Correct, E.';
 }
 
 function parseQuestionsFromText(text, options = {}) {

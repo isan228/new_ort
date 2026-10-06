@@ -5,8 +5,6 @@ const {
   Test,
   Question,
   Answer,
-  QuestionTag,
-  QuestionTagMap,
   Flashcard,
   TestResult,
   ReadingPassage,
@@ -20,7 +18,6 @@ const {
 } = require('../utils/ortLinkedQuestions');
 const { scoreAnswers } = require('../utils/ortScoring');
 const { previewMainExam, assembleMainExam } = require('../utils/buildMainExam');
-const { passageTagInclude, publicTags } = require('../utils/passageTags');
 const { isCompare } = require('../utils/compareQuestions');
 
 const router = express.Router();
@@ -50,10 +47,7 @@ function shuffle(list) {
 async function loadQuestionsForTest(testId, extraWhere = {}) {
   return Question.findAll({
     where: { testId, isActive: true, passageId: null, ...extraWhere },
-    include: [
-      { model: Answer },
-      { model: QuestionTag },
-    ],
+    include: [{ model: Answer }],
     order: [['sortOrder', 'ASC'], ['id', 'ASC'], [Answer, 'sortOrder', 'ASC']],
   });
 }
@@ -114,13 +108,24 @@ function bumpStats(bucket, flags, available) {
   if (available) bucket.available += 1;
 }
 
+function sectionPath(test, byId) {
+  const names = [test.name];
+  let parent = byId.get(test.parentId);
+  while (parent && names.length < 6) {
+    names.unshift(parent.name);
+    parent = byId.get(parent.parentId);
+  }
+  return names.join(' · ');
+}
+
 function serializeSubjectForStudent(subject) {
   const json = subject.toJSON();
+  const byId = new Map((json.Tests || []).map((test) => [test.id, test]));
   const tests = (json.Tests || [])
     .map((test) => {
       const questionCount = (test.Questions || []).length;
       const { Questions, ...rest } = test;
-      return { ...rest, questionCount };
+      return { ...rest, name: sectionPath(test, byId), questionCount };
     })
     .filter((test) => test.questionCount > 0);
   delete json.Tests;
@@ -132,10 +137,7 @@ async function gradeSubmission({ userId, testId, answers, durationSec, questionM
   const ids = (answers || []).map((item) => item.questionId).filter(Boolean);
   const questions = await Question.findAll({
     where: { id: { [Op.in]: ids.length ? ids : [0] }, isActive: true },
-    include: [
-      { model: Answer },
-      { model: QuestionTag },
-    ],
+    include: [{ model: Answer }],
     order: [['sortOrder', 'ASC'], ['id', 'ASC'], [Answer, 'sortOrder', 'ASC']],
   });
   const tests = await Test.findAll({
@@ -275,60 +277,8 @@ router.get('/ort/history', async (req, res) => {
   });
 });
 
-router.get('/ort/tags', async (req, res) => {
-  const tags = await QuestionTag.findAll({
-    where: { isActive: true },
-    order: [['kind', 'ASC'], ['name', 'ASC']],
-  });
-  res.json({ tags });
-});
-
-router.get('/ort/tags/grouped', async (req, res) => {
-  const testId = Number(req.query.testId);
-  if (!testId) return res.status(400).json({ error: 'testId обязателен' });
-
-  const questions = await Question.findAll({
-    where: { testId, isActive: true },
-    include: [{ model: QuestionTag, where: { isActive: true }, required: false }],
-  });
-
-  const topicMap = new Map();
-  const skillMap = new Map();
-  for (const q of questions) {
-    for (const tag of q.QuestionTags || []) {
-      const target = tag.kind === 'skill' ? skillMap : topicMap;
-      if (!target.has(tag.id)) target.set(tag.id, { ...tag.toJSON(), count: 0 });
-      target.get(tag.id).count += 1;
-    }
-  }
-
-  res.json({
-    topics: [...topicMap.values()],
-    skills: [...skillMap.values()],
-  });
-});
-
-router.get('/ort/tests-by-tags', async (req, res) => {
-  const tagIds = String(req.query.tagIds || '')
-    .split(',')
-    .map((x) => Number(x))
-    .filter(Boolean);
-  if (!tagIds.length) return res.json({ tests: [] });
-
-  const maps = await QuestionTagMap.findAll({ where: { tagId: tagIds } });
-  const questionIds = [...new Set(maps.map((m) => m.questionId))];
-  const questions = await Question.findAll({ where: { id: questionIds, isActive: true } });
-  const testIds = [...new Set(questions.map((q) => q.testId))];
-  const tests = await Test.findAll({
-    where: { id: testIds, isActive: true },
-    include: [Subject],
-  });
-  res.json({ tests });
-});
-
 router.get('/ort/builder', async (req, res) => {
   const selectedTests = parseIdList(req.query.testIds);
-  const selectedTags = parseIdList(req.query.tagIds);
   const modes = parseModes(req.query.modes);
   const last = await loadUserLastAnswers(req.user.id);
 
@@ -341,52 +291,30 @@ router.get('/ort/builder', async (req, res) => {
   const questions = await Question.findAll({
     where: { isActive: true, passageId: null },
     attributes: ['id', 'testId'],
-    include: [{
-      model: QuestionTag,
-      attributes: ['id', 'name', 'kind'],
-      where: { isActive: true },
-      required: false,
-    }],
   });
 
   const byTest = new Map();
-  const tagMap = new Map();
   const status = emptyStats();
   let available = 0;
 
   for (const question of questions) {
     const flags = questionFlags(question.id, last);
-    const tagIds = (question.QuestionTags || []).map((tag) => tag.id);
     const testsOk = !selectedTests.length || selectedTests.includes(question.testId);
-    const tagsOk = !selectedTags.length || selectedTags.some((id) => tagIds.includes(id));
     const modeOk = matchesModes(flags, modes);
 
     if (!byTest.has(question.testId)) byTest.set(question.testId, emptyStats());
-    if (tagsOk) bumpStats(byTest.get(question.testId), flags, modeOk);
+    bumpStats(byTest.get(question.testId), flags, modeOk);
 
-    if (testsOk && tagsOk) bumpStats(status, flags, modeOk);
-    if (testsOk && tagsOk && modeOk) available += 1;
-
-    if (testsOk && modeOk) {
-      for (const tag of question.QuestionTags || []) {
-        if (!tagMap.has(tag.id)) {
-          tagMap.set(tag.id, {
-            id: tag.id,
-            name: tag.name,
-            kind: tag.kind,
-            ...emptyStats(),
-          });
-        }
-        bumpStats(tagMap.get(tag.id), flags, true);
-      }
-    }
+    if (testsOk) bumpStats(status, flags, modeOk);
+    if (testsOk && modeOk) available += 1;
   }
 
   const groups = subjects.map((subject) => {
+    const byId = new Map((subject.Tests || []).map((test) => [test.id, test]));
     const sections = (subject.Tests || [])
       .map((test) => ({
         id: test.id,
-        name: test.name,
+        name: sectionPath(test, byId),
         subjectId: subject.id,
         subjectName: subject.name,
         trackGroup: subject.trackGroup,
@@ -401,17 +329,13 @@ router.get('/ort/builder', async (req, res) => {
     };
   }).filter((group) => group.sections.length);
 
-  const tags = [...tagMap.values()].sort((a, b) => a.name.localeCompare(b.name, 'ru'));
-  res.json({ groups, tags, status, available });
+  res.json({ groups, status, available });
 });
 
 router.post('/ort/custom-test/questions', async (req, res) => {
   const {
     testId,
     testIds = [],
-    topicTagIds = [],
-    skillTagIds = [],
-    tagIds = [],
     questionCount = 20,
     questionMode = 'all',
     modes = [],
@@ -421,9 +345,6 @@ router.post('/ort/custom-test/questions', async (req, res) => {
   } = req.body || {};
 
   const sectionIds = parseIdList([...testIds, testId].filter(Boolean));
-  const selectedTags = parseIdList(tagIds);
-  const topicIds = parseIdList(topicTagIds);
-  const skillIds = parseIdList(skillTagIds);
   let selectedModes = parseModes(modes);
   if (!selectedModes.length && (questionMode === 'unsolved' || questionMode === 'incorrect')) {
     selectedModes = [questionMode === 'unsolved' ? 'unused' : 'incorrect'];
@@ -436,22 +357,13 @@ router.post('/ort/custom-test/questions', async (req, res) => {
 
   const questions = await Question.findAll({
     where: { testId: tests.map((row) => row.id), isActive: true, passageId: null },
-    include: [
-      { model: Answer },
-      { model: QuestionTag },
-    ],
+    include: [{ model: Answer }],
     order: [['sortOrder', 'ASC'], ['id', 'ASC'], [Answer, 'sortOrder', 'ASC']],
   });
 
   const last = await loadUserLastAnswers(req.user.id);
 
-  const filtered = questions.filter((question) => {
-    const ids = (question.QuestionTags || []).map((tag) => tag.id);
-    if (selectedTags.length && !selectedTags.some((id) => ids.includes(id))) return false;
-    if (topicIds.length && !topicIds.some((id) => ids.includes(id))) return false;
-    if (skillIds.length && !skillIds.some((id) => ids.includes(id))) return false;
-    return matchesModes(questionFlags(question.id, last), selectedModes);
-  });
+  const filtered = questions.filter((question) => matchesModes(questionFlags(question.id, last), selectedModes));
 
   const limit = Math.max(1, Math.min(150, Number(questionCount) || 20));
   const picked = pickQuestionsKeepingLinkedOrder(shuffle(filtered), limit);
@@ -542,7 +454,7 @@ async function loadReadingPassages(where) {
       where: { isActive: true },
       required: true,
       include: [{ model: Answer }],
-    }, passageTagInclude],
+    }],
     order: [
       ['sortOrder', 'ASC'],
       ['id', 'ASC'],
@@ -564,7 +476,6 @@ router.get('/ort/reading', async (req, res) => {
         required: true,
         include: [
           { model: Question, attributes: ['id'], where: { isActive: true }, required: true },
-          passageTagInclude,
         ],
       },
     ],
@@ -582,7 +493,6 @@ router.get('/ort/reading', async (req, res) => {
           id: p.id,
           title: p.title,
           subtitle: p.subtitle,
-          tags: publicTags(p),
           questionCount: ids.length,
           answered: ids.filter((id) => last.has(id)).length,
           correct: ids.filter((id) => last.get(id) === true).length,
@@ -603,7 +513,6 @@ router.get('/ort/reading/:testId', async (req, res) => {
       id: p.id,
       title: p.title,
       subtitle: p.subtitle,
-      tags: publicTags(p),
       body: p.body,
       questions: p.Questions.map(readingQuestionShape),
     })),
@@ -635,15 +544,8 @@ router.get('/ort/flashcards', async (req, res) => {
   if (req.query.testId) where.testId = Number(req.query.testId);
   if (req.query.trackGroup) where.trackGroup = req.query.trackGroup;
 
-  const include = [{ model: QuestionTag }];
-  if (req.query.tagId) {
-    include[0].where = { id: Number(req.query.tagId) };
-    include[0].required = true;
-  }
-
   const cards = await Flashcard.findAll({
     where,
-    include,
     order: [['sortOrder', 'ASC'], ['id', 'ASC']],
   });
 
@@ -656,7 +558,6 @@ router.get('/ort/flashcards', async (req, res) => {
       backText: c.backText,
       frontImageUrl: c.frontImageUrl,
       backImageUrl: c.backImageUrl,
-      tags: (c.QuestionTags || []).map((t) => ({ id: t.id, name: t.name, slug: t.slug, kind: t.kind })),
     })),
   });
 });

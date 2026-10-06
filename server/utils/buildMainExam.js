@@ -1,5 +1,5 @@
 const { Op } = require('sequelize');
-const { Test, Question, Answer, QuestionTag, Subject } = require('../models');
+const { Test, Question, Answer, Subject } = require('../models');
 const { pickQuestionsKeepingLinkedOrder } = require('./ortLinkedQuestions');
 const { ORT_PARTS, MAIN_MAX } = require('./ortScoring');
 
@@ -71,7 +71,7 @@ async function loadQuestionsByPart() {
       model: Question,
       where: { isActive: true, passageId: null },
       required: false,
-      include: [{ model: Answer }, { model: QuestionTag }],
+      include: [{ model: Answer }],
     }],
   });
 

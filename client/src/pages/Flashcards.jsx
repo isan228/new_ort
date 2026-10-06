@@ -111,7 +111,6 @@ export default function Flashcards() {
         {list.map((card) => (
           <div key={card.id} className="card">
             <div dangerouslySetInnerHTML={{ __html: buildFrontHtml(card.frontText) }} />
-            <p className="muted">{(card.tags || []).map((t) => t.name).join(', ')}</p>
           </div>
         ))}
       </div>

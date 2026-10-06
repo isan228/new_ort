@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react';
+import { Fragment, useEffect, useState } from 'react';
 import { NavLink, Link, useLocation, useNavigate } from 'react-router-dom';
-import { chatApi } from '../api/client';
+import { adminApi, chatApi } from '../api/client';
+import { CONTENT_CHANGED, contentPath, splitSubjects } from '../pages/admin/adminUi';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { useLang } from '../context/LangContext';
@@ -129,6 +130,73 @@ function SideItem({ to, label, end, unread }) {
       {unread > 0 && <span className="nav-unread">{unread > 99 ? '99+' : unread}</span>}
     </NavLink>
   );
+}
+
+function TreeSubject({ subject, label, expanded }) {
+  const location = useLocation();
+  const root = contentPath(subject.id);
+  const path = decodeURIComponent(location.pathname);
+  const open = expanded || path === root || path.startsWith(`${root}/`);
+  const sections = subject.sections || [];
+
+  function branch(parentId, depth) {
+    return sections
+      .filter((row) => (row.parentId || null) === parentId)
+      .map((row) => (
+        <Fragment key={row.id}>
+          <NavLink
+            to={contentPath(subject.id, row.id)}
+            className={({ isActive }) => `side-tree-link ${isActive ? 'active' : ''}`}
+            style={{ paddingLeft: 14 + depth * 14 }}
+          >
+            {row.name}
+          </NavLink>
+          {branch(row.id, depth + 1)}
+        </Fragment>
+      ));
+  }
+
+  return (
+    <>
+      <NavLink to={root} end className={({ isActive }) => `side-tree-link side-tree-subject ${isActive ? 'active' : ''}`}>
+        {label || subject.name}
+      </NavLink>
+      {open && branch(null, 1)}
+    </>
+  );
+}
+
+function AdminContentTree() {
+  const { t } = useLang();
+  const [subjects, setSubjects] = useState([]);
+
+  useEffect(() => {
+    const onChange = (e) => setSubjects(e.detail || []);
+    window.addEventListener(CONTENT_CHANGED, onChange);
+    adminApi.subjects().then((data) => setSubjects(data.subjects || [])).catch(() => {});
+    return () => window.removeEventListener(CONTENT_CHANGED, onChange);
+  }, []);
+
+  const { main, others } = splitSubjects(subjects);
+  if (!main && !others.length) return null;
+
+  return (
+    <div className="side-tree">
+      {main && <TreeSubject subject={main} label={t('admin.tree.main')} expanded />}
+      {others.length > 0 && <div className="side-tree-title">{t('admin.tree.subjects')}</div>}
+      {others.map((subject) => <TreeSubject key={subject.id} subject={subject} />)}
+    </div>
+  );
+}
+
+function AdminNav({ unread }) {
+  const { t } = useLang();
+  return ADMIN_SIDE.map(([to, key]) => (
+    <Fragment key={to}>
+      <SideItem to={to} end={to === ADMIN_ROOT} label={t(key)} unread={to.endsWith('/chat') ? unread : 0} />
+      {to.endsWith('/content') && <AdminContentTree />}
+    </Fragment>
+  ));
 }
 
 function useMenu() {
@@ -333,9 +401,7 @@ export function AdminShell({ children }) {
     <div className="app-shell">
       <aside className="sidebar">
         <BrandLogo to={ADMIN_ROOT} />
-        {ADMIN_SIDE.map(([to, key]) => (
-          <SideItem key={to} to={to} end={to === ADMIN_ROOT} label={t(key)} unread={to.endsWith('/chat') ? unread : 0} />
-        ))}
+        <AdminNav unread={unread} />
         <button type="button" className="side-link drawer-exit" onClick={() => { logout(); navigate(ADMIN_ROOT); }}><Icon name="logout" /><span>{t('common.logout')}</span></button>
       </aside>
       <div className="app-main">
@@ -352,9 +418,7 @@ export function AdminShell({ children }) {
       <Drawer open={open} onClose={() => setOpen(false)}>
         <BrandLogo to={ADMIN_ROOT} />
         <LangSwitch />
-        {ADMIN_SIDE.map(([to, key]) => (
-          <SideItem key={to} to={to} end={to === ADMIN_ROOT} label={t(key)} unread={to.endsWith('/chat') ? unread : 0} />
-        ))}
+        <AdminNav unread={unread} />
         <button type="button" className="side-link drawer-exit" onClick={() => { logout(); navigate(ADMIN_ROOT); }}><Icon name="logout" /><span>{t('common.logout')}</span></button>
       </Drawer>
     </div>

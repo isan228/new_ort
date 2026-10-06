@@ -8,7 +8,6 @@ async function fillLoginKeys() {
     await User.update({ loginKey: loginKey(user.login) }, { where: { id: user.id }, hooks: false });
   }
 }
-const { ensureOrtTagsSeeded } = require('./ensureOrtTagsSeeded');
 const { ensurePlansForOrt } = require('./subscriptionPlans');
 const { seedDemoContent } = require('./seedDemo');
 const { ensureOrtMainExam } = require('./ensureOrtMainExam');
@@ -20,7 +19,6 @@ async function prepareAppData() {
   // sync({ alter }) does not drop NOT NULL on columns that carry a foreign key.
   await sequelize.query('ALTER TABLE "Payments" ALTER COLUMN "userId" DROP NOT NULL');
   await fillLoginKeys();
-  await ensureOrtTagsSeeded();
   await ensurePlansForOrt();
   await seedDemoContent();
   await ensureOrtMainExam();

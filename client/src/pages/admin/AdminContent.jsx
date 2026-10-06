@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { adminApi } from '../../api/client';
 import { useLang } from '../../context/LangContext';
-import { Crumbs, Modal, NameForm, confirmDelete, contentPath } from './adminUi';
+import { Crumbs, Modal, NameForm, confirmDelete, contentPath, loadSubjects } from './adminUi';
 
 export default function AdminContent() {
   const { t } = useLang();
@@ -13,7 +13,7 @@ export default function AdminContent() {
   const [modal, setModal] = useState(null);
 
   async function reload() {
-    setSubjects((await adminApi.subjects()).subjects);
+    setSubjects(await loadSubjects());
   }
 
   useEffect(() => {
@@ -50,16 +50,13 @@ export default function AdminContent() {
       <div className="admin-list">
         {!subjects.length && <div className="empty">{t('admin.noSubjects')}</div>}
         {subjects.map((subject) => {
-          const sections = subject.sections || subject.Tests || [];
-          const tags = subject.tags || subject.QuestionTags || [];
+          const sections = (subject.sections || []).filter((row) => !row.parentId);
           return (
             <div key={subject.id} className="admin-list-item">
               <div style={{ minWidth: 0, flex: 1 }}>
                 <h4>{subject.name}</h4>
                 <p className="muted" style={{ margin: '4px 0 0' }}>
                   {t('admin.sectionsCount', { n: sections.length })}
-                  {' · '}
-                  {t('admin.tagsCount', { n: tags.length })}
                   {' · '}
                   {t('admin.questionsCount', { n: subject.questionCount || 0 })}
                 </p>

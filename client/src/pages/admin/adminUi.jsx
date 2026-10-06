@@ -9,6 +9,21 @@ export function contentPath(...parts) {
   return [root, 'content', ...parts.filter(Boolean)].join('/');
 }
 
+export const CONTENT_CHANGED = 'admin-content-changed';
+
+export async function loadSubjects() {
+  const { subjects } = await adminApi.subjects();
+  window.dispatchEvent(new CustomEvent(CONTENT_CHANGED, { detail: subjects }));
+  return subjects;
+}
+
+export const MAIN_SUBJECT_NAME = 'Основной тест ОРТ';
+
+export function splitSubjects(subjects) {
+  const main = subjects.find((row) => row.name === MAIN_SUBJECT_NAME) || null;
+  return { main, others: subjects.filter((row) => row !== main) };
+}
+
 export function Modal({ title, onClose, children }) {
   return (
     <div className="modal-back" onClick={onClose}>
@@ -63,35 +78,124 @@ export function ortPartLabel(t, part) {
   return t(`admin.ortParts.${part}`);
 }
 
-export function SectionForm({ initialName = '', initialOrtPart = '', onSubmit, onClose }) {
+export const SECTION_KINDS = ['standard', 'compare', 'reading', 'group'];
+
+export function sectionKind(section) {
+  return section?.kind || (section?.ortPart === 'reading' ? 'reading' : 'standard');
+}
+
+export function kindLabel(t, kind) {
+  return t(`admin.kinds.${kind || 'standard'}`);
+}
+
+export function sectionChain(sections, id) {
+  const byId = new Map(sections.map((row) => [String(row.id), row]));
+  const chain = [];
+  let current = byId.get(String(id));
+  while (current && chain.length < 10) {
+    chain.unshift(current);
+    current = current.parentId ? byId.get(String(current.parentId)) : null;
+  }
+  return chain;
+}
+
+export function sectionStats(t, section, sections) {
+  const kind = sectionKind(section);
+  if (kind === 'group') {
+    const n = sections.filter((row) => row.parentId === section.id).length;
+    return t('admin.subsectionsCount', { n });
+  }
+  if (kind === 'reading') {
+    return t('admin.reading.summary', { texts: section.passageCount || 0, n: section.questionCount || 0 });
+  }
+  return t('admin.questionsCount', { n: section.questionCount || 0 });
+}
+
+export function SectionForm({
+  initialName = '',
+  initialOrtPart = '',
+  initialKind = 'standard',
+  showOrtPart = true,
+  onSubmit,
+  onClose,
+}) {
   const { t } = useLang();
   const [name, setName] = useState(initialName);
   const [ortPart, setOrtPart] = useState(initialOrtPart || '');
+  const [kind, setKind] = useState(initialKind || 'standard');
 
   return (
     <form onSubmit={(e) => {
       e.preventDefault();
       const value = name.trim();
       if (!value) return;
-      onSubmit({ name: value, ortPart: ortPart || null });
+      onSubmit(showOrtPart ? { name: value, kind, ortPart: ortPart || null } : { name: value, kind });
     }}>
       <label className="field">
         <span>{t('admin.name')}</span>
         <input autoFocus value={name} onChange={(e) => setName(e.target.value)} />
       </label>
-      <label className="field">
-        <span>{t('admin.ortPart')}</span>
-        <select value={ortPart} onChange={(e) => setOrtPart(e.target.value)}>
-          {ORT_PART_OPTIONS.map((opt) => (
-            <option key={opt.key} value={opt.value}>{ortPartLabel(t, opt.value)}</option>
+      <div className="field">
+        <span>{t('admin.kind')}</span>
+        <div className="kind-picker">
+          {SECTION_KINDS.map((key) => (
+            <button
+              key={key}
+              type="button"
+              className={`kind-option${kind === key ? ' on' : ''}`}
+              onClick={() => setKind(key)}
+            >
+              <b>{kindLabel(t, key)}</b>
+              <small>{t(`admin.kindHints.${key}`)}</small>
+            </button>
           ))}
-        </select>
-      </label>
+        </div>
+      </div>
+      {showOrtPart && (
+        <label className="field">
+          <span>{t('admin.ortPart')}</span>
+          <select value={ortPart} onChange={(e) => setOrtPart(e.target.value)}>
+            {ORT_PART_OPTIONS.map((opt) => (
+              <option key={opt.key} value={opt.value}>{ortPartLabel(t, opt.value)}</option>
+            ))}
+          </select>
+          <small className="field-hint">{t('admin.ortPartHint')}</small>
+        </label>
+      )}
       <div className="row">
         <button className="btn" type="submit">{t('common.save')}</button>
         <button className="btn ghost" type="button" onClick={onClose}>{t('common.cancel')}</button>
       </div>
     </form>
+  );
+}
+
+export function SectionList({ sections, all, onOpen, onEdit, onDelete, emptyText }) {
+  const { t } = useLang();
+  return (
+    <div className="admin-list">
+      {!sections.length && <div className="empty">{emptyText}</div>}
+      {sections.map((section) => {
+        const kind = sectionKind(section);
+        return (
+          <div key={section.id} className="admin-list-item">
+            <span className={`kind-badge kind-${kind}`}>{kindLabel(t, kind)}</span>
+            <div style={{ minWidth: 0, flex: 1 }}>
+              <h4>{section.name}</h4>
+              <p className="muted" style={{ margin: '4px 0 0' }}>
+                {sectionStats(t, section, all)}
+                {section.ortPart && !section.parentId ? ` · ${ortPartLabel(t, section.ortPart)}` : ''}
+              </p>
+            </div>
+            <div className="row" style={{ flexWrap: 'wrap' }}>
+              <button className="btn sm" type="button" onClick={() => onOpen(section)}>{t('admin.open')}</button>
+              <button className="btn ghost sm" type="button" onClick={() => onEdit(section)}>{t('common.edit')}</button>
+              <button className="btn ghost sm" type="button" onClick={() => onDelete(section)}>{t('common.delete')}</button>
+            </div>
+          </div>
+        );
+      })}
+    </div>
   );
 }
 

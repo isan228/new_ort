@@ -2,12 +2,24 @@ import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { adminApi } from '../../api/client';
 import { useLang } from '../../context/LangContext';
-import { Crumbs, Modal, TxtUploadButtons, confirmDelete, contentPath, previewText } from './adminUi';
+import {
+  Crumbs,
+  Modal,
+  SectionForm,
+  SectionList,
+  TxtUploadButtons,
+  confirmDelete,
+  contentPath,
+  kindLabel,
+  loadSubjects,
+  previewText,
+  sectionChain,
+  sectionKind,
+} from './adminUi';
 import QuestionForm, { draftPayload, draftProblem, toDraft } from './QuestionForm';
 import { PassageText } from '../../components/PassageText';
 import { splitParagraphs } from '../../lib/reading';
 import { pickTextFile, readTextFile, splitTitle } from '../../lib/textFile';
-import TagInput, { TagChips } from './TagInput';
 import CompareBlock from './AdminCompare';
 import { isCompare } from '../../lib/compare';
 import '../../styles/reading-book.css';
@@ -32,7 +44,7 @@ function QuestionModal({ testId, initial, onClose, onSaved }) {
     setBusy(true);
     setError('');
     try {
-      const body = draftPayload(draft, { withTags: true });
+      const body = draftPayload(draft);
       if (draft.id) await adminApi.updateQuestion(draft.id, body);
       else await adminApi.createQuestion({ ...body, testId });
       await onSaved(t('admin.saved'));
@@ -44,7 +56,7 @@ function QuestionModal({ testId, initial, onClose, onSaved }) {
 
   return (
     <Modal title={draft.id ? t('admin.q.edit') : t('admin.q.new')} onClose={close}>
-      <QuestionForm draft={draft} onChange={setDraft} showTags />
+      <QuestionForm draft={draft} onChange={setDraft} />
       {error && <p className="err">{error}</p>}
       <div className="row qf-footer">
         <button type="button" className="btn ghost" onClick={close}>{t('admin.q.cancel')}</button>
@@ -109,7 +121,6 @@ export function PassageUploadPreview({ file, initial, testId, onClose, onCreated
               <span>{t('admin.reading.fSubtitle')}</span>
               <input value={form.subtitle} onChange={(e) => setForm({ ...form, subtitle: e.target.value })} />
             </label>
-            <TagInput value={form.tags} onChange={(tags) => setForm({ ...form, tags })} label={t('admin.reading.fTags')} />
             <button type="button" className="btn ghost sm" style={{ alignSelf: 'flex-start' }} onClick={() => setEditing(!editing)}>
               {editing ? t('admin.reading.hideEdit') : t('admin.reading.fixText')}
             </button>
@@ -163,7 +174,7 @@ function ReadingPassages({ subjectId, section, passages, onChanged, onError }) {
       const raw = await readTextFile(file);
       if (!raw) { onError(t('admin.reading.errBody')); return; }
       const split = splitTitle(raw);
-      setUpload({ file: file.name, initial: { title: split.title, subtitle: '', body: split.body, tags: [] } });
+      setUpload({ file: file.name, initial: { title: split.title, subtitle: '', body: split.body } });
     } catch (err) {
       onError(err.message);
     }
@@ -202,7 +213,6 @@ function ReadingPassages({ subjectId, section, passages, onChanged, onError }) {
                 {t('admin.reading.questions', { n: p.questionCount })}
                 {p.subtitle ? ` · ${previewText(p.subtitle)}` : ''}
               </p>
-              <TagChips tags={p.tags} />
             </div>
             <Link className="btn sm" to={contentPath(subjectId, section.id, 'reading', p.id)}>{t('admin.reading.edit')}</Link>
             <button
@@ -227,6 +237,28 @@ function ReadingPassages({ subjectId, section, passages, onChanged, onError }) {
   );
 }
 
+function QuestionList({ questions, onEdit, onDelete }) {
+  const { t } = useLang();
+  return (
+    <div className="admin-list">
+      {!questions.length && <div className="empty">{t('admin.noQuestions')}</div>}
+      {questions.map((q) => (
+        <div key={q.id} className="admin-list-item">
+          {q.imageUrl && <img className="admin-q-thumb" src={q.imageUrl} alt="" />}
+          <div style={{ minWidth: 0, flex: 1 }}>
+            <h4>{previewText(q.text) || t('admin.q.imageOnly')}</h4>
+            <p className="muted" style={{ margin: '4px 0 0' }}>
+              {t('admin.answersCount', { n: (q.answers || []).length })}
+            </p>
+          </div>
+          <button className="btn sm" type="button" onClick={() => onEdit(q)}>{t('admin.q.editShort')}</button>
+          <button className="btn ghost sm" type="button" onClick={() => onDelete(q)}>{t('common.delete')}</button>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export default function AdminSection() {
   const { t } = useLang();
   const { subjectId, sectionId } = useParams();
@@ -238,11 +270,12 @@ export default function AdminSection() {
   const [msg, setMsg] = useState('');
   const [error, setError] = useState('');
   const [editing, setEditing] = useState(undefined);
+  const [modal, setModal] = useState(null);
 
   async function reload() {
-    const list = (await adminApi.subjects()).subjects;
+    const list = await loadSubjects();
     const foundSubject = list.find((row) => String(row.id) === String(subjectId));
-    const foundSection = (foundSubject?.sections || foundSubject?.Tests || [])
+    const foundSection = (foundSubject?.sections || [])
       .find((row) => String(row.id) === String(sectionId));
     if (!foundSubject || !foundSection) {
       navigate(foundSubject ? contentPath(foundSubject.id) : contentPath(), { replace: true });
@@ -250,6 +283,11 @@ export default function AdminSection() {
     }
     setSubject(foundSubject);
     setSection(foundSection);
+    if (sectionKind(foundSection) === 'group') {
+      setQuestions([]);
+      setPassages([]);
+      return;
+    }
     const [qs, ps] = await Promise.all([
       adminApi.questions(foundSection.id),
       adminApi.passages(foundSection.id),
@@ -262,7 +300,7 @@ export default function AdminSection() {
     reload().catch((err) => setError(err.message));
   }, [subjectId, sectionId]);
 
-  async function afterUpload(ok, err) {
+  async function done(ok, err) {
     if (err) {
       setMsg('');
       setError(err);
@@ -273,43 +311,87 @@ export default function AdminSection() {
     await reload();
   }
 
+  async function run(fn) {
+    try {
+      await fn();
+      await done(t('admin.saved'));
+    } catch (err) {
+      await done(null, err.message);
+    }
+  }
+
+  async function removeQuestion(q) {
+    if (!confirmDelete(t)) return;
+    await run(() => adminApi.deleteQuestion(q.id));
+  }
+
   if (!subject || !section) return <p className="muted">{t('common.loading')}</p>;
 
-  const isReading = section.ortPart === 'reading' || passages.length > 0;
+  const all = subject.sections || [];
+  const chain = sectionChain(all, section.id);
+  const kind = sectionKind(section);
+  const isReading = kind === 'reading' || passages.length > 0;
   const compares = questions.filter(isCompare);
   const plainQuestions = questions.filter((q) => !isCompare(q));
-  const showCompare = ['math', 'math1'].includes(section.ortPart) || compares.length > 0;
+  const children = all.filter((row) => row.parentId === section.id);
+  const onChanged = (ok) => done(ok);
+  const onError = (err) => done(null, err);
+
+  let summary = t('admin.questionsCount', { n: plainQuestions.length });
+  if (kind === 'group') summary = t('admin.subsectionsCount', { n: children.length });
+  else if (kind === 'compare') summary = t('admin.cmp.count', { n: compares.length });
+  else if (isReading) {
+    summary = t('admin.reading.summary', { texts: passages.length, n: passages.reduce((s, p) => s + p.questionCount, 0) });
+  }
 
   return (
     <div>
       <Crumbs items={[
         { label: t('admin.subjects'), to: contentPath() },
         { label: subject.name, to: contentPath(subject.id) },
-        { label: section.name },
+        ...chain.map((row, i) => (i === chain.length - 1
+          ? { label: row.name }
+          : { label: row.name, to: contentPath(subject.id, row.id) })),
       ]} />
       <div className="admin-section-head" style={{ marginTop: 0 }}>
         <div>
-          <h1>{section.name}</h1>
-          <p className="muted">
-            {isReading
-              ? t('admin.reading.summary', { texts: passages.length, n: passages.reduce((s, p) => s + p.questionCount, 0) })
-              : t('admin.questionsCount', { n: plainQuestions.length })}
-            {showCompare && !isReading ? ` · ${t('admin.cmp.count', { n: compares.length })}` : ''}
-          </p>
+          <span className={`kind-badge kind-${kind}`}>{kindLabel(t, kind)}</span>
+          <h1 style={{ marginTop: 8 }}>{section.name}</h1>
+          <p className="muted">{summary}</p>
         </div>
-        {!isReading && (
-          <div className="row" style={{ flexWrap: 'wrap', gap: 8 }}>
-            <button className="btn sm" type="button" onClick={() => setEditing(null)}>+ {t('admin.q.add')}</button>
-            <Link className="btn ghost sm" to={contentPath(subject.id, section.id, 'reading', 'new')}>
-              {t('admin.reading.add')}
-            </Link>
-            <TxtUploadButtons testId={section.id} onDone={afterUpload} />
-          </div>
-        )}
+        <div className="row" style={{ flexWrap: 'wrap', gap: 8 }}>
+          {kind === 'group' && (
+            <button className="btn" type="button" onClick={() => setModal({ item: null })}>
+              {t('admin.addSubsection')}
+            </button>
+          )}
+          {kind === 'standard' && !isReading && (
+            <>
+              <button className="btn sm" type="button" onClick={() => setEditing(null)}>+ {t('admin.q.add')}</button>
+              <TxtUploadButtons testId={section.id} onDone={done} />
+            </>
+          )}
+        </div>
       </div>
-      {!isReading && <p className="muted" style={{ marginTop: 0, fontSize: 13 }}>{t('admin.txtHint')}</p>}
+      {kind === 'standard' && !isReading && (
+        <p className="muted" style={{ marginTop: 0, fontSize: 13 }}>{t('admin.txtHint')}</p>
+      )}
       {msg && <p className="ok">{msg}</p>}
       {error && <p className="err">{error}</p>}
+
+      {kind === 'group' && (
+        <SectionList
+          sections={children}
+          all={all}
+          emptyText={t('admin.noSubsections')}
+          onOpen={(row) => navigate(contentPath(subject.id, row.id))}
+          onEdit={(row) => setModal({ item: row })}
+          onDelete={(row) => {
+            if (!window.confirm(t('admin.confirmDeleteSection', { name: row.name }))) return;
+            run(() => adminApi.deleteTest(row.id));
+          }}
+        />
+      )}
 
       {isReading && (
         <>
@@ -317,8 +399,8 @@ export default function AdminSection() {
             subjectId={subject.id}
             section={section}
             passages={passages}
-            onChanged={async (ok) => { setError(''); setMsg(ok); await reload(); }}
-            onError={(err) => { setMsg(''); setError(err); }}
+            onChanged={onChanged}
+            onError={onError}
           />
           <div className="admin-section-head">
             <div>
@@ -327,61 +409,26 @@ export default function AdminSection() {
             </div>
             <div className="row" style={{ flexWrap: 'wrap', gap: 8 }}>
               <button className="btn ghost sm" type="button" onClick={() => setEditing(null)}>+ {t('admin.q.add')}</button>
-              <TxtUploadButtons testId={section.id} onDone={afterUpload} />
+              <TxtUploadButtons testId={section.id} onDone={done} />
             </div>
           </div>
         </>
       )}
 
-      {showCompare && !isReading && (
+      {!isReading && (kind === 'compare' || compares.length > 0) && (
+        <CompareBlock testId={section.id} questions={compares} onChanged={onChanged} onError={onError} />
+      )}
+
+      {kind !== 'group' && (kind !== 'compare' || plainQuestions.length > 0) && (
         <>
-          <CompareBlock
-            testId={section.id}
-            questions={compares}
-            onChanged={async (ok) => { setError(''); setMsg(ok); await reload(); }}
-            onError={(err) => { setMsg(''); setError(err); }}
-          />
-          <div className="admin-section-head">
-            <div>
+          {kind === 'compare' && (
+            <div className="admin-section-head">
               <h3 style={{ margin: 0 }}>{t('admin.cmp.otherTitle')}</h3>
-              <p className="muted" style={{ margin: '4px 0 0', fontSize: 13 }}>{t('admin.cmp.otherLead')}</p>
             </div>
-          </div>
+          )}
+          <QuestionList questions={plainQuestions} onEdit={setEditing} onDelete={removeQuestion} />
         </>
       )}
-
-      <div className="admin-list">
-        {!plainQuestions.length && <div className="empty">{t('admin.noQuestions')}</div>}
-        {plainQuestions.map((q) => (
-          <div key={q.id} className="admin-list-item">
-            {q.imageUrl && <img className="admin-q-thumb" src={q.imageUrl} alt="" />}
-            <div style={{ minWidth: 0, flex: 1 }}>
-              <h4>{previewText(q.text) || t('admin.q.imageOnly')}</h4>
-              <p className="muted" style={{ margin: '4px 0 0' }}>
-                {(q.tags || []).map((tag) => tag.name).join(', ') || t('admin.noTags')}
-              </p>
-            </div>
-            <button className="btn sm" type="button" onClick={() => setEditing(q)}>{t('admin.q.editShort')}</button>
-            <button
-              className="btn ghost sm"
-              type="button"
-              onClick={async () => {
-                if (!confirmDelete(t)) return;
-                try {
-                  await adminApi.deleteQuestion(q.id);
-                  setMsg(t('admin.saved'));
-                  setError('');
-                  await reload();
-                } catch (err) {
-                  setError(err.message);
-                }
-              }}
-            >
-              {t('common.delete')}
-            </button>
-          </div>
-        ))}
-      </div>
 
       {editing !== undefined && (
         <QuestionModal
@@ -391,11 +438,25 @@ export default function AdminSection() {
           onClose={() => setEditing(undefined)}
           onSaved={async (ok) => {
             setEditing(undefined);
-            setError('');
-            setMsg(ok);
-            await reload();
+            await done(ok);
           }}
         />
+      )}
+
+      {modal && (
+        <Modal title={modal.item ? t('common.edit') : t('admin.addSubsection')} onClose={() => setModal(null)}>
+          <SectionForm
+            initialName={modal.item?.name || ''}
+            initialKind={modal.item ? sectionKind(modal.item) : 'standard'}
+            showOrtPart={false}
+            onClose={() => setModal(null)}
+            onSubmit={(body) => run(async () => {
+              if (modal.item) await adminApi.updateTest(modal.item.id, body);
+              else await adminApi.createTest({ ...body, parentId: section.id });
+              setModal(null);
+            })}
+          />
+        </Modal>
       )}
     </div>
   );

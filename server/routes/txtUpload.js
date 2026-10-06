@@ -11,10 +11,10 @@ const {
   Answer,
   Flashcard,
   FlashcardTagMap,
-  QuestionTagMap,
   ReadingPassage,
 } = require('../models');
-const { parseQuestionsFromText, extractTagsFromBlock } = require('../utils/parseQuestionsTxt');
+const { Op } = require('sequelize');
+const { parseQuestionsFromText } = require('../utils/parseQuestionsTxt');
 const {
   COMPARE_KIND,
   compareAnswers,
@@ -24,7 +24,6 @@ const {
 } = require('../utils/compareQuestions');
 const { parseFlashcardsTxt } = require('../utils/parseFlashcardsTxt');
 const { findOrCreateTag } = require('../utils/findOrCreateTag');
-const { applyPassageTags } = require('../utils/passageTags');
 
 const uploadDir = path.join(__dirname, '..', 'uploads');
 fs.mkdirSync(uploadDir, { recursive: true });
@@ -84,19 +83,6 @@ async function replaceAnswers(questionId, answers) {
   }
 }
 
-async function attachTags(questionId, tags, subjectId = null) {
-  await QuestionTagMap.destroy({ where: { questionId } });
-  for (const tag of tags) {
-    const row = await findOrCreateTag(tag.name, tag.kind, subjectId);
-    if (row) {
-      await QuestionTagMap.findOrCreate({
-        where: { questionId, tagId: row.id },
-        defaults: { questionId, tagId: row.id },
-      });
-    }
-  }
-}
-
 async function upsertQuestions(test, parsed, passageId = null) {
   const testId = test.id;
   let created = 0;
@@ -127,8 +113,6 @@ async function upsertQuestions(test, parsed, passageId = null) {
       created += 1;
     }
     await replaceAnswers(question.id, item.answers);
-    await attachTags(question.id, item.tags, test.subjectId);
-    if (passageId) await applyPassageTags(passageId, [question.id]);
   }
   return { created, updated, total: parsed.length };
 }
@@ -144,7 +128,7 @@ async function resolveTest(req) {
   const subjectId = Number(req.body.subjectId);
   if (!subjectId) return null;
   let test = await Test.findOne({
-    where: { subjectId },
+    where: { subjectId, kind: { [Op.or]: [{ [Op.ne]: 'group' }, { [Op.is]: null }] } },
     order: [['sortOrder', 'ASC'], ['id', 'ASC']],
   });
   if (test) return test;
@@ -153,14 +137,23 @@ async function resolveTest(req) {
   return Test.create({
     name: subject.name,
     subjectId: subject.id,
+    kind: 'standard',
     hasExplanations: true,
     isActive: true,
   });
 }
 
+function testError(res, test) {
+  if (!test) return res.status(404).json({ error: 'Предмет или раздел не найден' });
+  if (test.kind === 'group') {
+    return res.status(400).json({ error: 'В разделе-группе нет вопросов — загрузите их в подраздел' });
+  }
+  return null;
+}
+
 async function handleQuestionTxt(req, res, options) {
   const test = await resolveTest(req);
-  if (!test) return res.status(404).json({ error: 'Предмет или раздел не найден' });
+  if (testError(res, test)) return;
   const raw = readUploaded(req);
   if (!raw) return res.status(400).json({ error: 'TXT файл не загружен. Поле: pdf или file' });
   const parsed = parseQuestionsFromText(raw, options);
@@ -179,15 +172,15 @@ async function handleQuestionTxt(req, res, options) {
 }
 
 const PARSE_OPTIONS = {
-  explained: { linked: false, requireExplanation: true, requireTags: false, parseTags: true },
-  linked: { linked: true, requireExplanation: true, requireTags: false, parseTags: true },
+  explained: { linked: false, requireExplanation: true, requireTags: false, parseTags: false },
+  linked: { linked: true, requireExplanation: true, requireTags: false, parseTags: false },
 };
 
 router.post('/parse-txt', fileField, async (req, res) => {
   const raw = readUploaded(req);
   if (!raw) return res.status(400).json({ error: 'TXT файл не загружен' });
   if (req.body.mode === COMPARE_KIND) {
-    const items = parseCompareFromText(raw, { parseTags: extractTagsFromBlock });
+    const items = parseCompareFromText(raw);
     const stats = items._parseStats;
     if (!items.length) {
       return res.status(400).json({ error: `Не удалось найти сравнения в TXT. ${items._parseHint}`.trim(), stats });
@@ -218,7 +211,6 @@ router.post('/parse-txt', fileField, async (req, res) => {
     explanation: item.explanation || '',
     explanationImageUrl: null,
     answers: item.answers.map((a) => ({ text: a.text, isCorrect: !!a.isCorrect, imageUrl: null })),
-    tags: item.tags || [],
   }));
   res.json({
     mode,
@@ -235,7 +227,7 @@ router.post('/upload-image', imageUpload.single('image'), (req, res) => {
 
 router.post('/import-questions', express.json({ limit: '8mb' }), async (req, res) => {
   const test = await resolveTest(req);
-  if (!test) return res.status(404).json({ error: 'Предмет или раздел не найден' });
+  if (testError(res, test)) return;
   const items = Array.isArray(req.body.items) ? req.body.items : [];
   const prepared = [];
   for (const [idx, item] of items.entries()) {
@@ -255,9 +247,6 @@ router.post('/import-questions', express.json({ limit: '8mb' }), async (req, res
         explanation: String(item.explanation || ''),
         explanationImageUrl: item.explanationImageUrl,
         answers: compareAnswers(correct),
-        tags: (Array.isArray(item.tags) ? item.tags : [])
-          .map((tag) => ({ name: String(tag.name || '').trim(), kind: tag.kind || 'topic' }))
-          .filter((tag) => tag.name),
       });
       continue;
     }
@@ -279,9 +268,6 @@ router.post('/import-questions', express.json({ limit: '8mb' }), async (req, res
       explanation: String(item.explanation || ''),
       explanationImageUrl: item.explanationImageUrl,
       answers: answers.map((a) => ({ ...a, text: a.text || ' ' })),
-      tags: (Array.isArray(item.tags) ? item.tags : [])
-        .map((tag) => ({ name: String(tag.name || '').trim(), kind: tag.kind || 'topic' }))
-        .filter((tag) => tag.name),
     });
   }
   if (!prepared.length) return res.status(400).json({ error: 'Нет вопросов для сохранения' });
@@ -299,7 +285,7 @@ router.post('/upload-txt-explained', fileField, async (req, res) => {
       linked: false,
       requireExplanation: true,
       requireTags: false,
-      parseTags: true,
+      parseTags: false,
     });
   } catch (error) {
     console.error('Ошибка загрузки TXT:', error);
@@ -313,7 +299,7 @@ router.post('/upload-txt-linked', fileField, async (req, res) => {
       linked: true,
       requireExplanation: true,
       requireTags: false,
-      parseTags: true,
+      parseTags: false,
     });
   } catch (error) {
     console.error('Ошибка загрузки связанных вопросов:', error);

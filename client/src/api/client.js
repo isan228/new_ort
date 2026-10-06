@@ -48,12 +48,9 @@ export const ortApi = {
   dashboard: () => api('/api/tests/ort/dashboard'),
   welcomeStats: (testId) => api(`/api/tests/ort/welcome-stats?testId=${testId}`),
   history: (testId) => api(`/api/tests/ort/history?testId=${testId}`),
-  tags: () => api('/api/tests/ort/tags'),
-  tagsGrouped: (testId) => api(`/api/tests/ort/tags/grouped?testId=${testId}`),
   builder: (params = {}) => {
     const q = new URLSearchParams();
     if (params.testIds?.length) q.set('testIds', params.testIds.join(','));
-    if (params.tagIds?.length) q.set('tagIds', params.tagIds.join(','));
     if (params.modes?.length) q.set('modes', params.modes.join(','));
     const qs = q.toString();
     return api(`/api/tests/ort/builder${qs ? `?${qs}` : ''}`);
@@ -127,15 +124,6 @@ export const adminApi = {
   createPromo: (body) => api('/api/admin/promo-codes', { method: 'POST', body: JSON.stringify(body) }),
   updatePromo: (id, body) => api(`/api/admin/promo-codes/${id}`, { method: 'PUT', body: JSON.stringify(body) }),
   deletePromo: (id) => api(`/api/admin/promo-codes/${id}`, { method: 'DELETE' }),
-  tags: () => api('/api/admin/question-tags'),
-  createTag: (body) => api('/api/admin/question-tags', { method: 'POST', body: JSON.stringify(body) }),
-  updateTag: (id, body) => api(`/api/admin/question-tags/${id}`, { method: 'PUT', body: JSON.stringify(body) }),
-  mergeTags: (sourceId, targetId) => api('/api/admin/question-tags/merge', {
-    method: 'POST',
-    body: JSON.stringify({ sourceId, targetId }),
-  }),
-  mergeDuplicateTags: () => api('/api/admin/question-tags/merge-duplicates', { method: 'POST' }),
-  deleteTag: (id) => api(`/api/admin/question-tags/${id}`, { method: 'DELETE' }),
   termImages: () => api('/api/admin/term-images'),
   createTerm: (form) => api('/api/admin/term-images', { method: 'POST', body: form }),
   deleteTerm: (id) => api(`/api/admin/term-images/${id}`, { method: 'DELETE' }),

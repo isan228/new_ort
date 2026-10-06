@@ -24,6 +24,9 @@ Test.belongsTo(Subject, { foreignKey: 'subjectId' });
 Subject.hasMany(QuestionTag, { foreignKey: 'subjectId' });
 QuestionTag.belongsTo(Subject, { foreignKey: 'subjectId' });
 
+Test.hasMany(Test, { as: 'Children', foreignKey: 'parentId', constraints: false });
+Test.belongsTo(Test, { as: 'Parent', foreignKey: 'parentId', constraints: false });
+
 Test.hasMany(Question, { foreignKey: 'testId' });
 Question.belongsTo(Test, { foreignKey: 'testId' });
 

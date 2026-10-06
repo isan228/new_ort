@@ -9,6 +9,9 @@ const Test = sequelize.define('Test', {
   isActive: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: true },
   sortOrder: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 0 },
   ortPart: { type: DataTypes.STRING, allowNull: true },
+  parentId: { type: DataTypes.INTEGER, allowNull: true },
+  // group = holds subsections only; standard / compare / reading = holds questions, each with its own uploader.
+  kind: { type: DataTypes.STRING(20), allowNull: true },
 });
 
 module.exports = { Test };

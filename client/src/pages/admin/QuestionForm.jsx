@@ -17,7 +17,6 @@ export function toDraft(q) {
       explanation: '',
       explanationImageUrl: null,
       evidence: '',
-      tagsText: '',
       answers: [0, 1, 2, 3].map(() => ({ _key: nextKey(), text: '', imageUrl: null, isCorrect: false })),
       dirty: true,
     };
@@ -30,8 +29,6 @@ export function toDraft(q) {
     explanation: q.explanation || '',
     explanationImageUrl: q.explanationImageUrl || null,
     evidence: q.evidence || '',
-    tagsText: (q.tags || []).map((tag) => tag.name).join(', '),
-    tagKinds: new Map((q.tags || []).map((tag) => [tag.name.toLowerCase(), tag.kind])),
     answers: (q.answers || []).map((a) => ({
       _key: nextKey(),
       text: a.text || '',
@@ -50,8 +47,8 @@ export function draftProblem(q) {
   return '';
 }
 
-export function draftPayload(q, { withTags = false } = {}) {
-  const payload = {
+export function draftPayload(q) {
+  return {
     text: q.text.trim() || ' ',
     imageUrl: q.imageUrl || null,
     explanation: q.explanation.trim(),
@@ -61,17 +58,9 @@ export function draftPayload(q, { withTags = false } = {}) {
       .filter((a) => a.text.trim() || a.imageUrl)
       .map((a, i) => ({ text: a.text.trim() || ' ', imageUrl: a.imageUrl || null, isCorrect: a.isCorrect, sortOrder: i + 1 })),
   };
-  if (withTags) {
-    payload.tags = q.tagsText
-      .split(',')
-      .map((name) => name.trim())
-      .filter(Boolean)
-      .map((name) => ({ name, kind: q.tagKinds?.get(name.toLowerCase()) || 'topic' }));
-  }
-  return payload;
 }
 
-export default function QuestionForm({ draft: q, onChange, showTags = false, children }) {
+export default function QuestionForm({ draft: q, onChange, children }) {
   const { t } = useLang();
   const [error, setError] = useState('');
 
@@ -186,12 +175,6 @@ export default function QuestionForm({ draft: q, onChange, showTags = false, chi
 
       {children}
 
-      {showTags && (
-        <label className="field" style={{ marginTop: 14, marginBottom: 0 }}>
-          <span>{t('admin.q.tags')}</span>
-          <input value={q.tagsText} onChange={(e) => set({ tagsText: e.target.value })} />
-        </label>
-      )}
       <p className="muted qf-hint">{t('admin.q.pasteHint')}</p>
     </div>
   );
