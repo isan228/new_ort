@@ -3,7 +3,6 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
-const { parseLinkedText, encodeLinkedText, QUESTION_MARK } = require('../utils/ortLinkedQuestions');
 const {
   Test,
   Subject,
@@ -175,7 +174,7 @@ function testError(res, test) {
   return null;
 }
 
-async function handleQuestionTxt(req, res, options) {
+async function handleQuestionTxt(req, res) {
   const test = await resolveTest(req);
   if (testError(res, test)) return;
   if (requiresImage(test)) {
@@ -183,7 +182,7 @@ async function handleQuestionTxt(req, res, options) {
   }
   const raw = readUploaded(req);
   if (!raw) return res.status(400).json({ error: 'TXT файл не загружен. Поле: pdf или file' });
-  const parsed = parseQuestionsFromText(raw, options);
+  const parsed = parseQuestionsFromText(raw);
   if (!parsed.length) {
     return res.status(400).json({
       error: `Не удалось найти вопросы в TXT. ${parsed._parseHint || ''}`,
@@ -197,11 +196,6 @@ async function handleQuestionTxt(req, res, options) {
     testId: test.id,
   });
 }
-
-const PARSE_OPTIONS = {
-  explained: { linked: false, requireExplanation: false, requireTags: false, parseTags: false },
-  linked: { linked: true, requireExplanation: false, requireTags: false, parseTags: false },
-};
 
 const MIXED_KINDS = ['standard', 'geometry', 'compare'];
 
@@ -244,11 +238,10 @@ function parseMixed(raw, sections) {
       });
       continue;
     }
-    const [question] = parseQuestionsFromText(block, PARSE_OPTIONS.explained);
+    const [question] = parseQuestionsFromText(block);
     if (!question) { skipped += 1; continue; }
     items.push({
       externalId: question.externalId,
-      groupId: null,
       text: question.text,
       imageUrl: null,
       explanation: question.explanation || '',
@@ -301,23 +294,21 @@ router.post('/parse-txt', fileField, async (req, res) => {
       hint: stats.idBlocks > stats.accepted ? items._parseHint : '',
     });
   }
-  const mode = req.body.mode === 'linked' ? 'linked' : 'explained';
-  const parsed = parseQuestionsFromText(raw, PARSE_OPTIONS[mode]);
+  const parsed = parseQuestionsFromText(raw);
   const stats = parsed._parseStats || {};
   if (!parsed.length) {
     return res.status(400).json({ error: `Не удалось найти вопросы в TXT. ${parsed._parseHint || ''}`.trim(), stats });
   }
   const items = parsed.map((item) => ({
     externalId: item.externalId,
-    groupId: item.groupId || null,
-    text: parseLinkedText(item.text).displayText,
+    text: item.text,
     imageUrl: null,
     explanation: item.explanation || '',
     explanationImageUrl: null,
     answers: item.answers.map((a) => ({ text: a.text, isCorrect: !!a.isCorrect, imageUrl: null })),
   }));
   res.json({
-    mode,
+    mode: 'explained',
     items,
     skipped: Math.max(0, (stats.idBlocks || 0) - (stats.accepted || 0)),
     hint: stats.idBlocks > stats.accepted ? parsed._parseHint : '',
@@ -348,7 +339,7 @@ router.post('/import-questions', express.json({ limit: '8mb' }), async (req, res
         externalId: item.externalId ? String(item.externalId) : null,
         text: String(item.text || '').trim(),
         imageUrl: item.imageUrl,
-        explanation: String(item.explanation || ''),
+        explanation: String(item.explanation || '').trim(),
         explanationImageUrl: item.explanationImageUrl,
         answers: compareAnswers(correct),
       });
@@ -366,13 +357,12 @@ router.post('/import-questions', express.json({ limit: '8mb' }), async (req, res
     if (!answers.some((a) => a.isCorrect)) {
       return res.status(400).json({ error: `Вопрос №${idx + 1}: отметьте правильный ответ` });
     }
-    const groupId = item.groupId ? String(item.groupId) : null;
     prepared.push({
       evidence: item.evidence ? String(item.evidence) : null,
       externalId: item.externalId ? String(item.externalId) : null,
-      text: groupId ? encodeLinkedText(groupId, QUESTION_MARK, text || ' ') : (text || ' '),
+      text: text || ' ',
       imageUrl: item.imageUrl,
-      explanation: String(item.explanation || ''),
+      explanation: String(item.explanation || '').trim(),
       explanationImageUrl: item.explanationImageUrl,
       answers: answers.map((a) => ({ ...a, text: a.text || ' ' })),
     });
@@ -388,28 +378,9 @@ router.post('/import-questions', express.json({ limit: '8mb' }), async (req, res
 
 router.post('/upload-txt-explained', fileField, async (req, res) => {
   try {
-    await handleQuestionTxt(req, res, {
-      linked: false,
-      requireExplanation: false,
-      requireTags: false,
-      parseTags: false,
-    });
+    await handleQuestionTxt(req, res);
   } catch (error) {
     console.error('Ошибка загрузки TXT:', error);
-    res.status(500).json({ error: error.message || 'Ошибка обработки TXT файла' });
-  }
-});
-
-router.post('/upload-txt-linked', fileField, async (req, res) => {
-  try {
-    await handleQuestionTxt(req, res, {
-      linked: true,
-      requireExplanation: false,
-      requireTags: false,
-      parseTags: false,
-    });
-  } catch (error) {
-    console.error('Ошибка загрузки связанных вопросов:', error);
     res.status(500).json({ error: error.message || 'Ошибка обработки TXT файла' });
   }
 });

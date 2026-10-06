@@ -19,7 +19,6 @@ function emptyQuestion() {
   return {
     _key: nextKey(),
     externalId: null,
-    groupId: null,
     text: '',
     imageUrl: null,
     explanation: '',
@@ -121,7 +120,6 @@ export function QuestionCard({ q, index, onChange, onRemove, onUpload, requireIm
         <div className="tp-card-title">
           <b>{t('admin.preview.question', { n: index + 1 })}</b>
           {q.externalId && <span className="badge">ID {q.externalId}</span>}
-          {q.groupId && <span className="badge brand">{t('admin.preview.group', { id: q.groupId })}</span>}
         </div>
         <button type="button" className="btn ghost sm tp-danger" onClick={onRemove}>{t('admin.preview.deleteQuestion')}</button>
       </header>

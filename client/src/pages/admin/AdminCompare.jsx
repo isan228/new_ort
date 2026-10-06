@@ -5,7 +5,7 @@ import { CompareColumns } from '../../components/QuestionStem';
 import { COMPARE_LETTERS, compareCorrectLetter } from '../../lib/compare';
 import { pickTextFile } from '../../lib/textFile';
 import { Modal, confirmDelete, previewText } from './adminUi';
-import { ImageSlot } from './TxtPreview';
+import { ImageSlot, imageFromClipboard } from './TxtPreview';
 
 function toDraft(q) {
   return {
@@ -39,6 +39,26 @@ function draftPayload(d) {
   };
 }
 
+export function compareItemProblem(item) {
+  if (!item.compareA?.trim() || !item.compareB?.trim()) return 'admin.cmp.errColumns';
+  if (!item.correct) return 'admin.cmp.errCorrect';
+  return '';
+}
+
+export function compareItemPayload(item) {
+  return {
+    kind: 'compare',
+    externalId: item.externalId,
+    text: (item.text || '').trim(),
+    compareA: item.compareA.trim(),
+    compareB: item.compareB.trim(),
+    correct: item.correct,
+    imageUrl: item.imageUrl || null,
+    explanation: (item.explanation || '').trim(),
+    explanationImageUrl: item.explanationImageUrl || null,
+  };
+}
+
 function CorrectPicker({ value, onChange }) {
   const { t } = useLang();
   return (
@@ -60,12 +80,78 @@ function CorrectPicker({ value, onChange }) {
   );
 }
 
+export function CompareFields({ d, onChange, onUpload }) {
+  const { t } = useLang();
+  const set = (patch) => onChange({ ...d, ...patch });
+
+  async function pasteInto(event, field) {
+    const file = imageFromClipboard(event);
+    if (!file) return;
+    event.preventDefault();
+    try {
+      set({ [field]: await onUpload(file) });
+    } catch {
+      /* error is shown by the parent */
+    }
+  }
+
+  return (
+    <div className="qf">
+      <label className="field">
+        <span>{t('admin.cmp.condition')}</span>
+        <textarea
+          rows={2}
+          value={d.text || ''}
+          placeholder={t('admin.cmp.conditionPh')}
+          onChange={(e) => set({ text: e.target.value })}
+          onPaste={(e) => pasteInto(e, 'imageUrl')}
+        />
+      </label>
+      <div className="cmp-form-cols">
+        <label className="field">
+          <span>{t('compare.colA')}</span>
+          <textarea rows={2} value={d.compareA || ''} onChange={(e) => set({ compareA: e.target.value })} />
+        </label>
+        <label className="field">
+          <span>{t('compare.colB')}</span>
+          <textarea rows={2} value={d.compareB || ''} onChange={(e) => set({ compareB: e.target.value })} />
+        </label>
+      </div>
+      <div className="qf-image">
+        <small className="muted">{t('admin.q.imageOptional')}</small>
+        <ImageSlot compact url={d.imageUrl} onChange={(url) => set({ imageUrl: url })} onUpload={onUpload} />
+      </div>
+      <div className="qf-label">{t('admin.cmp.correct')}</div>
+      <CorrectPicker value={d.correct} onChange={(correct) => set({ correct })} />
+      <label className="field" style={{ marginTop: 14 }}>
+        <span>{t('admin.q.explanation')}</span>
+        <textarea
+          rows={3}
+          value={d.explanation || ''}
+          onChange={(e) => set({ explanation: e.target.value })}
+          onPaste={(e) => pasteInto(e, 'explanationImageUrl')}
+        />
+      </label>
+      <div className="qf-image">
+        <small className="muted">{t('admin.q.imageOptional')}</small>
+        <ImageSlot compact url={d.explanationImageUrl} onChange={(url) => set({ explanationImageUrl: url })} onUpload={onUpload} />
+      </div>
+      {(d.compareA?.trim() || d.compareB?.trim()) && (
+        <div className="cmp-preview">
+          <div className="qf-label">{t('admin.cmp.preview')}</div>
+          {d.text?.trim() && <p style={{ margin: '0 0 8px' }}>{d.text}</p>}
+          <CompareColumns a={d.compareA} b={d.compareB} />
+        </div>
+      )}
+    </div>
+  );
+}
+
 function CompareModal({ testId, initial, onClose, onSaved }) {
   const { t } = useLang();
   const [d, setD] = useState(() => toDraft(initial));
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
-  const set = (patch) => setD((prev) => ({ ...prev, ...patch }));
 
   async function upload(file) {
     try {
@@ -94,43 +180,7 @@ function CompareModal({ testId, initial, onClose, onSaved }) {
 
   return (
     <Modal title={d.id ? t('admin.cmp.edit') : t('admin.cmp.new')} onClose={onClose}>
-      <div className="qf">
-        <label className="field">
-          <span>{t('admin.cmp.condition')}</span>
-          <textarea rows={2} value={d.text} placeholder={t('admin.cmp.conditionPh')} onChange={(e) => set({ text: e.target.value })} />
-        </label>
-        <div className="cmp-form-cols">
-          <label className="field">
-            <span>{t('compare.colA')}</span>
-            <textarea rows={2} value={d.compareA} onChange={(e) => set({ compareA: e.target.value })} />
-          </label>
-          <label className="field">
-            <span>{t('compare.colB')}</span>
-            <textarea rows={2} value={d.compareB} onChange={(e) => set({ compareB: e.target.value })} />
-          </label>
-        </div>
-        <div className="qf-image">
-          <small className="muted">{t('admin.q.imageOptional')}</small>
-          <ImageSlot compact url={d.imageUrl} onChange={(url) => set({ imageUrl: url })} onUpload={upload} />
-        </div>
-        <div className="qf-label">{t('admin.cmp.correct')}</div>
-        <CorrectPicker value={d.correct} onChange={(correct) => set({ correct })} />
-        <label className="field" style={{ marginTop: 14 }}>
-          <span>{t('admin.q.explanation')}</span>
-          <textarea rows={3} value={d.explanation} onChange={(e) => set({ explanation: e.target.value })} />
-        </label>
-        <div className="qf-image">
-          <small className="muted">{t('admin.q.imageOptional')}</small>
-          <ImageSlot compact url={d.explanationImageUrl} onChange={(url) => set({ explanationImageUrl: url })} onUpload={upload} />
-        </div>
-        {(d.compareA.trim() || d.compareB.trim()) && (
-          <div className="cmp-preview">
-            <div className="qf-label">{t('admin.cmp.preview')}</div>
-            {d.text.trim() && <p style={{ margin: '0 0 8px' }}>{d.text}</p>}
-            <CompareColumns a={d.compareA} b={d.compareB} />
-          </div>
-        )}
-      </div>
+      <CompareFields d={d} onChange={setD} onUpload={upload} />
       {error && <p className="err">{error}</p>}
       <div className="row qf-footer">
         <button type="button" className="btn ghost" onClick={onClose}>{t('admin.q.cancel')}</button>
@@ -144,15 +194,32 @@ function CompareModal({ testId, initial, onClose, onSaved }) {
 
 function CompareTxtPreview({ testId, fileName, parsed, onClose, onSaved }) {
   const { t } = useLang();
-  const [items, setItems] = useState(parsed.items);
+  const [items, setItems] = useState(() => parsed.items.map((item, i) => ({ ...item, _key: i })));
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const invalid = items.filter((item) => compareItemProblem(item));
+
+  async function upload(file) {
+    setError('');
+    try {
+      const { url } = await adminApi.uploadImage(file);
+      return url;
+    } catch (err) {
+      setError(err.message);
+      throw err;
+    }
+  }
 
   async function save() {
+    if (invalid.length) {
+      setError(t('admin.preview.invalidN', { n: invalid.length }));
+      document.getElementById(`cmp-item-${invalid[0]._key}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      return;
+    }
     setBusy(true);
     setError('');
     try {
-      const data = await adminApi.importQuestions({ testId }, items);
+      const data = await adminApi.importQuestions({ testId }, items.map(compareItemPayload));
       await onSaved(data.message);
     } catch (err) {
       setError(err.message);
@@ -168,36 +235,29 @@ function CompareTxtPreview({ testId, fileName, parsed, onClose, onSaved }) {
       </p>
       {parsed.hint && <p className="err" style={{ marginTop: 0 }}>{parsed.hint}</p>}
       <div className="cmp-txt-list">
-        {items.map((item, idx) => (
-          <div key={`${item.externalId}-${idx}`} className="cmp-txt-item">
-            <div className="cmp-txt-head">
-              <b>№ {item.externalId}</b>
-              <button
-                type="button"
-                className="btn ghost sm"
-                onClick={() => setItems((list) => list.filter((_, i) => i !== idx))}
-              >
-                {t('common.delete')}
-              </button>
-            </div>
-            {item.text && <p style={{ margin: '0 0 8px' }}>{item.text}</p>}
-            <CompareColumns a={item.compareA} b={item.compareB} />
-            <div className="cmp-txt-correct">
-              <span className="muted">{t('admin.cmp.correct')}:</span>
-              {COMPARE_LETTERS.map((letter) => (
+        {items.map((item) => {
+          const problem = compareItemProblem(item);
+          return (
+            <div key={item._key} id={`cmp-item-${item._key}`} className={`cmp-txt-item${problem ? ' has-problems' : ''}`}>
+              <div className="cmp-txt-head">
+                <b>№ {item.externalId}</b>
                 <button
-                  key={letter}
                   type="button"
-                  className={`cmp-letter${item.correct === letter ? ' on' : ''}`}
-                  onClick={() => setItems((list) => list.map((row, i) => (i === idx ? { ...row, correct: letter } : row)))}
+                  className="btn ghost sm"
+                  onClick={() => setItems((list) => list.filter((row) => row._key !== item._key))}
                 >
-                  {letter}
+                  {t('common.delete')}
                 </button>
-              ))}
+              </div>
+              {problem && <p className="err" style={{ margin: '0 0 8px' }}>{t(problem)}</p>}
+              <CompareFields
+                d={item}
+                onUpload={upload}
+                onChange={(next) => setItems((list) => list.map((row) => (row._key === item._key ? next : row)))}
+              />
             </div>
-            {item.explanation && <p className="muted cmp-txt-expl">{previewText(item.explanation)}</p>}
-          </div>
-        ))}
+          );
+        })}
       </div>
       {error && <p className="err">{error}</p>}
       <div className="row qf-footer">

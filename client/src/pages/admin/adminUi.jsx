@@ -235,12 +235,12 @@ export function TxtUploadButtons({ testId, subjectId, passageId, disabled, requi
   const [busy, setBusy] = useState(false);
   const [preview, setPreview] = useState(null);
 
-  async function upload(kind) {
+  async function upload() {
     const file = await pickTxtFile();
     if (!file) return;
     setBusy(true);
     try {
-      const parsed = await adminApi.parseTxt(file, kind);
+      const parsed = await adminApi.parseTxt(file, 'explained');
       setPreview({ fileName: file.name, parsed });
     } catch (err) {
       await onDone(null, err.message);
@@ -255,11 +255,8 @@ export function TxtUploadButtons({ testId, subjectId, passageId, disabled, requi
 
   return (
     <div className="admin-txt-row">
-      <button className="btn sm" type="button" disabled={disabled || busy} onClick={() => upload('explained')}>
+      <button className="btn sm" type="button" disabled={disabled || busy} onClick={upload}>
         {busy ? t('common.loading') : t('admin.txtExplained')}
-      </button>
-      <button className="btn ghost sm" type="button" disabled={disabled || busy} onClick={() => upload('linked')}>
-        {t('admin.txtLinked')}
       </button>
       {preview && (
         <TxtPreview

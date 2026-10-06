@@ -2486,3 +2486,7 @@ body.tp-open { overflow: hidden; }
 .kind-badge.kind-geometry { background: rgba(219, 39, 119, .12); color: #db2777; }
 .tp-section-label.tp-required { color: var(--bad); }
 
+
+.cmp-txt-item.has-problems { border-color: var(--bad); }
+.cmp-txt-item .qf { margin-top: 4px; }
+

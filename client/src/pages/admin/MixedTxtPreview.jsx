@@ -1,9 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { adminApi } from '../../api/client';
 import { useLang } from '../../context/LangContext';
-import { CompareColumns } from '../../components/QuestionStem';
-import { COMPARE_LETTERS } from '../../lib/compare';
 import { pickTextFile } from '../../lib/textFile';
+import { CompareFields, compareItemPayload } from './AdminCompare';
 import { QuestionCard, questionProblems, withKeys } from './TxtPreview';
 import { kindLabel } from './adminUi';
 
@@ -38,7 +37,7 @@ function SectionPicker({ item, sections, onChange }) {
   );
 }
 
-function CompareCard({ item, index, sections, onChange, onRemove }) {
+function CompareCard({ item, index, sections, onChange, onRemove, onUpload }) {
   const { t } = useLang();
   const problems = itemProblems(item, sections.find((row) => row.id === item.targetId));
   return (
@@ -57,31 +56,13 @@ function CompareCard({ item, index, sections, onChange, onRemove }) {
           {problems.map((p) => <span key={p}>{t(`admin.mixed.${p}`)}</span>)}
         </div>
       )}
-      {item.text && <p style={{ margin: '0 0 8px' }}>{item.text}</p>}
-      <CompareColumns a={item.compareA} b={item.compareB} />
-      <div className="cmp-txt-correct">
-        <span className="muted">{t('admin.cmp.correct')}:</span>
-        {COMPARE_LETTERS.map((letter) => (
-          <button
-            key={letter}
-            type="button"
-            className={`cmp-letter${item.correct === letter ? ' on' : ''}`}
-            onClick={() => onChange({ ...item, correct: letter })}
-          >
-            {letter}
-          </button>
-        ))}
-      </div>
-      {item.explanation && <p className="muted cmp-txt-expl">{item.explanation}</p>}
+      <CompareFields d={item} onChange={onChange} onUpload={onUpload} />
     </article>
   );
 }
 
 function toPayload(item) {
-  if (isCompareItem(item)) {
-    const { kind, externalId, text, compareA, compareB, correct, explanation, imageUrl, explanationImageUrl } = item;
-    return { kind, externalId, text, compareA, compareB, correct, explanation, imageUrl, explanationImageUrl };
-  }
+  if (isCompareItem(item)) return compareItemPayload(item);
   const { _key, answers, targetId, sectionRaw, ...rest } = item;
   return { ...rest, answers: answers.map(({ _key: k, ...a }) => a) };
 }
@@ -201,6 +182,7 @@ export function MixedPreview({ fileName, parsed, onClose, onSaved }) {
               item={item}
               index={i}
               sections={sections}
+              onUpload={upload}
               onChange={(next) => replace(item, next)}
               onRemove={() => update(items.filter((row) => row._key !== item._key))}
             />

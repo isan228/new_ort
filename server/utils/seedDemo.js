@@ -136,7 +136,7 @@ async function seedDemoContent() {
       language: 'ru',
       sortOrder: 3,
       tests: [
-        { name: 'Банк: чтение', file: 'sample-linked.txt', linked: true },
+        { name: 'Банк: чтение', file: 'sample-linked.txt' },
       ],
     },
     {
@@ -227,7 +227,7 @@ async function seedDemoContent() {
       });
       if (!spec.file) continue;
       const raw = fs.readFileSync(path.join(__dirname, '..', 'data', spec.file), 'utf8');
-      const parsed = parseExplainedQuestions(raw, { linked: !!spec.linked });
+      const parsed = parseExplainedQuestions(raw);
       await upsertQuestions(test.id, parsed);
     }
   }
