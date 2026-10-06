@@ -176,10 +176,11 @@ export const adminApi = {
     Object.entries(extra).forEach(([k, v]) => form.append(k, v));
     return api(url, { method: 'POST', body: form });
   },
-  parseTxt: (file, mode) => {
+  parseTxt: (file, mode, testId) => {
     const form = new FormData();
     form.append('file', file);
     form.append('mode', mode);
+    if (testId) form.append('testId', testId);
     return api('/api/admin/parse-txt', { method: 'POST', body: form });
   },
   uploadImage: (file) => {

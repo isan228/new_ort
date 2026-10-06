@@ -7,7 +7,7 @@ const LETTERS = 'ABCDEFGHIJ';
 let keySeq = 0;
 const nextKey = () => `k${Date.now()}-${keySeq++}`;
 
-function withKeys(items) {
+export function withKeys(items) {
   return items.map((item) => ({
     ...item,
     _key: nextKey(),
@@ -88,7 +88,7 @@ export function ImageSlot({ url, onChange, onUpload, compact = false }) {
   );
 }
 
-function QuestionCard({ q, index, onChange, onRemove, onUpload, requireImage }) {
+export function QuestionCard({ q, index, onChange, onRemove, onUpload, requireImage, extra }) {
   const { t } = useLang();
   const problems = questionProblems(q, { requireImage });
 
@@ -125,6 +125,7 @@ function QuestionCard({ q, index, onChange, onRemove, onUpload, requireImage }) 
         </div>
         <button type="button" className="btn ghost sm tp-danger" onClick={onRemove}>{t('admin.preview.deleteQuestion')}</button>
       </header>
+      {extra}
 
       {problems.length > 0 && (
         <div className="tp-problems">

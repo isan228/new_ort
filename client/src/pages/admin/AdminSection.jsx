@@ -22,6 +22,7 @@ import { PassageText } from '../../components/PassageText';
 import { splitParagraphs } from '../../lib/reading';
 import { pickTextFile, readTextFile, splitTitle } from '../../lib/textFile';
 import CompareBlock from './AdminCompare';
+import MixedUploadButton from './MixedTxtPreview';
 import { isCompare } from '../../lib/compare';
 import '../../styles/reading-book.css';
 
@@ -339,6 +340,7 @@ export default function AdminSection() {
   const onError = (err) => done(null, err);
 
   const requireImage = kind === 'geometry';
+  const canMix = kind === 'group' && children.some((row) => [...QUESTION_KINDS, 'compare'].includes(sectionKind(row)));
   const isQuestions = QUESTION_KINDS.includes(kind) && !isReading;
   let summary = t('admin.questionsCount', { n: plainQuestions.length });
   if (kind === 'group') summary = t('admin.subsectionsCount', { n: children.length });
@@ -363,8 +365,9 @@ export default function AdminSection() {
           <p className="muted">{summary}</p>
         </div>
         <div className="row" style={{ flexWrap: 'wrap', gap: 8 }}>
+          {kind === 'group' && canMix && <MixedUploadButton groupId={section.id} onDone={done} />}
           {kind === 'group' && (
-            <button className="btn" type="button" onClick={() => setModal({ item: null })}>
+            <button className={`btn${canMix ? ' ghost sm' : ''}`} type="button" onClick={() => setModal({ item: null })}>
               {t('admin.addSubsection')}
             </button>
           )}
@@ -385,6 +388,13 @@ export default function AdminSection() {
       {msg && <p className="ok">{msg}</p>}
       {error && <p className="err">{error}</p>}
 
+      {canMix && (
+        <details className="cmp-format">
+          <summary>{t('admin.mixed.formatTitle')}</summary>
+          <pre>{'"ID":"1" "Section":"Вычисления" "Q":"3/4 + 5/8" "A1":"1 1/8" "A2":"1 3/8" "Correct":"2" "E":"..."\n"ID":"2" "Section":"Геометрия" "Q":"Найдите площадь" "A1":"12" "A2":"24" "Correct":"2"\n"ID":"3" "A":"2^5" "B":"5^2" "Correct":"А"'}</pre>
+          <p className="muted">{t('admin.mixed.formatHint')}</p>
+        </details>
+      )}
       {kind === 'group' && (
         <SectionList
           sections={children}

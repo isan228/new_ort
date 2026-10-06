@@ -16,6 +16,7 @@ const {
 const { Op } = require('sequelize');
 const { requiresImage } = require('../utils/sectionKinds');
 const { parseQuestionsFromText } = require('../utils/parseQuestionsTxt');
+const { normalizeTxt, extractQuotedField } = require('../utils/txtQuestionAnswers');
 const {
   COMPARE_KIND,
   compareAnswers,
@@ -202,9 +203,86 @@ const PARSE_OPTIONS = {
   linked: { linked: true, requireExplanation: false, requireTags: false, parseTags: false },
 };
 
+const MIXED_KINDS = ['standard', 'geometry', 'compare'];
+
+function lower(value) {
+  return String(value || '').trim().toLowerCase();
+}
+
+function resolveMixedTarget(sections, sectionRaw, isCompareItem) {
+  const pool = sections.filter((row) => (isCompareItem ? row.kind === 'compare' : row.kind !== 'compare'));
+  const key = lower(sectionRaw);
+  if (key) {
+    const found = pool.find((row) => lower(row.name) === key)
+      || pool.find((row) => lower(row.name).startsWith(key.slice(0, 4)) || key.startsWith(lower(row.name).slice(0, 4)))
+      || (/^(geo|гео)/.test(key) && pool.find((row) => row.kind === 'geometry'));
+    return found ? found.id : null;
+  }
+  const preferred = isCompareItem ? 'compare' : 'standard';
+  return (pool.find((row) => row.kind === preferred) || pool[0])?.id || null;
+}
+
+// One TXT for a group: blocks with A1… are regular questions, blocks with "A"/"B" columns are comparisons.
+// "Section" (or "Раздел") picks the subsection by name; without it the first matching subsection is used.
+function parseMixed(raw, sections) {
+  const blocks = normalizeTxt(raw).split(/(?="ID"\s*:\s*")/i).filter((block) => /^"ID"/i.test(block.trim()));
+  const items = [];
+  let skipped = 0;
+  for (const block of blocks) {
+    const sectionRaw = extractQuotedField(block, 'Section') || extractQuotedField(block, 'Раздел');
+    const isCompareItem = !/"A1"\s*:/i.test(block) && extractQuotedField(block, 'A') != null;
+    if (isCompareItem) {
+      const [item] = parseCompareFromText(block);
+      if (!item) { skipped += 1; continue; }
+      items.push({
+        ...item,
+        correct: 'АБВГ'[item.answers.findIndex((a) => a.isCorrect)],
+        imageUrl: null,
+        explanationImageUrl: null,
+        targetId: resolveMixedTarget(sections, sectionRaw, true),
+        sectionRaw: sectionRaw || '',
+      });
+      continue;
+    }
+    const [question] = parseQuestionsFromText(block, PARSE_OPTIONS.explained);
+    if (!question) { skipped += 1; continue; }
+    items.push({
+      externalId: question.externalId,
+      groupId: null,
+      text: question.text,
+      imageUrl: null,
+      explanation: question.explanation || '',
+      explanationImageUrl: null,
+      answers: question.answers.map((a) => ({ text: a.text, isCorrect: !!a.isCorrect, imageUrl: null })),
+      targetId: resolveMixedTarget(sections, sectionRaw, false),
+      sectionRaw: sectionRaw || '',
+    });
+  }
+  let hint = '';
+  if (!blocks.length) hint = 'В файле не найдено ни одного "ID":"...". Проверьте кавычки.';
+  else if (skipped) hint = `Пропущено блоков: ${skipped}. У вопроса нужны Q, A1–A2… и Correct, у сравнения — A, B и Correct (А/Б/В/Г).`;
+  return { items, skipped, hint };
+}
+
 router.post('/parse-txt', fileField, async (req, res) => {
   const raw = readUploaded(req);
   if (!raw) return res.status(400).json({ error: 'TXT файл не загружен' });
+  if (req.body.mode === 'mixed') {
+    const group = await Test.findByPk(Number(req.body.testId));
+    if (!group || group.kind !== 'group') {
+      return res.status(400).json({ error: 'Общая загрузка работает только в разделе-группе' });
+    }
+    const sections = (await Test.findAll({
+      where: { parentId: group.id, kind: MIXED_KINDS },
+      order: [['sortOrder', 'ASC'], ['id', 'ASC']],
+    })).map((row) => ({ id: row.id, name: row.name, kind: row.kind }));
+    if (!sections.length) return res.status(400).json({ error: 'В группе нет подразделов для вопросов' });
+    const result = parseMixed(raw, sections);
+    if (!result.items.length) {
+      return res.status(400).json({ error: `Не удалось найти вопросы в TXT. ${result.hint}`.trim() });
+    }
+    return res.json({ mode: 'mixed', sections, ...result });
+  }
   if (req.body.mode === COMPARE_KIND) {
     const items = parseCompareFromText(raw);
     const stats = items._parseStats;
