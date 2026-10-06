@@ -30,6 +30,42 @@ async function contentCount(testId) {
   return questions + passages;
 }
 
+const MATH_SUBSECTIONS = [
+  { name: 'Вычисления', kind: 'standard' },
+  { name: 'Геометрия', kind: 'geometry' },
+  { name: 'Сравнения', kind: 'compare' },
+];
+
+function sameName(a, b) {
+  return String(a || '').trim().toLowerCase() === String(b || '').trim().toLowerCase();
+}
+
+// Adds missing math subsections of the main exam; subsections the admin renamed or added stay untouched.
+async function ensureMathSubsections(subject) {
+  const groups = await Test.findAll({ where: { subjectId: subject.id, parentId: null, kind: 'group' } });
+  const math = groups.find((row) => sameName(row.name, 'Математика')) || groups.find((row) => row.ortPart === 'math');
+  if (!math) return;
+  const children = await Test.findAll({ where: { parentId: math.id } });
+  const missing = MATH_SUBSECTIONS.filter((spec) => !children.some((row) => sameName(row.name, spec.name)));
+  if (!missing.length) return;
+  for (const [idx, spec] of MATH_SUBSECTIONS.entries()) {
+    const existing = children.find((row) => sameName(row.name, spec.name));
+    if (existing) {
+      await existing.update({ sortOrder: idx + 1 });
+      continue;
+    }
+    await Test.create({
+      ...spec,
+      subjectId: subject.id,
+      parentId: math.id,
+      ortPart: math.ortPart || 'math',
+      sortOrder: idx + 1,
+      hasExplanations: true,
+      isActive: true,
+    });
+  }
+}
+
 // Runs once: moves the old flat main exam (six auto-created sections) to the nested structure.
 async function migrateMainSubject(subject, legacy) {
   const math = await Test.create({
@@ -41,36 +77,8 @@ async function migrateMainSubject(subject, legacy) {
     hasExplanations: true,
     isActive: true,
   });
-  await Test.create({
-    name: 'Вычисления',
-    subjectId: subject.id,
-    parentId: math.id,
-    kind: 'standard',
-    ortPart: 'math',
-    sortOrder: 1,
-    hasExplanations: true,
-    isActive: true,
-  });
-  await Test.create({
-    name: 'Геометрия',
-    subjectId: subject.id,
-    parentId: math.id,
-    kind: 'geometry',
-    ortPart: 'math',
-    sortOrder: 2,
-    hasExplanations: true,
-    isActive: true,
-  });
-  const compare = await Test.create({
-    name: 'Сравнения',
-    subjectId: subject.id,
-    parentId: math.id,
-    kind: 'compare',
-    ortPart: 'math',
-    sortOrder: 3,
-    hasExplanations: true,
-    isActive: true,
-  });
+  await ensureMathSubsections(subject);
+  const compare = await Test.findOne({ where: { parentId: math.id, kind: 'compare' } });
   await Question.update(
     { testId: compare.id },
     { where: { testId: legacy.map((row) => row.id), kind: 'compare' } },
@@ -135,6 +143,7 @@ async function ensureOrtMainExam() {
     if (migrateMain && test.subjectId === subject.id) continue;
     await test.update({ kind: inferKind(test) });
   }
+  if (!migrateMain) await ensureMathSubsections(subject);
 }
 
 module.exports = { ensureOrtMainExam };
