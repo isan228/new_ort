@@ -39,9 +39,26 @@ if (!fs.existsSync(envFile)) {
 
 console.log('Обновление ORT.KG в', ROOT);
 
+function git(args, opts) {
+  return run('git', ['-c', `safe.directory=${ROOT}`, ...args], opts);
+}
+
+// The server is only a deploy target: it must match origin/main exactly.
+// Local commits or edits are kept in a backup branch / stash instead of blocking the update.
 if (!SKIP_PULL) {
-  run('git', ['-c', `safe.directory=${ROOT}`, 'fetch', 'origin', 'main']);
-  run('git', ['-c', `safe.directory=${ROOT}`, 'pull', '--ff-only', 'origin', 'main']);
+  git(['fetch', 'origin', 'main']);
+  const stamp = new Date().toISOString().slice(0, 19).replace(/[-:T]/g, '');
+  const dirty = String(git(['status', '--porcelain', '--untracked-files=no'], { silent: true }).stdout).trim();
+  if (dirty) {
+    git(['stash', 'push', '-m', `update-backup-${stamp}`]);
+    console.warn(`Локальные правки на сервере сохранены в git stash (update-backup-${stamp})`);
+  }
+  const ahead = Number(String(git(['rev-list', '--count', 'origin/main..HEAD'], { silent: true }).stdout).trim()) || 0;
+  if (ahead > 0) {
+    git(['branch', `backup/server-${stamp}`, 'HEAD']);
+    console.warn(`На сервере было ${ahead} своих коммитов — сохранены в ветке backup/server-${stamp}`);
+  }
+  git(['reset', '--hard', 'origin/main']);
 }
 
 run('npm', ['install']);
