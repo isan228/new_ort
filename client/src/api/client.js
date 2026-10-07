@@ -163,6 +163,14 @@ export const adminApi = {
     method: 'POST',
     body: JSON.stringify({ amount }),
   }),
+  editors: () => api('/api/admin/editors'),
+  createEditor: (body) => api('/api/admin/editors', { method: 'POST', body: JSON.stringify(body) }),
+  updateEditor: (id, body) => api(`/api/admin/editors/${id}`, { method: 'PUT', body: JSON.stringify(body) }),
+  deleteEditor: (id) => api(`/api/admin/editors/${id}`, { method: 'DELETE' }),
+  activity: (params = {}) => {
+    const q = new URLSearchParams(Object.entries(params).filter(([, v]) => v)).toString();
+    return api(`/api/admin/activity${q ? `?${q}` : ''}`);
+  },
   chatThreads: () => api('/api/admin/chat/threads'),
   chatThread: (userId) => api(`/api/admin/chat/threads/${userId}`),
   chatReply: (userId, text) => api(`/api/admin/chat/threads/${userId}`, {

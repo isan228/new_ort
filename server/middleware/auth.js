@@ -34,6 +34,15 @@ async function requireAdmin(req, res, next) {
   });
 }
 
+async function requireStaff(req, res, next) {
+  await requireAuth(req, res, () => {
+    if (!req.user || !['admin', 'editor'].includes(req.user.role)) {
+      return res.status(403).json({ error: 'Только для администратора или редактора', code: 'ADMIN_REQUIRED' });
+    }
+    return next();
+  });
+}
+
 function signToken(user) {
   return jwt.sign(
     { id: user.id, role: user.role },
@@ -73,4 +82,4 @@ async function publicUserWithPlan(user) {
   return publicUser(user, plan);
 }
 
-module.exports = { requireAuth, requireAdmin, signToken, publicUser, publicUserWithPlan };
+module.exports = { requireAuth, requireAdmin, requireStaff, signToken, publicUser, publicUserWithPlan };

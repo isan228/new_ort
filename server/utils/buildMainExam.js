@@ -2,6 +2,18 @@ const { Op } = require('sequelize');
 const { Test, Question, Answer, Subject } = require('../models');
 const { pickQuestionsKeepingLinkedOrder } = require('./ortLinkedQuestions');
 const { ORT_PARTS, MAIN_MAX } = require('./ortScoring');
+const { isCompare } = require('./compareQuestions');
+
+// Math part 1 is 30 comparisons (columns А/Б), part 2 is 30 questions with 4 options,
+// regardless of which math subsection the question lives in.
+const MATH_PARTS = ['math', 'math1', 'math2'];
+const MATH_COMPARE = 'math:compare';
+const MATH_CHOICE = 'math:choice';
+
+function poolKey(ortPart, question) {
+  if (!MATH_PARTS.includes(ortPart)) return ortPart;
+  return isCompare(question) ? MATH_COMPARE : MATH_CHOICE;
+}
 
 const SIMULATION_SECTIONS = [
   {
@@ -10,8 +22,8 @@ const SIMULATION_SECTIONS = [
     count: 60,
     minutes: 90,
     slots: [
-      { parts: ['math1'], fallback: ['math', 'math2'], count: 30 },
-      { parts: ['math2'], fallback: ['math', 'math1'], count: 30 },
+      { parts: [MATH_COMPARE], fallback: [], count: 30 },
+      { parts: [MATH_CHOICE], fallback: [], count: 30 },
     ],
   },
   {
@@ -78,10 +90,11 @@ async function loadQuestionsByPart() {
   const byPart = {};
   for (const test of tests) {
     const part = test.ortPart;
-    if (!byPart[part]) byPart[part] = [];
     for (const question of test.Questions || []) {
       question.setDataValue('ortPart', part);
-      byPart[part].push(question);
+      const key = poolKey(part, question);
+      if (!byPart[key]) byPart[key] = [];
+      byPart[key].push(question);
     }
   }
   return { tests, byPart };
@@ -141,11 +154,14 @@ function toPreview(sections) {
 async function countByPart() {
   const tests = await Test.findAll({
     where: { isActive: true, ortPart: { [Op.ne]: null } },
-    include: [{ model: Question, attributes: ['id'], where: { isActive: true, passageId: null }, required: false }],
+    include: [{ model: Question, attributes: ['id', 'kind'], where: { isActive: true, passageId: null }, required: false }],
   });
   const counts = {};
   for (const test of tests) {
-    counts[test.ortPart] = (counts[test.ortPart] || 0) + (test.Questions || []).length;
+    for (const question of test.Questions || []) {
+      const key = poolKey(test.ortPart, question);
+      counts[key] = (counts[key] || 0) + 1;
+    }
   }
   return counts;
 }

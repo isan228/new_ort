@@ -4,7 +4,7 @@ import { LangSwitch } from '../../components/LangSwitch';
 import { useAuth } from '../../context/AuthContext';
 import { useLang } from '../../context/LangContext';
 
-export default function AdminLogin() {
+export default function AdminLogin({ editor = false }) {
   const { adminLogin } = useAuth();
   const { t } = useLang();
   const [login, setLogin] = useState('');
@@ -28,8 +28,8 @@ export default function AdminLogin() {
         <LangSwitch />
       </div>
       <div className="card">
-        <h1>{t('admin.title')}</h1>
-        <p className="muted">{t('admin.hint')}</p>
+        <h1>{editor ? t('admin.editorTitle') : t('admin.title')}</h1>
+        <p className="muted">{editor ? t('admin.editorHint') : t('admin.hint')}</p>
         <form onSubmit={onSubmit}>
           <label className="field"><span>{t('common.login')}</span><input value={login} onChange={(e) => setLogin(e.target.value)} autoComplete="username" required /></label>
           <label className="field"><span>{t('common.password')}</span><input value={password} onChange={(e) => setPassword(e.target.value)} type="password" autoComplete="current-password" required /></label>

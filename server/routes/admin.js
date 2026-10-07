@@ -21,8 +21,11 @@ const {
   ReadingPassage,
   ReadingPassageTagMap,
   PromoCode,
+  ActivityLog,
   sequelize,
 } = require('../models');
+const bcrypt = require('bcryptjs');
+const { loginKey, assertLogin } = require('../utils/userLogin');
 const { normalizeCode, reservedCount } = require('../utils/promoCodes');
 const { addCoins } = require('../utils/coins');
 const {
@@ -794,6 +797,102 @@ router.get('/users', async (req, res) => {
     offset: (page - 1) * limit,
   });
   res.json({ users: rows, total: count, page, limit });
+});
+
+function publicEditor(user, stats = {}) {
+  return {
+    id: user.id,
+    name: user.name,
+    login: user.login,
+    createdAt: user.createdAt,
+    stats: {
+      create: Number(stats.create) || 0,
+      update: Number(stats.update) || 0,
+      delete: Number(stats.delete) || 0,
+      import: Number(stats.import) || 0,
+    },
+    lastActivity: stats.last || null,
+  };
+}
+
+router.get('/editors', async (req, res) => {
+  const editors = await User.findAll({ where: { role: 'editor' }, order: [['id', 'ASC']] });
+  const rows = editors.length ? await ActivityLog.findAll({
+    where: { userId: editors.map((u) => u.id) },
+    attributes: ['userId', 'action', [sequelize.fn('COUNT', sequelize.col('id')), 'n'], [sequelize.fn('MAX', sequelize.col('createdAt')), 'last']],
+    group: ['userId', 'action'],
+    raw: true,
+  }) : [];
+  const stats = {};
+  for (const row of rows) {
+    const s = stats[row.userId] || (stats[row.userId] = {});
+    s[row.action] = row.n;
+    if (!s.last || new Date(row.last) > new Date(s.last)) s.last = row.last;
+  }
+  res.json({ editors: editors.map((u) => publicEditor(u, stats[u.id])) });
+});
+
+router.post('/editors', async (req, res) => {
+  const name = String(req.body.name || '').trim();
+  const password = String(req.body.password || '');
+  if (!name) return res.status(400).json({ error: 'Укажите имя редактора' });
+  if (password.length < 6) return res.status(400).json({ error: 'Пароль — минимум 6 символов' });
+  let login;
+  try {
+    login = assertLogin(req.body.login);
+  } catch (err) {
+    return res.status(400).json({ error: err.message });
+  }
+  const email = `${login}@editor.ort.local`;
+  const exists = await User.findOne({ where: { [Op.or]: [{ login }, { loginKey: loginKey(login) }, { email }] } });
+  if (exists) return res.status(409).json({ error: 'Такой или очень похожий логин уже занят' });
+  const user = await User.create({
+    name,
+    login,
+    email,
+    role: 'editor',
+    passwordHash: await bcrypt.hash(password, 10),
+  });
+  res.json({ editor: publicEditor(user) });
+});
+
+router.put('/editors/:id', async (req, res) => {
+  const user = await User.findOne({ where: { id: req.params.id, role: 'editor' } });
+  if (!user) return res.status(404).json({ error: 'Редактор не найден' });
+  const patch = {};
+  if (req.body.name != null) {
+    patch.name = String(req.body.name).trim();
+    if (!patch.name) return res.status(400).json({ error: 'Укажите имя редактора' });
+  }
+  if (req.body.password) {
+    if (String(req.body.password).length < 6) return res.status(400).json({ error: 'Пароль — минимум 6 символов' });
+    patch.passwordHash = await bcrypt.hash(String(req.body.password), 10);
+  }
+  await user.update(patch);
+  res.json({ editor: publicEditor(user) });
+});
+
+router.delete('/editors/:id', async (req, res) => {
+  const user = await User.findOne({ where: { id: req.params.id, role: 'editor' } });
+  if (!user) return res.status(404).json({ error: 'Редактор не найден' });
+  await user.destroy();
+  res.json({ ok: true });
+});
+
+router.get('/activity', async (req, res) => {
+  const page = Math.max(1, Number(req.query.page) || 1);
+  const limit = Math.min(100, Math.max(10, Number(req.query.limit) || 30));
+  const where = {};
+  if (req.query.userId) where.userId = Number(req.query.userId);
+  if (req.query.role) where.userRole = String(req.query.role);
+  if (req.query.action) where.action = String(req.query.action);
+  const { count, rows } = await ActivityLog.findAndCountAll({
+    where,
+    order: [['createdAt', 'DESC'], ['id', 'DESC']],
+    limit,
+    offset: (page - 1) * limit,
+  });
+  res.json({ items: rows, total: count, page, limit });
 });
 
 router.get('/chat/threads', async (req, res) => {

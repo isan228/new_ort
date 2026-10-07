@@ -1,7 +1,7 @@
 import { Fragment, useEffect, useState } from 'react';
 import { NavLink, Link, useLocation, useNavigate } from 'react-router-dom';
 import { adminApi, chatApi } from '../api/client';
-import { CONTENT_CHANGED, contentPath, splitSubjects } from '../pages/admin/adminUi';
+import { CONTENT_CHANGED, EDITOR_ROOT, contentPath, splitSubjects } from '../pages/admin/adminUi';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { useLang } from '../context/LangContext';
@@ -40,8 +40,10 @@ const ADMIN_SIDE = [
   [`${ADMIN_ROOT}/content`, 'admin.program'],
   [`${ADMIN_ROOT}/plans`, 'admin.plans'],
   [`${ADMIN_ROOT}/promo`, 'admin.promos'],
+  [`${ADMIN_ROOT}/editors`, 'admin.editors'],
   [`${ADMIN_ROOT}/chat`, 'admin.chat'],
 ];
+const EDITOR_SIDE = [[`${EDITOR_ROOT}/content`, 'admin.program']];
 
 const ICON_PATHS = {
   home: 'M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z',
@@ -66,6 +68,7 @@ const ICON_PATHS = {
   sun: 'M12 17a5 5 0 1 0 0-10 5 5 0 0 0 0 10M12 1v2M12 21v2M4.2 4.2l1.4 1.4M18.4 18.4l1.4 1.4M1 12h2M21 12h2M4.2 19.8l1.4-1.4M18.4 5.6l1.4-1.4',
   moon: 'M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8',
   logout: 'M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9',
+  pen: 'M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z',
 };
 
 const ROUTE_ICON = {
@@ -88,7 +91,9 @@ const ROUTE_ICON = {
   [`${ADMIN_ROOT}/content`]: 'book',
   [`${ADMIN_ROOT}/plans`]: 'tag',
   [`${ADMIN_ROOT}/promo`]: 'ticket',
+  [`${ADMIN_ROOT}/editors`]: 'pen',
   [`${ADMIN_ROOT}/chat`]: 'chat',
+  [`${EDITOR_ROOT}/content`]: 'book',
 };
 
 function Icon({ name, size = 20 }) {
@@ -101,10 +106,11 @@ function Icon({ name, size = 20 }) {
   );
 }
 
-function useUnreadChat() {
+function useUnreadChat(enabled = true) {
   const [unread, setUnread] = useState(0);
 
   useEffect(() => {
+    if (!enabled) return undefined;
     let stop = false;
     async function tick() {
       try {
@@ -117,7 +123,7 @@ function useUnreadChat() {
     tick();
     const id = setInterval(tick, 10000);
     return () => { stop = true; clearInterval(id); };
-  }, []);
+  }, [enabled]);
 
   return unread;
 }
@@ -189,9 +195,9 @@ function AdminContentTree() {
   );
 }
 
-function AdminNav({ unread }) {
+function AdminNav({ unread, editor }) {
   const { t } = useLang();
-  return ADMIN_SIDE.map(([to, key]) => (
+  return (editor ? EDITOR_SIDE : ADMIN_SIDE).map(([to, key]) => (
     <Fragment key={to}>
       <SideItem to={to} end={to === ADMIN_ROOT} label={t(key)} unread={to.endsWith('/chat') ? unread : 0} />
       {to.endsWith('/content') && <AdminContentTree />}
@@ -389,36 +395,38 @@ export function PublicShell({ children }) {
   );
 }
 
-export function AdminShell({ children }) {
-  const { logout } = useAuth();
+export function AdminShell({ children, editor = false }) {
+  const { logout, user } = useAuth();
   const { t } = useLang();
   const navigate = useNavigate();
   const [open, setOpen] = useMenu();
-  const unread = useUnreadChat();
+  const unread = useUnreadChat(!editor);
+  const root = editor ? EDITOR_ROOT : ADMIN_ROOT;
+  const exit = () => { logout(); navigate(root); };
 
   return (
     <div className="app-shell">
       <aside className="sidebar">
-        <BrandLogo to={ADMIN_ROOT} />
-        <AdminNav unread={unread} />
-        <button type="button" className="side-link drawer-exit" onClick={() => { logout(); navigate(ADMIN_ROOT); }}><Icon name="logout" /><span>{t('common.logout')}</span></button>
+        <BrandLogo to={root} />
+        <AdminNav unread={unread} editor={editor} />
+        <button type="button" className="side-link drawer-exit" onClick={exit}><Icon name="logout" /><span>{t('common.logout')}</span></button>
       </aside>
       <div className="app-main">
         <div className="admin-top">
           <div className="top-left">
             <MenuBtn open={open} onClick={() => setOpen((v) => !v)} />
-            <BrandLogo to={ADMIN_ROOT} className="logo-mobile" />
-            <b className="top-title">{t('admin.manage')}</b>
+            <BrandLogo to={root} className="logo-mobile" />
+            <b className="top-title">{editor ? t('admin.editorPanel', { name: user?.name || '' }) : t('admin.manage')}</b>
           </div>
           <LangSwitch />
         </div>
         <div className="app-body">{children}</div>
       </div>
       <Drawer open={open} onClose={() => setOpen(false)}>
-        <BrandLogo to={ADMIN_ROOT} />
+        <BrandLogo to={root} />
         <LangSwitch />
-        <AdminNav unread={unread} />
-        <button type="button" className="side-link drawer-exit" onClick={() => { logout(); navigate(ADMIN_ROOT); }}><Icon name="logout" /><span>{t('common.logout')}</span></button>
+        <AdminNav unread={unread} editor={editor} />
+        <button type="button" className="side-link drawer-exit" onClick={exit}><Icon name="logout" /><span>{t('common.logout')}</span></button>
       </Drawer>
     </div>
   );

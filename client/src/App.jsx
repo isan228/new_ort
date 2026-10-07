@@ -35,11 +35,15 @@ import AdminSubject from './pages/admin/AdminSubject';
 import AdminSection from './pages/admin/AdminSection';
 import AdminReadingEditor from './pages/admin/AdminReadingEditor';
 import AdminChat from './pages/admin/AdminChat';
+import AdminEditors from './pages/admin/AdminEditors';
+import { EDITOR_ROOT } from './pages/admin/adminUi';
 
 export const ADMIN_PATH = '/админ';
 
 function homePath(user) {
-  return user?.role === 'admin' ? ADMIN_PATH : '/app';
+  if (user?.role === 'admin') return ADMIN_PATH;
+  if (user?.role === 'editor') return EDITOR_ROOT;
+  return '/app';
 }
 
 function Private({ children }) {
@@ -48,7 +52,7 @@ function Private({ children }) {
   const location = useLocation();
   if (!ready) return <p className="muted">{t('common.loading')}</p>;
   if (!user) return <Navigate to="/login" replace state={{ from: location }} />;
-  if (user.role === 'admin') return <Navigate to={ADMIN_PATH} replace />;
+  if (user.role !== 'student') return <Navigate to={homePath(user)} replace />;
   return children;
 }
 
@@ -63,7 +67,29 @@ function AdminGate() {
   if (user?.role === 'admin') {
     return <AdminShell><Outlet /></AdminShell>;
   }
+  if (user?.role === 'editor') return <Navigate to={EDITOR_ROOT} replace />;
   return <AdminLogin />;
+}
+
+function EditorGate() {
+  const { user, ready } = useAuth();
+  const { t } = useLang();
+  if (!ready) return <p className="muted">{t('common.loading')}</p>;
+  if (user?.role === 'editor' || user?.role === 'admin') {
+    return <AdminShell editor><Outlet /></AdminShell>;
+  }
+  return <AdminLogin editor />;
+}
+
+function contentPages() {
+  return (
+    <>
+      <Route path="content" element={<AdminContent />} />
+      <Route path="content/:subjectId" element={<AdminSubject />} />
+      <Route path="content/:subjectId/:sectionId" element={<AdminSection />} />
+      <Route path="content/:subjectId/:sectionId/reading/:passageId" element={<AdminReadingEditor />} />
+    </>
+  );
 }
 
 function LoggedInRedirect({ children }) {
@@ -79,10 +105,8 @@ function adminPages() {
     <>
       <Route index element={<AdminHome />} />
       <Route path="users" element={<AdminUsers />} />
-      <Route path="content" element={<AdminContent />} />
-      <Route path="content/:subjectId" element={<AdminSubject />} />
-      <Route path="content/:subjectId/:sectionId" element={<AdminSection />} />
-      <Route path="content/:subjectId/:sectionId/reading/:passageId" element={<AdminReadingEditor />} />
+      {contentPages()}
+      <Route path="editors" element={<AdminEditors />} />
       <Route path="flashcards" element={<Navigate to="../content" replace />} />
       <Route path="plans" element={<AdminPlans />} />
       <Route path="promo" element={<AdminPromos />} />
@@ -128,6 +152,10 @@ export default function App() {
 
       <Route path={ADMIN_PATH} element={<AdminGate />}>{adminPages()}</Route>
       <Route path="/admin" element={<AdminGate />}>{adminPages()}</Route>
+      <Route path={EDITOR_ROOT} element={<EditorGate />}>
+        <Route index element={<Navigate to="content" replace />} />
+        {contentPages()}
+      </Route>
 
       <Route path="/ort" element={<Navigate to="/app/tests" replace />} />
       <Route path="/ort-home" element={<Navigate to="/app/tests" replace />} />

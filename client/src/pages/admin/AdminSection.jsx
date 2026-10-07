@@ -16,6 +16,7 @@ import {
   previewText,
   sectionChain,
   sectionKind,
+  useIsEditor,
 } from './adminUi';
 import QuestionForm, { draftPayload, draftProblem, toDraft } from './QuestionForm';
 import { PassageText } from '../../components/PassageText';
@@ -273,6 +274,7 @@ export default function AdminSection() {
   const [error, setError] = useState('');
   const [editing, setEditing] = useState(undefined);
   const [modal, setModal] = useState(null);
+  const editor = useIsEditor();
 
   async function reload() {
     const list = await loadSubjects();
@@ -366,7 +368,7 @@ export default function AdminSection() {
         </div>
         <div className="row" style={{ flexWrap: 'wrap', gap: 8 }}>
           {kind === 'group' && canMix && <MixedUploadButton groupId={section.id} onDone={done} />}
-          {kind === 'group' && (
+          {kind === 'group' && !editor && (
             <button className={`btn${canMix ? ' ghost sm' : ''}`} type="button" onClick={() => setModal({ item: null })}>
               {t('admin.addSubsection')}
             </button>
@@ -401,8 +403,8 @@ export default function AdminSection() {
           all={all}
           emptyText={t('admin.noSubsections')}
           onOpen={(row) => navigate(contentPath(subject.id, row.id))}
-          onEdit={(row) => setModal({ item: row })}
-          onDelete={(row) => {
+          onEdit={editor ? null : (row) => setModal({ item: row })}
+          onDelete={editor ? null : (row) => {
             if (!window.confirm(t('admin.confirmDeleteSection', { name: row.name }))) return;
             run(() => adminApi.deleteTest(row.id));
           }}

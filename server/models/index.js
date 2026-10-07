@@ -17,6 +17,7 @@ const { ReadingPassage } = require('./ReadingPassage');
 const { ReadingPassageTagMap } = require('./ReadingPassageTagMap');
 const { PromoCode } = require('./PromoCode');
 const { CoinTransaction } = require('./CoinTransaction');
+const { ActivityLog } = require('./ActivityLog');
 
 Subject.hasMany(Test, { foreignKey: 'subjectId' });
 Test.belongsTo(Subject, { foreignKey: 'subjectId' });
@@ -116,4 +117,5 @@ module.exports = {
   ReadingPassageTagMap,
   PromoCode,
   CoinTransaction,
+  ActivityLog,
 };

@@ -2,10 +2,20 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { adminApi } from '../../api/client';
 import { useLang } from '../../context/LangContext';
+import { useAuth } from '../../context/AuthContext';
 import TxtPreview from './TxtPreview';
 
+export const EDITOR_ROOT = '/redact';
+
+export function useIsEditor() {
+  return useAuth().user?.role === 'editor';
+}
+
 export function contentPath(...parts) {
-  const root = window.location.pathname.startsWith('/admin') ? '/admin' : '/админ';
+  const path = window.location.pathname;
+  let root = '/админ';
+  if (path.startsWith('/admin')) root = '/admin';
+  else if (path.startsWith(EDITOR_ROOT)) root = EDITOR_ROOT;
   return [root, 'content', ...parts.filter(Boolean)].join('/');
 }
 
@@ -190,8 +200,8 @@ export function SectionList({ sections, all, onOpen, onEdit, onDelete, emptyText
             </div>
             <div className="row" style={{ flexWrap: 'wrap' }}>
               <button className="btn sm" type="button" onClick={() => onOpen(section)}>{t('admin.open')}</button>
-              <button className="btn ghost sm" type="button" onClick={() => onEdit(section)}>{t('common.edit')}</button>
-              <button className="btn ghost sm" type="button" onClick={() => onDelete(section)}>{t('common.delete')}</button>
+              {onEdit && <button className="btn ghost sm" type="button" onClick={() => onEdit(section)}>{t('common.edit')}</button>}
+              {onDelete && <button className="btn ghost sm" type="button" onClick={() => onDelete(section)}>{t('common.delete')}</button>}
             </div>
           </div>
         );

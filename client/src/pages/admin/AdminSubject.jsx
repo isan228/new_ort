@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { adminApi } from '../../api/client';
 import { useLang } from '../../context/LangContext';
-import { Crumbs, Modal, NameForm, SectionForm, SectionList, confirmDelete, contentPath, loadSubjects, sectionKind } from './adminUi';
+import { Crumbs, Modal, NameForm, SectionForm, SectionList, confirmDelete, contentPath, loadSubjects, sectionKind, useIsEditor } from './adminUi';
 
 export default function AdminSubject() {
   const { t } = useLang();
@@ -12,6 +12,7 @@ export default function AdminSubject() {
   const [msg, setMsg] = useState('');
   const [error, setError] = useState('');
   const [modal, setModal] = useState(null);
+  const editor = useIsEditor();
 
   async function reload() {
     const list = await loadSubjects();
@@ -56,7 +57,7 @@ export default function AdminSubject() {
           <h1>{subject.name}</h1>
           <p className="muted">{t('admin.subjectLead')}</p>
         </div>
-        <div className="row">
+        {!editor && <div className="row">
           <button className="btn ghost sm" type="button" onClick={() => setModal({ type: 'subject', item: subject })}>
             {t('common.edit')}
           </button>
@@ -73,24 +74,26 @@ export default function AdminSubject() {
           >
             {t('common.delete')}
           </button>
-        </div>
+        </div>}
       </div>
       {msg && <p className="ok">{msg}</p>}
       {error && <p className="err">{error}</p>}
 
       <div className="admin-section-head">
         <h2 style={{ margin: 0 }}>{t('admin.sections')}</h2>
-        <button className="btn" type="button" onClick={() => setModal({ type: 'section', item: null })}>
-          {t('admin.addSection')}
-        </button>
+        {!editor && (
+          <button className="btn" type="button" onClick={() => setModal({ type: 'section', item: null })}>
+            {t('admin.addSection')}
+          </button>
+        )}
       </div>
       <SectionList
         sections={sections}
         all={all}
         emptyText={t('admin.noSections')}
         onOpen={(section) => navigate(contentPath(subject.id, section.id))}
-        onEdit={(section) => setModal({ type: 'section', item: section })}
-        onDelete={(section) => {
+        onEdit={editor ? null : (section) => setModal({ type: 'section', item: section })}
+        onDelete={editor ? null : (section) => {
           if (!window.confirm(t('admin.confirmDeleteSection', { name: section.name }))) return;
           run(() => adminApi.deleteTest(section.id));
         }}

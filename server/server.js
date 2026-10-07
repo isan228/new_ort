@@ -7,7 +7,8 @@ require('./utils/asyncErrors');
 const cors = require('cors');
 const { ensureDatabase } = require('./utils/ensureDatabase');
 const { prepareAppData } = require('./utils/prepareAppData');
-const { requireAdmin } = require('./middleware/auth');
+const { requireStaff } = require('./middleware/auth');
+const { staffScope } = require('./middleware/staffScope');
 
 const authRoutes = require('./routes/auth');
 const testsRoutes = require('./routes/tests');
@@ -44,7 +45,7 @@ app.get('/api/health', (req, res) => {
 
 app.use('/api/auth', authRoutes);
 app.use('/api/tests', testsRoutes);
-app.use('/api/admin', requireAdmin, adminRoutes);
+app.use('/api/admin', requireStaff, staffScope, adminRoutes);
 app.use('/api/payments', paymentsRoutes);
 app.use('/api/term-images', termImagesRoutes);
 app.use('/api/chat', chatRouter);

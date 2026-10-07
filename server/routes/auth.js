@@ -87,7 +87,7 @@ router.post('/login', async (req, res) => {
   if (!user || !(await checkPassword(user, req.body.password))) {
     return res.status(401).json({ error: 'Неверный логин или пароль' });
   }
-  if (user.role === 'admin') {
+  if (user.role === 'admin' || user.role === 'editor') {
     return res.status(401).json({ error: 'Неверный логин или пароль' });
   }
   await ensureReferralCode(user);
@@ -100,7 +100,7 @@ router.post('/admin-login', async (req, res) => {
   if (!user || !(await checkPassword(user, req.body.password))) {
     return res.status(401).json({ error: 'Неверный логин или пароль' });
   }
-  if (user.role !== 'admin') {
+  if (user.role !== 'admin' && user.role !== 'editor') {
     return res.status(403).json({ error: 'Нет доступа к админке', code: 'ADMIN_REQUIRED' });
   }
   return res.json({ token: signToken(user), user: await publicUserWithPlan(user) });
