@@ -16,6 +16,9 @@ import {
   previewText,
   sectionChain,
   sectionKind,
+  subjectKinds,
+  subjectType,
+  TxtFormatHelp,
   useIsEditor,
 } from './adminUi';
 import QuestionForm, { draftPayload, draftProblem, toDraft } from './QuestionForm';
@@ -382,10 +385,7 @@ export default function AdminSection() {
         </div>
       </div>
       {isQuestions && (
-        <p className="muted" style={{ marginTop: 0, fontSize: 13 }}>
-          {t('admin.txtHint')}
-          {requireImage && <> <b>{t('admin.geoHint')}</b></>}
-        </p>
+        <TxtFormatHelp math={['math', 'main'].includes(subjectType(subject))} geometry={requireImage} />
       )}
       {msg && <p className="ok">{msg}</p>}
       {error && <p className="err">{error}</p>}
@@ -466,7 +466,8 @@ export default function AdminSection() {
         <Modal title={modal.item ? t('common.edit') : t('admin.addSubsection')} onClose={() => setModal(null)}>
           <SectionForm
             initialName={modal.item?.name || ''}
-            initialKind={modal.item ? sectionKind(modal.item) : 'standard'}
+            initialKind={modal.item ? sectionKind(modal.item) : null}
+            kinds={subjectKinds(subject)}
             showOrtPart={false}
             onClose={() => setModal(null)}
             onSubmit={(body) => run(async () => {

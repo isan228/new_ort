@@ -2574,3 +2574,9 @@ sup, sub { font-size: 0.72em; line-height: 0; }
   .act-filters, .act-filters select { width: 100%; }
 }
 
+
+.txt-format { margin: 0 0 14px; }
+.txt-format p { margin: 6px 0; }
+.txt-format-rules { margin: 8px 0 12px; padding-left: 20px; font-size: 13.5px; line-height: 1.5; }
+.txt-format-rules li { margin: 3px 0; }
+

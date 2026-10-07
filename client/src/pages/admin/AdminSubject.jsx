@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { adminApi } from '../../api/client';
 import { useLang } from '../../context/LangContext';
-import { Crumbs, Modal, NameForm, SectionForm, SectionList, confirmDelete, contentPath, loadSubjects, sectionKind, useIsEditor } from './adminUi';
+import { Crumbs, Modal, NameForm, SectionForm, SectionList, confirmDelete, contentPath, loadSubjects, sectionKind, subjectKinds, useIsEditor } from './adminUi';
 
 export default function AdminSubject() {
   const { t } = useLang();
@@ -118,7 +118,8 @@ export default function AdminSubject() {
           <SectionForm
             initialName={modal.item?.name || ''}
             initialOrtPart={modal.item?.ortPart || ''}
-            initialKind={modal.item ? sectionKind(modal.item) : 'standard'}
+            initialKind={modal.item ? sectionKind(modal.item) : null}
+            kinds={subjectKinds(subject)}
             onClose={() => setModal(null)}
             onSubmit={(body) => {
               run(async () => {

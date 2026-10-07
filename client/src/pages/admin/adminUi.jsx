@@ -91,6 +91,104 @@ export function ortPartLabel(t, part) {
 export const SECTION_KINDS = ['standard', 'geometry', 'compare', 'reading', 'group'];
 export const QUESTION_KINDS = ['standard', 'geometry'];
 
+export function subjectType(subject) {
+  const name = String(subject?.name || '').toLowerCase();
+  if (name === MAIN_SUBJECT_NAME.toLowerCase()) return 'main';
+  if (/математ/.test(name)) return 'math';
+  if (/чтени|понимани|окуу|түшүн/.test(name)) return 'reading';
+  return 'simple';
+}
+
+const KINDS_BY_SUBJECT = {
+  main: SECTION_KINDS,
+  math: SECTION_KINDS,
+  reading: ['reading', 'standard', 'group'],
+  simple: ['standard'],
+};
+
+export function subjectKinds(subject) {
+  return KINDS_BY_SUBJECT[subjectType(subject)];
+}
+
+const SAMPLE_SIMPLE = [
+  '"ID":"1"',
+  '"Q":"Столица Кыргызстана?"',
+  '"A1":"Ош"',
+  '"A2":"Бишкек"',
+  '"A3":"Каракол"',
+  '"A4":"Нарын"',
+  '"Correct":"2"',
+  '"E":"Бишкек — столица Кыргызской Республики."',
+  '',
+  '"ID":"2"',
+  '"Q":"Какая планета ближе всего к Солнцу?"',
+  '"A1":"Венера"',
+  '"A2":"Земля"',
+  '"A3":"Меркурий"',
+  '"A4":"Марс"',
+  '"Correct":"3"',
+  '',
+  '"ID":"3"',
+  '"Q":"Выберите синоним к слову смелый."',
+  '"A1":"трусливый"',
+  '"A2":"храбрый"',
+  '"A3":"медленный"',
+  '"A4":"тихий"',
+  '"Correct":"2"',
+  '"E":"Смелый и храбрый — слова с одинаковым значением."',
+].join('\n');
+
+const SAMPLE_MATH = [
+  '"ID":"1"',
+  '"Q":"Вычислите 2^5 + 3/4"',
+  '"A1":"32 3/4"',
+  '"A2":"10 3/4"',
+  '"A3":"25 3/4"',
+  '"A4":"33"',
+  '"Correct":"1"',
+  '"E":"2^5 = 32, значит 32 + 3/4 = 32 3/4"',
+  '',
+  '"ID":"2"',
+  '"Q":"Найдите log_2 8 + sqrt(49)"',
+  '"A1":"10"',
+  '"A2":"11"',
+  '"A3":"9"',
+  '"A4":"15"',
+  '"Correct":"1"',
+].join('\n');
+
+function downloadText(name, text) {
+  const url = URL.createObjectURL(new Blob([text], { type: 'text/plain;charset=utf-8' }));
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = name;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+export function TxtFormatHelp({ math = false, geometry = false }) {
+  const { t } = useLang();
+  const sample = math ? SAMPLE_MATH : SAMPLE_SIMPLE;
+  return (
+    <details className="cmp-format txt-format">
+      <summary>{t('admin.txtFormat.title')}</summary>
+      <p className="muted">{t('admin.txtFormat.lead')}</p>
+      <pre>{sample}</pre>
+      <ul className="txt-format-rules">
+        <li>{t('admin.txtFormat.ruleFields')}</li>
+        <li>{t('admin.txtFormat.ruleCorrect')}</li>
+        <li>{t('admin.txtFormat.ruleE')}</li>
+        <li>{t('admin.txtFormat.ruleQuotes')}</li>
+        {math && <li>{t('admin.txtFormat.ruleMath')}</li>}
+        {geometry && <li><b>{t('admin.geoHint')}</b></li>}
+      </ul>
+      <button className="btn ghost sm" type="button" onClick={() => downloadText(math ? 'primer-matematika.txt' : 'primer-voprosy.txt', `\uFEFF${sample}\n`)}>
+        {t('admin.txtFormat.download')}
+      </button>
+    </details>
+  );
+}
+
 export function sectionKind(section) {
   return section?.kind || (section?.ortPart === 'reading' ? 'reading' : 'standard');
 }
@@ -127,13 +225,15 @@ export function SectionForm({
   initialOrtPart = '',
   initialKind = 'standard',
   showOrtPart = true,
+  kinds = SECTION_KINDS,
   onSubmit,
   onClose,
 }) {
   const { t } = useLang();
   const [name, setName] = useState(initialName);
   const [ortPart, setOrtPart] = useState(initialOrtPart || '');
-  const [kind, setKind] = useState(initialKind || 'standard');
+  const options = initialKind && !kinds.includes(initialKind) ? [initialKind, ...kinds] : kinds;
+  const [kind, setKind] = useState(options.includes(initialKind) ? initialKind : options[0]);
 
   return (
     <form onSubmit={(e) => {
@@ -146,10 +246,10 @@ export function SectionForm({
         <span>{t('admin.name')}</span>
         <input autoFocus value={name} onChange={(e) => setName(e.target.value)} />
       </label>
-      <div className="field">
+      {options.length > 1 && <div className="field">
         <span>{t('admin.kind')}</span>
         <div className="kind-picker">
-          {SECTION_KINDS.map((key) => (
+          {options.map((key) => (
             <button
               key={key}
               type="button"
@@ -161,7 +261,7 @@ export function SectionForm({
             </button>
           ))}
         </div>
-      </div>
+      </div>}
       {showOrtPart && (
         <label className="field">
           <span>{t('admin.ortPart')}</span>
