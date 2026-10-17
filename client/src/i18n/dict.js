@@ -1,3 +1,5 @@
+import { simAdminKy, simAdminRu, simKy, simRu } from './sim';
+
 export const dict = {
   ru: {
     meta: { title: 'ORT.KG — системная подготовка к ОРТ' },
@@ -2354,3 +2356,10 @@ Object.assign(dict.ky.admin, {
     stat: { create: 'Кошулду', update: 'Өзгөртүлдү', delete: 'Өчүрүлдү', import: 'Жүктөө' },
   },
 });
+
+dict.ru.simulation = simRu;
+dict.ky.simulation = simKy;
+dict.ru.admin.simulation = simAdminRu;
+dict.ky.admin.simulation = simAdminKy;
+dict.ru.nav.sim = 'Симуляция ОРТ';
+dict.ky.nav.sim = 'ОРТ симуляциясы';

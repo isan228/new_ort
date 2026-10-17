@@ -325,10 +325,13 @@ async function userStats(userId) {
       }],
       order: [['createdAt', 'DESC']],
     }),
-    Question.count({ where: { isActive: true } }),
+    Question.count({
+      where: { isActive: true },
+      include: [{ model: Test, attributes: [], where: { bank: 'practice' }, required: true }],
+    }),
     peerAverages(),
     Subject.findAll({
-      where: { trackGroup: 'subject', isActive: true },
+      where: { trackGroup: 'subject', isActive: true, bank: 'practice' },
       order: [['sortOrder', 'ASC'], ['id', 'ASC']],
     }),
   ]);

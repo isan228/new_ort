@@ -12,6 +12,7 @@ import '../styles/coursology.css';
 const SIDE = [
   ['/app', 'nav.dashboard'],
   ['/app/tests', 'nav.tests'],
+  ['/app/sim', 'nav.sim'],
   ['/app/create', 'nav.create'],
   ['/app/flashcards', 'nav.flashcards'],
   ['/app/errors', 'nav.errors'],
@@ -38,12 +39,16 @@ const ADMIN_SIDE = [
   [ADMIN_ROOT, 'admin.dashboard'],
   [`${ADMIN_ROOT}/users`, 'admin.users'],
   [`${ADMIN_ROOT}/content`, 'admin.program'],
+  [`${ADMIN_ROOT}/sim`, 'admin.simulation.title'],
   [`${ADMIN_ROOT}/plans`, 'admin.plans'],
   [`${ADMIN_ROOT}/promo`, 'admin.promos'],
   [`${ADMIN_ROOT}/editors`, 'admin.editors'],
   [`${ADMIN_ROOT}/chat`, 'admin.chat'],
 ];
-const EDITOR_SIDE = [[`${EDITOR_ROOT}/content`, 'admin.program']];
+const EDITOR_SIDE = [
+  [`${EDITOR_ROOT}/content`, 'admin.program'],
+  [`${EDITOR_ROOT}/sim`, 'admin.simulation.title'],
+];
 
 const ICON_PATHS = {
   home: 'M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z',
@@ -69,11 +74,13 @@ const ICON_PATHS = {
   moon: 'M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8',
   logout: 'M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9',
   pen: 'M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z',
+  stopwatch: 'M12 22a8 8 0 1 0 0-16 8 8 0 0 0 0 16M12 10v4l2.5 1.5M10 2h4M12 2v4',
 };
 
 const ROUTE_ICON = {
   '/app': 'home',
   '/app/tests': 'tests',
+  '/app/sim': 'stopwatch',
   '/app/create': 'create',
   '/app/flashcards': 'cards',
   '/app/errors': 'errors',
@@ -89,6 +96,8 @@ const ROUTE_ICON = {
   [ADMIN_ROOT]: 'home',
   [`${ADMIN_ROOT}/users`]: 'users',
   [`${ADMIN_ROOT}/content`]: 'book',
+  [`${ADMIN_ROOT}/sim`]: 'stopwatch',
+  [`${EDITOR_ROOT}/sim`]: 'stopwatch',
   [`${ADMIN_ROOT}/plans`]: 'tag',
   [`${ADMIN_ROOT}/promo`]: 'ticket',
   [`${ADMIN_ROOT}/editors`]: 'pen',

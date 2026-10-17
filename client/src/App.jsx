@@ -7,7 +7,6 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import Home from './pages/Home';
 import Tests from './pages/Tests';
-import ExamBriefing from './pages/ExamBriefing';
 import TestBuilder from './pages/TestBuilder';
 import TestRunner from './pages/TestRunner';
 import TestResults from './pages/TestResults';
@@ -30,7 +29,17 @@ import AdminLogin from './pages/admin/AdminLogin';
 import AdminHome from './pages/admin/AdminHome';
 import AdminUsers from './pages/admin/AdminUsers';
 import AdminPlans from './pages/admin/AdminPlans';
-import AdminPromos from './pages/admin/AdminPromos';import AdminContent from './pages/admin/AdminContent';
+import AdminPromos from './pages/admin/AdminPromos';
+import AdminContent from './pages/admin/AdminContent';
+import AdminSimHome from './pages/admin/AdminSimHome';
+import AdminSimTest from './pages/admin/AdminSimTest';
+import AdminSimVariant from './pages/admin/AdminSimVariant';
+import AdminSimSlot from './pages/admin/AdminSimSlot';
+import SimHome from './pages/sim/SimHome';
+import SimSubject from './pages/sim/SimSubject';
+import SimVariant from './pages/sim/SimVariant';
+import SimRunner from './pages/sim/SimRunner';
+import SimResult from './pages/sim/SimResult';
 import AdminSubject from './pages/admin/AdminSubject';
 import AdminSection from './pages/admin/AdminSection';
 import AdminReadingEditor from './pages/admin/AdminReadingEditor';
@@ -88,6 +97,11 @@ function contentPages() {
       <Route path="content/:subjectId" element={<AdminSubject />} />
       <Route path="content/:subjectId/:sectionId" element={<AdminSection />} />
       <Route path="content/:subjectId/:sectionId/reading/:passageId" element={<AdminReadingEditor />} />
+      <Route path="sim" element={<AdminSimHome />} />
+      <Route path="sim/:testId" element={<AdminSimTest />} />
+      <Route path="sim/variant/:variantId" element={<AdminSimVariant />} />
+      <Route path="sim/slot/:slotId" element={<AdminSimSlot />} />
+      <Route path="sim/slot/:slotId/reading/:passageId" element={<AdminReadingEditor sim />} />
     </>
   );
 }
@@ -126,12 +140,18 @@ export default function App() {
       />
       <Route path="/login" element={<LoggedInRedirect><Login /></LoggedInRedirect>} />
       <Route path="/register" element={<LoggedInRedirect><Register /></LoggedInRedirect>} />
-      <Route path="/pricing" element={<PricingPublic />} />      <Route path="/pay/success" element={<PaymentSuccess />} />
+      <Route path="/pricing" element={<PricingPublic />} />
+      <Route path="/pay/success" element={<PaymentSuccess />} />
       <Route path="/payment/success" element={<PaymentSuccess />} />
 
       <Route path="/app" element={<AppLayout><Home /></AppLayout>} />
       <Route path="/app/tests" element={<AppLayout><Tests /></AppLayout>} />
-      <Route path="/app/exam" element={<AppLayout><ExamBriefing /></AppLayout>} />
+      <Route path="/app/exam" element={<Navigate to="/app/sim" replace />} />
+      <Route path="/app/sim" element={<AppLayout><SimHome /></AppLayout>} />
+      <Route path="/app/sim/test/:subjectId" element={<AppLayout><SimSubject /></AppLayout>} />
+      <Route path="/app/sim/variant/:variantId" element={<AppLayout><SimVariant /></AppLayout>} />
+      <Route path="/app/sim/attempt/:attemptId" element={<Private><SimRunner /></Private>} />
+      <Route path="/app/sim/attempt/:attemptId/result" element={<AppLayout><SimResult /></AppLayout>} />
       <Route path="/app/create" element={<AppLayout><TestBuilder /></AppLayout>} />
       <Route path="/app/test" element={<Private><TestRunner /></Private>} />
       <Route path="/app/results" element={<AppLayout><TestResults /></AppLayout>} />

@@ -18,6 +18,12 @@ const { ReadingPassageTagMap } = require('./ReadingPassageTagMap');
 const { PromoCode } = require('./PromoCode');
 const { CoinTransaction } = require('./CoinTransaction');
 const { ActivityLog } = require('./ActivityLog');
+const { SimVariant } = require('./SimVariant');
+const { SimBlock } = require('./SimBlock');
+const { SimTopic } = require('./SimTopic');
+const { SimVersion } = require('./SimVersion');
+const { SimAttempt } = require('./SimAttempt');
+const { SimAnswer } = require('./SimAnswer');
 
 Subject.hasMany(Test, { foreignKey: 'subjectId' });
 Test.belongsTo(Subject, { foreignKey: 'subjectId' });
@@ -97,6 +103,18 @@ User.hasMany(ChatMessage, { foreignKey: 'userId' });
 ChatMessage.belongsTo(User, { foreignKey: 'userId' });
 ChatMessage.belongsTo(User, { as: 'Author', foreignKey: 'authorId' });
 
+Subject.hasMany(SimVariant, { foreignKey: 'subjectId', constraints: false });
+SimVariant.belongsTo(Subject, { foreignKey: 'subjectId', constraints: false });
+Subject.hasMany(SimTopic, { foreignKey: 'subjectId', constraints: false });
+SimVariant.hasMany(SimBlock, { foreignKey: 'variantId', constraints: false });
+SimBlock.belongsTo(SimVariant, { foreignKey: 'variantId', constraints: false });
+SimBlock.hasMany(Test, { as: 'Parts', foreignKey: 'simBlockId', constraints: false });
+Test.belongsTo(SimBlock, { foreignKey: 'simBlockId', constraints: false });
+Test.belongsTo(SimTopic, { foreignKey: 'simTopicId', constraints: false });
+SimAttempt.belongsTo(SimVersion, { foreignKey: 'versionId', constraints: false });
+SimAttempt.belongsTo(User, { foreignKey: 'userId', constraints: false });
+SimAttempt.hasMany(SimAnswer, { foreignKey: 'attemptId', constraints: false });
+
 module.exports = {
   sequelize,
   User,
@@ -118,4 +136,10 @@ module.exports = {
   PromoCode,
   CoinTransaction,
   ActivityLog,
+  SimVariant,
+  SimBlock,
+  SimTopic,
+  SimVersion,
+  SimAttempt,
+  SimAnswer,
 };

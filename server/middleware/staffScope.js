@@ -7,6 +7,8 @@ const EDITOR_ALLOWED = [
   ['*', /^\/questions(\/\d+)?$/],
   ['*', /^\/reading-passages(\/\d+)?$/],
   ['POST', /^\/(parse-txt|upload-image|import-questions|upload-txt-explained)$/],
+  // Simulation: editors see the structure the admin built and fill it with questions, nothing more.
+  ['GET', /^\/sim\//],
 ];
 
 const LOGGED = [

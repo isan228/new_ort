@@ -151,12 +151,12 @@ async function resolveTest(req) {
   const subjectId = Number(req.body.subjectId);
   if (!subjectId) return null;
   let test = await Test.findOne({
-    where: { subjectId, kind: { [Op.or]: [{ [Op.ne]: 'group' }, { [Op.is]: null }] } },
+    where: { subjectId, bank: 'practice', kind: { [Op.or]: [{ [Op.ne]: 'group' }, { [Op.is]: null }] } },
     order: [['sortOrder', 'ASC'], ['id', 'ASC']],
   });
   if (test) return test;
   const subject = await Subject.findByPk(subjectId);
-  if (!subject) return null;
+  if (!subject || subject.bank !== 'practice') return null;
   return Test.create({
     name: subject.name,
     subjectId: subject.id,

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { adminApi } from '../../api/client';
+import { adminApi, simAdminApi } from '../../api/client';
+import { simPath, slotCrumbs } from './simUi';
 import { useLang } from '../../context/LangContext';
 import { PassageText } from '../../components/PassageText';
 import { findEvidence, splitParagraphs } from '../../lib/reading';
@@ -81,14 +82,41 @@ function QuestionEditor({
   );
 }
 
-export default function AdminReadingEditor() {
+async function contentContext(t, subjectId, sectionId) {
+  const list = (await adminApi.subjects()).subjects;
+  const subject = list.find((row) => String(row.id) === String(subjectId));
+  const section = (subject?.sections || []).find((row) => String(row.id) === String(sectionId));
+  if (!subject || !section) return null;
+  return {
+    sectionId: section.id,
+    crumbs: [
+      { label: t('admin.subjects'), to: contentPath() },
+      { label: subject.name, to: contentPath(subject.id) },
+      ...sectionChain(subject.sections || [], section.id)
+        .map((row) => ({ label: row.name, to: contentPath(subject.id, row.id) })),
+    ],
+    backPath: contentPath(subject.id, section.id),
+    passagePath: (id) => contentPath(subject.id, section.id, 'reading', id),
+  };
+}
+
+async function simContext(t, slotId) {
+  const info = await simAdminApi.slot(slotId);
+  return {
+    sectionId: info.slot.id,
+    crumbs: slotCrumbs(t, info, { last: false }),
+    backPath: simPath('slot', info.slot.id),
+    passagePath: (id) => simPath('slot', info.slot.id, 'reading', id),
+  };
+}
+
+export default function AdminReadingEditor({ sim = false }) {
   const { t } = useLang();
   const navigate = useNavigate();
-  const { subjectId, sectionId, passageId } = useParams();
+  const { subjectId, sectionId, slotId, passageId } = useParams();
   const isNew = passageId === 'new';
 
-  const [subject, setSubject] = useState(null);
-  const [section, setSection] = useState(null);
+  const [ctx, setCtx] = useState(null);
   const [form, setForm] = useState({ title: '', subtitle: '', body: '', isActive: true });
   const [savedForm, setSavedForm] = useState(null);
   const [questions, setQuestions] = useState([]);
@@ -106,16 +134,13 @@ export default function AdminReadingEditor() {
   useEffect(() => {
     let stop = false;
     (async () => {
-      const list = (await adminApi.subjects()).subjects;
-      const foundSubject = list.find((row) => String(row.id) === String(subjectId));
-      const foundSection = (foundSubject?.sections || []).find((row) => String(row.id) === String(sectionId));
+      const found = sim ? await simContext(t, slotId) : await contentContext(t, subjectId, sectionId);
       if (stop) return;
-      if (!foundSubject || !foundSection) {
+      if (!found) {
         navigate(contentPath(), { replace: true });
         return;
       }
-      setSubject(foundSubject);
-      setSection(foundSection);
+      setCtx(found);
       if (isNew) {
         const empty = { title: '', subtitle: '', body: '', isActive: true };
         setForm(empty);
@@ -136,7 +161,7 @@ export default function AdminReadingEditor() {
       setQuestions((data.questions || []).map(toDraft));
     })().catch((err) => setError(err.message));
     return () => { stop = true; };
-  }, [subjectId, sectionId, passageId]);
+  }, [subjectId, sectionId, slotId, passageId]);
 
   const paragraphs = useMemo(() => splitParagraphs(form.body), [form.body]);
   const openQuestion = questions.find((q) => q._key === openKey);
@@ -189,9 +214,9 @@ export default function AdminReadingEditor() {
     setBusy(true);
     try {
       if (isNew) {
-        const { passage } = await adminApi.createPassage({ ...form, testId: section.id });
+        const { passage } = await adminApi.createPassage({ ...form, testId: ctx.sectionId });
         setSavedForm(form);
-        navigate(contentPath(subject.id, section.id, 'reading', passage.id), { replace: true });
+        navigate(ctx.passagePath(passage.id), { replace: true });
       } else {
         const { passage } = await adminApi.updatePassage(passageId, form);
         const next = { ...form, body: passage.body };
@@ -257,19 +282,13 @@ export default function AdminReadingEditor() {
     if (text && e.currentTarget.contains(sel.anchorNode)) setSelection(text);
   }
 
-  if (!subject || !section) return <p className="muted">{error || t('common.loading')}</p>;
+  if (!ctx) return <p className="muted">{error || t('common.loading')}</p>;
 
   const title = isNew ? t('admin.reading.newTitle') : (savedForm?.title || t('admin.reading.passage'));
 
   return (
     <div className="ar">
-      <Crumbs items={[
-        { label: t('admin.subjects'), to: contentPath() },
-        { label: subject.name, to: contentPath(subject.id) },
-        ...sectionChain(subject.sections || [], section.id)
-          .map((row) => ({ label: row.name, to: contentPath(subject.id, row.id) })),
-        { label: title },
-      ]} />
+      <Crumbs items={[...ctx.crumbs, { label: title }]} />
 
       <div className="admin-section-head" style={{ marginTop: 0 }}>
         <div>
@@ -279,7 +298,7 @@ export default function AdminReadingEditor() {
           </p>
         </div>
         <div className="row" style={{ gap: 8, flexWrap: 'wrap' }}>
-          <button type="button" className="btn ghost" onClick={() => navigate(contentPath(subject.id, section.id))}>
+          <button type="button" className="btn ghost" onClick={() => navigate(ctx.backPath)}>
             {t('admin.reading.back')}
           </button>
           {(isNew || formDirty) && (

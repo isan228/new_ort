@@ -14,7 +14,7 @@ const LEGACY_AUTO_SECTIONS = [
 ];
 
 async function backfillOrtParts() {
-  const tests = await Test.findAll({ where: { parentId: null }, include: [Subject] });
+  const tests = await Test.findAll({ where: { parentId: null, bank: 'practice' }, include: [Subject] });
   for (const test of tests) {
     if (normalizeOrtPart(test.ortPart)) continue;
     const inferred = inferOrtPart(test.name, test.Subject?.trackGroup);
@@ -120,7 +120,7 @@ async function migrateMainSubject(subject, legacy) {
 async function ensureOrtMainExam() {
   await backfillOrtParts();
 
-  let subject = await Subject.findOne({ where: { name: MAIN_SUBJECT } });
+  let subject = await Subject.findOne({ where: { name: MAIN_SUBJECT, bank: 'practice' } });
   let fresh = false;
   if (!subject) {
     fresh = true;
@@ -133,7 +133,7 @@ async function ensureOrtMainExam() {
     });
   }
 
-  const legacy = await Test.findAll({ where: { kind: null } });
+  const legacy = await Test.findAll({ where: { kind: null, bank: 'practice' } });
   const legacyMain = legacy.filter((row) => row.subjectId === subject.id);
   const structured = await Test.count({ where: { subjectId: subject.id, kind: { [Op.ne]: null } } });
   const migrateMain = fresh || (legacyMain.length > 0 && !structured);

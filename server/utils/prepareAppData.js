@@ -12,6 +12,7 @@ const { ensurePlansForOrt } = require('./subscriptionPlans');
 const { seedDemoContent } = require('./seedDemo');
 const { ensureOrtMainExam } = require('./ensureOrtMainExam');
 const { ensureReferralCodes } = require('./referral');
+const { ensureSimCatalog } = require('./simCatalog');
 
 async function prepareAppData() {
   await sequelize.authenticate();
@@ -24,6 +25,7 @@ async function prepareAppData() {
   await ensurePlansForOrt();
   await seedDemoContent();
   await ensureOrtMainExam();
+  await ensureSimCatalog();
   await ensureReferralCodes();
 }
 

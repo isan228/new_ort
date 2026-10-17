@@ -53,6 +53,7 @@ const upload = multer({ dest: uploadDir });
 const router = express.Router();
 
 router.use(txtUpload);
+router.use('/sim', require('./adminSim'));
 
 router.get('/ort-stats', async (req, res) => {
   const now = new Date();
@@ -282,7 +283,7 @@ router.delete('/term-images/:id', async (req, res) => {
 });
 
 router.get('/subjects', async (req, res) => {
-  const where = {};
+  const where = { bank: 'practice' };
   if (req.query.trackGroup) where.trackGroup = req.query.trackGroup;
   const subjects = await Subject.findAll({
     where,
@@ -336,7 +337,9 @@ router.post('/subjects', async (req, res) => {
 router.put('/subjects/:id', async (req, res) => {
   const subject = await Subject.findByPk(req.params.id);
   if (!subject) return res.status(404).json({ error: 'Предмет не найден' });
+  if (subject.bank !== 'practice') return res.status(400).json({ error: SIM_STRUCTURE_ELSEWHERE });
   const patch = { ...req.body };
+  delete patch.bank;
   if (patch.name != null) {
     patch.name = String(patch.name).trim();
     if (!patch.name) return res.status(400).json({ error: 'Название обязательно' });
@@ -346,6 +349,8 @@ router.put('/subjects/:id', async (req, res) => {
 });
 
 router.delete('/subjects/:id', async (req, res) => {
+  const target = await Subject.findByPk(req.params.id);
+  if (target && target.bank !== 'practice') return res.status(400).json({ error: SIM_STRUCTURE_ELSEWHERE });
   const tests = await Test.findAll({ where: { subjectId: req.params.id } });
   for (const test of tests) {
     const questions = await Question.findAll({ where: { testId: test.id } });
@@ -370,7 +375,7 @@ router.delete('/subjects/:id', async (req, res) => {
 });
 
 router.get('/tests', async (req, res) => {
-  const where = {};
+  const where = { bank: 'practice' };
   if (req.query.subjectId) where.subjectId = req.query.subjectId;
   const tests = await Test.findAll({
     where,
@@ -388,6 +393,7 @@ router.get('/tests', async (req, res) => {
 });
 
 const GROUP_HAS_NO_QUESTIONS = 'В разделе-группе нет вопросов — добавьте их в подраздел';
+const SIM_STRUCTURE_ELSEWHERE = 'Структура симуляции меняется в разделе «Симуляция ОРТ»';
 const GEOMETRY_NEEDS_IMAGE = 'В геометрии к вопросу нужен рисунок';
 
 async function descendantIds(testId) {
@@ -424,6 +430,9 @@ router.post('/tests', async (req, res) => {
     subjectId = parent.subjectId;
   }
   if (!subjectId) return res.status(400).json({ error: 'Укажите предмет' });
+  const subject = await Subject.findByPk(subjectId);
+  if (!subject) return res.status(404).json({ error: 'Предмет не найден' });
+  if (subject.bank !== 'practice') return res.status(400).json({ error: SIM_STRUCTURE_ELSEWHERE });
   const kind = normalizeKind(req.body.kind) || 'standard';
   const test = await Test.create({
     name,
@@ -442,6 +451,7 @@ router.post('/tests', async (req, res) => {
 router.put('/tests/:id', async (req, res) => {
   const test = await Test.findByPk(req.params.id);
   if (!test) return res.status(404).json({ error: 'Тест не найден' });
+  if (test.bank !== 'practice') return res.status(400).json({ error: SIM_STRUCTURE_ELSEWHERE });
   const patch = {};
   for (const key of ['description', 'hasExplanations', 'isActive', 'sortOrder']) {
     if (req.body[key] !== undefined) patch[key] = req.body[key];
@@ -476,6 +486,8 @@ router.put('/tests/:id', async (req, res) => {
 });
 
 router.delete('/tests/:id', async (req, res) => {
+  const test = await Test.findByPk(req.params.id);
+  if (test && test.bank !== 'practice') return res.status(400).json({ error: SIM_STRUCTURE_ELSEWHERE });
   const ids = [Number(req.params.id), ...await descendantIds(req.params.id)];
   await destroyQuestions({ testId: ids });
   await destroyPassageTags({ testId: ids });

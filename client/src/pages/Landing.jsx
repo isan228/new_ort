@@ -202,7 +202,7 @@ export default function Landing() {
             <Reveal className="cl-dark-copy">
               <h2>{cl.darkH}</h2>
               <p>{cl.darkP}</p>
-              <Link className="cl-cta cl-cta-glow" to={user ? '/app/exam' : '/register'}>
+              <Link className="cl-cta cl-cta-glow" to={user ? '/app/sim' : '/register'}>
                 <Icon name="exam" size={22} />
                 <span>{cl.darkCta}</span>
               </Link>

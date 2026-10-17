@@ -74,7 +74,7 @@ export default function Home() {
             factor={1.12}
             hint={t('home.mathHint')}
           />
-          <Link className="btn" to="/app/exam" style={{ marginTop: 12 }}>{t('sim.open')}</Link>
+          <Link className="btn" to="/app/sim" style={{ marginTop: 12 }}>{t('simulation.openCatalog')}</Link>
         </div>
 
         <div className="card home-score-card">

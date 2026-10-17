@@ -32,7 +32,7 @@ async function upsertQuestions(testId, parsed) {
     for (const answer of item.answers) {
       await Answer.create({ questionId: question.id, ...answer });
     }
-    for (const tag of item.tags) {
+    for (const tag of item.tags || []) {
       const row = await findOrCreateTag(tag.name, tag.kind);
       if (row) {
         await QuestionTagMap.findOrCreate({

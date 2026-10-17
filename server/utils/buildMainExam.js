@@ -78,7 +78,7 @@ function sectionMinutes(official, picked, needed) {
 
 async function loadQuestionsByPart() {
   const tests = await Test.findAll({
-    where: { isActive: true, ortPart: { [Op.ne]: null } },
+    where: { isActive: true, bank: 'practice', ortPart: { [Op.ne]: null } },
     include: [{
       model: Question,
       where: { isActive: true, passageId: null },
@@ -153,7 +153,7 @@ function toPreview(sections) {
 
 async function countByPart() {
   const tests = await Test.findAll({
-    where: { isActive: true, ortPart: { [Op.ne]: null } },
+    where: { isActive: true, bank: 'practice', ortPart: { [Op.ne]: null } },
     include: [{ model: Question, attributes: ['id', 'kind'], where: { isActive: true, passageId: null }, required: false }],
   });
   const counts = {};
@@ -229,7 +229,7 @@ async function assembleMainExam() {
 
   let anchor = tests.find((row) => row.ortPart === 'math' || row.ortPart === 'math1');
   if (!anchor) {
-    const main = await Subject.findOne({ where: { name: 'Основной тест ОРТ' } });
+    const main = await Subject.findOne({ where: { name: 'Основной тест ОРТ', bank: 'practice' } });
     if (main) {
       anchor = tests.find((row) => row.subjectId === main.id)
         || await Test.findOne({ where: { subjectId: main.id } });

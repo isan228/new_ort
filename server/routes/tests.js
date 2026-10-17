@@ -22,11 +22,15 @@ const { isCompare } = require('../utils/compareQuestions');
 
 const router = express.Router();
 
+// Everything here is the practice bank; simulation questions must never be served, graded or counted.
+const PRACTICE = { bank: 'practice' };
+const practiceTest = { model: Test, attributes: [], where: PRACTICE, required: true };
+
 router.use(requireAuth);
 
 router.get('/subjects', async (req, res) => {
   const subjects = await Subject.findAll({
-    where: { isActive: true },
+    where: { isActive: true, ...PRACTICE },
     include: [{ model: Test, where: { isActive: true }, required: false }],
     order: [['sortOrder', 'ASC'], ['id', 'ASC']],
   });
@@ -47,7 +51,7 @@ function shuffle(list) {
 async function loadQuestionsForTest(testId, extraWhere = {}) {
   return Question.findAll({
     where: { testId, isActive: true, passageId: null, ...extraWhere },
-    include: [{ model: Answer }],
+    include: [{ model: Answer }, practiceTest],
     order: [['sortOrder', 'ASC'], ['id', 'ASC'], [Answer, 'sortOrder', 'ASC']],
   });
 }
@@ -137,7 +141,7 @@ async function gradeSubmission({ userId, testId, answers, durationSec, questionM
   const ids = (answers || []).map((item) => item.questionId).filter(Boolean);
   const questions = await Question.findAll({
     where: { id: { [Op.in]: ids.length ? ids : [0] }, isActive: true },
-    include: [{ model: Answer }],
+    include: [{ model: Answer }, practiceTest],
     order: [['sortOrder', 'ASC'], ['id', 'ASC'], [Answer, 'sortOrder', 'ASC']],
   });
   const tests = await Test.findAll({
@@ -200,7 +204,7 @@ async function gradeSubmission({ userId, testId, answers, durationSec, questionM
 
 router.get('/ort/dashboard', async (req, res) => {
   const subjects = await Subject.findAll({
-    where: { isActive: true },
+    where: { isActive: true, ...PRACTICE },
     include: [{
       model: Test,
       where: { isActive: true },
@@ -224,7 +228,7 @@ router.get('/ort/welcome-stats', async (req, res) => {
   const testId = Number(req.query.testId);
   if (!testId) return res.status(400).json({ error: 'testId обязателен' });
 
-  const totalQuestions = await Question.count({ where: { testId, isActive: true } });
+  const totalQuestions = await Question.count({ where: { testId, isActive: true }, include: [practiceTest] });
   const results = await TestResult.findAll({
     where: { userId: req.user.id, testId },
     order: [['createdAt', 'DESC']],
@@ -283,7 +287,7 @@ router.get('/ort/builder', async (req, res) => {
   const last = await loadUserLastAnswers(req.user.id);
 
   const subjects = await Subject.findAll({
-    where: { isActive: true },
+    where: { isActive: true, ...PRACTICE },
     include: [{ model: Test, where: { isActive: true }, required: false }],
     order: [['sortOrder', 'ASC'], ['id', 'ASC'], [Test, 'sortOrder', 'ASC']],
   });
@@ -291,6 +295,7 @@ router.get('/ort/builder', async (req, res) => {
   const questions = await Question.findAll({
     where: { isActive: true, passageId: null },
     attributes: ['id', 'testId'],
+    include: [practiceTest],
   });
 
   const byTest = new Map();
@@ -350,7 +355,7 @@ router.post('/ort/custom-test/questions', async (req, res) => {
     selectedModes = [questionMode === 'unsolved' ? 'unused' : 'incorrect'];
   }
 
-  const testWhere = { isActive: true };
+  const testWhere = { isActive: true, ...PRACTICE };
   if (sectionIds.length) testWhere.id = sectionIds;
   const tests = await Test.findAll({ where: testWhere });
   if (!tests.length) return res.status(404).json({ error: 'Разделы не найдены' });
@@ -424,7 +429,7 @@ router.post('/ort/check', async (req, res) => {
   const { answers = [], durationSec, questionMode, testId, examType } = req.body || {};
   const ids = answers.map((item) => item.questionId).filter(Boolean);
   const first = ids.length
-    ? await Question.findOne({ where: { id: ids[0] } })
+    ? await Question.findOne({ where: { id: ids[0] }, include: [practiceTest] })
     : null;
   const resolvedTestId = Number(testId) || first?.testId;
   if (!resolvedTestId) return res.status(400).json({ error: 'Нет вопросов для проверки' });
@@ -467,7 +472,7 @@ async function loadReadingPassages(where) {
 
 router.get('/ort/reading', async (req, res) => {
   const tests = await Test.findAll({
-    where: { isActive: true },
+    where: { isActive: true, ...PRACTICE },
     include: [
       { model: Subject, where: { isActive: true } },
       {
@@ -504,7 +509,7 @@ router.get('/ort/reading', async (req, res) => {
 
 router.get('/ort/reading/:testId', async (req, res) => {
   const testId = Number(req.params.testId);
-  const test = await Test.findOne({ where: { id: testId, isActive: true } });
+  const test = await Test.findOne({ where: { id: testId, isActive: true, ...PRACTICE } });
   if (!test) return res.status(404).json({ error: 'Раздел не найден' });
   const passages = await loadReadingPassages({ testId });
   res.json({
@@ -524,7 +529,7 @@ router.post('/ort/reading/answer', async (req, res) => {
   const answerId = Number(req.body?.answerId);
   const question = await Question.findOne({
     where: { id: questionId, isActive: true, passageId: { [Op.ne]: null } },
-    include: [{ model: Answer }],
+    include: [{ model: Answer }, practiceTest],
   });
   if (!question) return res.status(404).json({ error: 'Вопрос не найден' });
   const right = (question.Answers || []).find((a) => a.isCorrect);

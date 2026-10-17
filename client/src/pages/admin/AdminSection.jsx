@@ -30,7 +30,7 @@ import MixedUploadButton from './MixedTxtPreview';
 import { isCompare } from '../../lib/compare';
 import '../../styles/reading-book.css';
 
-function QuestionModal({ testId, initial, requireImage = false, onClose, onSaved }) {
+export function QuestionModal({ testId, initial, requireImage = false, onClose, onSaved }) {
   const { t } = useLang();
   const [draft, setDraft] = useState(() => toDraft(initial));
   const [busy, setBusy] = useState(false);
@@ -167,11 +167,12 @@ export function PassageUploadPreview({ file, initial, testId, onClose, onCreated
   );
 }
 
-function ReadingPassages({ subjectId, section, passages, onChanged, onError }) {
+export function ReadingPassages({ subjectId, section, passages, onChanged, onError, passagePath }) {
   const { t } = useLang();
   const navigate = useNavigate();
   const [upload, setUpload] = useState(null);
-  const newPath = contentPath(subjectId, section.id, 'reading', 'new');
+  const pathOf = passagePath || ((id) => contentPath(subjectId, section.id, 'reading', id));
+  const newPath = pathOf('new');
 
   async function chooseFile() {
     const file = await pickTextFile();
@@ -205,7 +206,7 @@ function ReadingPassages({ subjectId, section, passages, onChanged, onError }) {
           initial={upload.initial}
           testId={section.id}
           onClose={() => setUpload(null)}
-          onCreated={(passage) => navigate(contentPath(subjectId, section.id, 'reading', passage.id))}
+          onCreated={(passage) => navigate(pathOf(passage.id))}
         />
       )}
       <div className="admin-list">
@@ -220,7 +221,7 @@ function ReadingPassages({ subjectId, section, passages, onChanged, onError }) {
                 {p.subtitle ? ` · ${previewText(p.subtitle)}` : ''}
               </p>
             </div>
-            <Link className="btn sm" to={contentPath(subjectId, section.id, 'reading', p.id)}>{t('admin.reading.edit')}</Link>
+            <Link className="btn sm" to={pathOf(p.id)}>{t('admin.reading.edit')}</Link>
             <button
               className="btn ghost sm"
               type="button"
@@ -243,7 +244,7 @@ function ReadingPassages({ subjectId, section, passages, onChanged, onError }) {
   );
 }
 
-function QuestionList({ questions, onEdit, onDelete }) {
+export function QuestionList({ questions, onEdit, onDelete }) {
   const { t } = useLang();
   return (
     <div className="admin-list">

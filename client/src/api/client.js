@@ -67,11 +67,6 @@ export const ortApi = {
     method: 'POST',
     body: JSON.stringify(body),
   }),
-  mainExamPreview: () => api('/api/tests/ort/main-exam'),
-  mainExam: (body = {}) => api('/api/tests/ort/main-exam', {
-    method: 'POST',
-    body: JSON.stringify(body),
-  }),
   checkExam: (body) => api('/api/tests/ort/check', {
     method: 'POST',
     body: JSON.stringify(body),
@@ -107,6 +102,52 @@ export const chatApi = {
   messages: () => api('/api/chat/messages'),
   send: (text) => api('/api/chat/messages', { method: 'POST', body: JSON.stringify({ text }) }),
   unread: () => api('/api/chat/unread'),
+};
+
+const post = (path, body) => api(path, { method: 'POST', body: JSON.stringify(body || {}) });
+const put = (path, body) => api(path, { method: 'PUT', body: JSON.stringify(body || {}) });
+const del = (path) => api(path, { method: 'DELETE' });
+
+export const simApi = {
+  catalog: () => api('/api/sim/catalog'),
+  subject: (id) => api(`/api/sim/subjects/${id}`),
+  variant: (id) => api(`/api/sim/variants/${id}`),
+  start: (variantId) => post(`/api/sim/variants/${variantId}/start`),
+  attempt: (id) => api(`/api/sim/attempts/${id}`),
+  startBlock: (id) => post(`/api/sim/attempts/${id}/start-block`),
+  answer: (id, questionId, answerId) => post(`/api/sim/attempts/${id}/answer`, { questionId, answerId }),
+  closeBlock: (id, index, timeout = false) => post(`/api/sim/attempts/${id}/close-block`, { index, timeout }),
+  finish: (id) => post(`/api/sim/attempts/${id}/finish`),
+  result: (id) => api(`/api/sim/attempts/${id}/result`),
+  history: () => api('/api/sim/history'),
+};
+
+const SIM = '/api/admin/sim';
+export const simAdminApi = {
+  tests: () => api(`${SIM}/tests`),
+  test: (id) => api(`${SIM}/tests/${id}`),
+  createTest: (body) => post(`${SIM}/tests`, body),
+  updateTest: (id, body) => put(`${SIM}/tests/${id}`, body),
+  deleteTest: (id) => del(`${SIM}/tests/${id}`),
+  createTopic: (testId, name) => post(`${SIM}/tests/${testId}/topics`, { name }),
+  updateTopic: (id, name) => put(`${SIM}/topics/${id}`, { name }),
+  deleteTopic: (id) => del(`${SIM}/topics/${id}`),
+  createVariant: (testId, body) => post(`${SIM}/tests/${testId}/variants`, body),
+  variant: (id) => api(`${SIM}/variants/${id}`),
+  updateVariant: (id, body) => put(`${SIM}/variants/${id}`, body),
+  deleteVariant: (id) => del(`${SIM}/variants/${id}`),
+  publish: (id) => post(`${SIM}/variants/${id}/publish`),
+  unpublish: (id) => post(`${SIM}/variants/${id}/unpublish`),
+  createBlock: (variantId, body) => post(`${SIM}/variants/${variantId}/blocks`, body),
+  updateBlock: (id, body) => put(`${SIM}/blocks/${id}`, body),
+  deleteBlock: (id) => del(`${SIM}/blocks/${id}`),
+  createPart: (blockId, body) => post(`${SIM}/blocks/${blockId}/parts`, body),
+  updatePart: (id, body) => put(`${SIM}/parts/${id}`, body),
+  deletePart: (id) => del(`${SIM}/parts/${id}`),
+  addTopic: (partId, topicId) => post(`${SIM}/parts/${partId}/topics`, { topicId }),
+  slot: (id) => api(`${SIM}/slots/${id}`),
+  deleteSlot: (id) => del(`${SIM}/slots/${id}`),
+  move: (type, id, dir) => post(`${SIM}/${type}/${id}/move`, { dir }),
 };
 
 export const glossaryApi = {

@@ -12,6 +12,16 @@ const Test = sequelize.define('Test', {
   parentId: { type: DataTypes.INTEGER, allowNull: true },
   // group = holds subsections only; standard / compare / reading = holds questions, each with its own uploader.
   kind: { type: DataTypes.STRING(20), allowNull: true },
+  bank: { type: DataTypes.STRING(20), allowNull: false, defaultValue: 'practice' },
+  // Simulation part (top level, in a block): required question count and answer format.
+  // While the part has topic children its kind is 'group' and simFormat keeps the format.
+  simBlockId: { type: DataTypes.INTEGER, allowNull: true },
+  requiredCount: { type: DataTypes.INTEGER, allowNull: true },
+  simFormat: { type: DataTypes.STRING(20), allowNull: true },
+  // Simulation topic slot (child of a part).
+  simTopicId: { type: DataTypes.INTEGER, allowNull: true },
+}, {
+  indexes: [{ fields: ['bank'] }, { fields: ['simBlockId'] }],
 });
 
 module.exports = { Test };

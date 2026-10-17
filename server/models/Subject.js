@@ -16,6 +16,10 @@ const Subject = sequelize.define('Subject', {
   },
   sortOrder: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 0 },
   isActive: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: true },
+  // practice = builder/flashcards/random main exam; simulation = fixed variants. The two never mix.
+  bank: { type: DataTypes.STRING(20), allowNull: false, defaultValue: 'practice' },
+  // Simulation course that is not an official ORT subject test (e.g. German).
+  isExtra: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },
 });
 
 module.exports = { Subject };
