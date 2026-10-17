@@ -24,6 +24,9 @@ const { SimTopic } = require('./SimTopic');
 const { SimVersion } = require('./SimVersion');
 const { SimAttempt } = require('./SimAttempt');
 const { SimAnswer } = require('./SimAnswer');
+const { QuestionFlag } = require('./QuestionFlag');
+const { PracticeSession } = require('./PracticeSession');
+const { PracticeAnswer } = require('./PracticeAnswer');
 
 Subject.hasMany(Test, { foreignKey: 'subjectId' });
 Test.belongsTo(Subject, { foreignKey: 'subjectId' });
@@ -142,4 +145,7 @@ module.exports = {
   SimVersion,
   SimAttempt,
   SimAnswer,
+  QuestionFlag,
+  PracticeSession,
+  PracticeAnswer,
 };

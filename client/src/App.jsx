@@ -8,9 +8,8 @@ import Register from './pages/Register';
 import Home from './pages/Home';
 import Tests from './pages/Tests';
 import TestBuilder from './pages/TestBuilder';
-import TestRunner from './pages/TestRunner';
-import TestResults from './pages/TestResults';
-import TestReview from './pages/TestReview';
+import PracticeRunner from './pages/practice/PracticeRunner';
+import PracticeResult from './pages/practice/PracticeResult';
 import ReadingBook from './pages/ReadingBook';
 import Errors from './pages/Errors';
 import Favorites from './pages/Favorites';
@@ -153,9 +152,11 @@ export default function App() {
       <Route path="/app/sim/attempt/:attemptId" element={<Private><SimRunner /></Private>} />
       <Route path="/app/sim/attempt/:attemptId/result" element={<AppLayout><SimResult /></AppLayout>} />
       <Route path="/app/create" element={<AppLayout><TestBuilder /></AppLayout>} />
-      <Route path="/app/test" element={<Private><TestRunner /></Private>} />
-      <Route path="/app/results" element={<AppLayout><TestResults /></AppLayout>} />
-      <Route path="/app/review" element={<Private><TestReview /></Private>} />
+      <Route path="/app/practice/:sessionId" element={<Private><PracticeRunner /></Private>} />
+      <Route path="/app/practice/:sessionId/result" element={<AppLayout><PracticeResult /></AppLayout>} />
+      <Route path="/app/test" element={<Navigate to="/app/create" replace />} />
+      <Route path="/app/results" element={<Navigate to="/app/create" replace />} />
+      <Route path="/app/review" element={<Navigate to="/app/create" replace />} />
       <Route path="/app/reading/:testId" element={<Private><ReadingBook /></Private>} />
       <Route path="/app/errors" element={<Private><Errors /></Private>} />
       <Route path="/app/favorites" element={<AppLayout><Favorites /></AppLayout>} />
@@ -182,7 +183,7 @@ export default function App() {
       <Route path="/ort-create" element={<Navigate to="/app/create" replace />} />
       <Route path="/ort-history" element={<Navigate to="/app/history" replace />} />
       <Route path="/ort-flashcards" element={<Navigate to="/app/flashcards" replace />} />
-      <Route path="/test" element={<Navigate to="/app/test" replace />} />
+      <Route path="/test" element={<Navigate to="/app/create" replace />} />
       <Route path="/subscriptions" element={<Navigate to="/app/premium" replace />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

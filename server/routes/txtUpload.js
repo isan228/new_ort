@@ -15,7 +15,7 @@ const {
 const { Op } = require('sequelize');
 const { requiresImage } = require('../utils/sectionKinds');
 const { parseQuestionsFromText } = require('../utils/parseQuestionsTxt');
-const { normalizeTxt, extractQuotedField } = require('../utils/txtQuestionAnswers');
+const { normalizeTxt, extractQuotedField, cleanDifficulty } = require('../utils/txtQuestionAnswers');
 const {
   COMPARE_KIND,
   compareAnswers,
@@ -121,6 +121,7 @@ async function upsertQuestions(test, parsed, passageId = null) {
       testId,
       text: item.text,
       explanation: item.explanation,
+      difficulty: cleanDifficulty(item.difficulty),
       externalId,
       sortOrder: maxOrder,
       ...media,
@@ -246,6 +247,7 @@ function parseMixed(raw, sections) {
       imageUrl: null,
       explanation: question.explanation || '',
       explanationImageUrl: null,
+      difficulty: question.difficulty,
       answers: question.answers.map((a) => ({ text: a.text, isCorrect: !!a.isCorrect, imageUrl: null })),
       targetId: resolveMixedTarget(sections, sectionRaw, false),
       sectionRaw: sectionRaw || '',
@@ -305,6 +307,7 @@ router.post('/parse-txt', fileField, async (req, res) => {
     imageUrl: null,
     explanation: item.explanation || '',
     explanationImageUrl: null,
+    difficulty: item.difficulty,
     answers: item.answers.map((a) => ({ text: a.text, isCorrect: !!a.isCorrect, imageUrl: null })),
   }));
   res.json({
@@ -341,6 +344,7 @@ router.post('/import-questions', express.json({ limit: '8mb' }), async (req, res
         imageUrl: item.imageUrl,
         explanation: String(item.explanation || '').trim(),
         explanationImageUrl: item.explanationImageUrl,
+        difficulty: item.difficulty,
         answers: compareAnswers(correct),
       });
       continue;
@@ -364,6 +368,7 @@ router.post('/import-questions', express.json({ limit: '8mb' }), async (req, res
       imageUrl: item.imageUrl,
       explanation: String(item.explanation || '').trim(),
       explanationImageUrl: item.explanationImageUrl,
+      difficulty: item.difficulty,
       answers: answers.map((a) => ({ ...a, text: a.text || ' ' })),
     });
   }

@@ -2580,3 +2580,10 @@ sup, sub { font-size: 0.72em; line-height: 0; }
 .txt-format-rules { margin: 8px 0 12px; padding-left: 20px; font-size: 13.5px; line-height: 1.5; }
 .txt-format-rules li { margin: 3px 0; }
 
+
+/* Question difficulty (admin) */
+.dp { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
+.dp .chip { margin-right: 6px; }
+.dp-star { border: none; background: transparent; font-size: 22px; line-height: 1; padding: 2px; cursor: pointer; color: #a3a3ab; }
+.dp-star.on { color: #f5a524; }
+.dp-badge { color: #f5a524; letter-spacing: 1px; font-size: 13px; }

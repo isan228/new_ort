@@ -1,4 +1,4 @@
-const { normalizeTxt, extractQuotedField } = require('./txtQuestionAnswers');
+const { normalizeTxt, extractQuotedField, extractDifficulty } = require('./txtQuestionAnswers');
 
 const COMPARE_KIND = 'compare';
 const COMPARE_ANSWERS = [
@@ -62,6 +62,7 @@ function parseCompareFromText(text, { parseTags } = {}) {
       compareA,
       compareB,
       explanation: field(block, 'E') || '',
+      difficulty: extractDifficulty(block),
       answers: compareAnswers(correct),
       tags: parseTags ? parseTags(block) : [],
     });

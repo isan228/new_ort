@@ -17,6 +17,7 @@ const paymentsRoutes = require('./routes/payments');
 const termImagesRoutes = require('./routes/termImages');
 const { chatRouter } = require('./routes/chat');
 const simRoutes = require('./routes/sim');
+const practiceRoutes = require('./routes/practice');
 
 const app = express();
 const port = Number(process.env.PORT) || 4000;
@@ -53,6 +54,7 @@ app.use('/api/payments', paymentsRoutes);
 app.use('/api/term-images', termImagesRoutes);
 app.use('/api/chat', chatRouter);
 app.use('/api/sim', simRoutes);
+app.use('/api/practice', practiceRoutes);
 
 const clientDist = path.join(__dirname, '..', 'client', 'dist');
 const indexHtml = path.join(clientDist, 'index.html');

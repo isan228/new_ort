@@ -48,17 +48,6 @@ export const ortApi = {
   dashboard: () => api('/api/tests/ort/dashboard'),
   welcomeStats: (testId) => api(`/api/tests/ort/welcome-stats?testId=${testId}`),
   history: (testId) => api(`/api/tests/ort/history?testId=${testId}`),
-  builder: (params = {}) => {
-    const q = new URLSearchParams();
-    if (params.testIds?.length) q.set('testIds', params.testIds.join(','));
-    if (params.modes?.length) q.set('modes', params.modes.join(','));
-    const qs = q.toString();
-    return api(`/api/tests/ort/builder${qs ? `?${qs}` : ''}`);
-  },
-  customTest: (body) => api('/api/tests/ort/custom-test/questions', {
-    method: 'POST',
-    body: JSON.stringify(body),
-  }),
   flashcards: (params = {}) => {
     const q = new URLSearchParams(params).toString();
     return api(`/api/tests/ort/flashcards${q ? `?${q}` : ''}`);
@@ -120,6 +109,25 @@ export const simApi = {
   finish: (id) => post(`/api/sim/attempts/${id}/finish`),
   result: (id) => api(`/api/sim/attempts/${id}/result`),
   history: () => api('/api/sim/history'),
+};
+
+export const practiceApi = {
+  builder: ({ testIds = [], difficulty = 'mixed', filters = [] } = {}) => {
+    const q = new URLSearchParams();
+    if (testIds.length) q.set('testIds', testIds.join(','));
+    if (difficulty !== 'mixed') q.set('difficulty', String(difficulty));
+    if (filters.length) q.set('filters', filters.join(','));
+    const qs = q.toString();
+    return api(`/api/practice/builder${qs ? `?${qs}` : ''}`);
+  },
+  create: (body) => post('/api/practice/sessions', body),
+  sessions: (status = 'active') => api(`/api/practice/sessions?status=${status}`),
+  session: (id) => api(`/api/practice/sessions/${id}`),
+  answer: (id, questionId, answerId) => post(`/api/practice/sessions/${id}/answer`, { questionId, answerId }),
+  finish: (id, timeout = false) => post(`/api/practice/sessions/${id}/finish`, { timeout }),
+  result: (id) => api(`/api/practice/sessions/${id}/result`),
+  flags: () => api('/api/practice/flags'),
+  setFlag: (questionId, flagged) => put(`/api/practice/flags/${questionId}`, { flagged }),
 };
 
 const SIM = '/api/admin/sim';

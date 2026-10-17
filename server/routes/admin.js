@@ -28,6 +28,7 @@ const bcrypt = require('bcryptjs');
 const { loginKey, assertLogin } = require('../utils/userLogin');
 const { normalizeCode, reservedCount } = require('../utils/promoCodes');
 const { addCoins } = require('../utils/coins');
+const { cleanDifficulty } = require('../utils/txtQuestionAnswers');
 const { publicUserWithPlan } = require('../middleware/auth');
 const {
   COMPARE_KIND,
@@ -659,6 +660,7 @@ router.post('/questions', async (req, res) => {
     explanationImageUrl: optionalText(req.body.explanationImageUrl),
     evidence: optionalText(req.body.evidence),
     externalId: req.body.externalId || null,
+    difficulty: cleanDifficulty(req.body.difficulty),
     sortOrder: req.body.sortOrder || 0,
   });
   for (const [idx, answer] of (req.body.answers || []).entries()) {
@@ -691,6 +693,7 @@ router.put('/questions/:id', async (req, res) => {
     if (req.body[key] !== undefined) patch[key] = optionalText(req.body[key]);
   }
   if (req.body.sortOrder != null) patch.sortOrder = Number(req.body.sortOrder) || 0;
+  if (req.body.difficulty !== undefined) patch.difficulty = cleanDifficulty(req.body.difficulty);
   if ('imageUrl' in patch && !patch.imageUrl && requiresImage(await Test.findByPk(question.testId))) {
     return res.status(400).json({ error: GEOMETRY_NEEDS_IMAGE });
   }

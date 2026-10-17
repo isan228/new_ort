@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { adminApi } from '../../api/client';
 import { useLang } from '../../context/LangContext';
 import { MathLive } from '../../components/MathText';
+import { DifficultyPicker } from './DifficultyPicker';
 
 const LETTERS = 'ABCDEFGHIJ';
 
@@ -208,6 +209,7 @@ export function QuestionCard({ q, index, onChange, onRemove, onUpload, requireIm
       </label>
       <MathLive text={q.explanation} />
       <ImageSlot url={q.explanationImageUrl} onChange={(url) => set({ explanationImageUrl: url })} onUpload={onUpload} />
+      <DifficultyPicker value={q.difficulty || null} onChange={(difficulty) => set({ difficulty })} />
     </article>
   );
 }

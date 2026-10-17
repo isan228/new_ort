@@ -4,6 +4,7 @@ const {
   mapAnswersWithCorrect,
   isValidCorrectIndex,
   normalizeTxt,
+  extractDifficulty,
 } = require('./txtQuestionAnswers');
 
 function parseHint(stats) {
@@ -64,6 +65,7 @@ function parseQuestionsFromText(text) {
       externalId,
       text: questionText,
       explanation: String(extractQuotedField(block, 'E') || '').trim(),
+      difficulty: extractDifficulty(block),
       answers: mapAnswersWithCorrect(answers, correctRaw),
     });
     stats.accepted += 1;

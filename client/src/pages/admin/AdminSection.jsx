@@ -28,6 +28,7 @@ import { pickTextFile, readTextFile, splitTitle } from '../../lib/textFile';
 import CompareBlock from './AdminCompare';
 import MixedUploadButton from './MixedTxtPreview';
 import { isCompare } from '../../lib/compare';
+import { DifficultyBadge } from './DifficultyPicker';
 import '../../styles/reading-book.css';
 
 export function QuestionModal({ testId, initial, requireImage = false, onClose, onSaved }) {
@@ -256,6 +257,8 @@ export function QuestionList({ questions, onEdit, onDelete }) {
             <h4>{previewText(q.text) || t('admin.q.imageOnly')}</h4>
             <p className="muted" style={{ margin: '4px 0 0' }}>
               {t('admin.answersCount', { n: (q.answers || []).length })}
+              {' '}
+              <DifficultyBadge value={q.difficulty} />
             </p>
           </div>
           <button className="btn sm" type="button" onClick={() => onEdit(q)}>{t('admin.q.editShort')}</button>

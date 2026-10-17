@@ -66,6 +66,7 @@ function publicQuestionShape(question) {
     explanation: question.explanation,
     explanationImageUrl: question.explanationImageUrl,
     externalId: question.externalId,
+    difficulty: question.difficulty || null,
     passageId: question.passageId || null,
     kind: question.kind || null,
     compareA: question.compareA || null,

@@ -11,20 +11,21 @@ const {
 } = require('../models');
 const { requireAuth } = require('../middleware/auth');
 const { requireOrtSubscription } = require('../middleware/requireOrtSubscription');
-const {
-  pickQuestionsKeepingLinkedOrder,
-  publicQuestionShape,
-  publicQuestionWithCorrect,
-} = require('../utils/ortLinkedQuestions');
-const { scoreAnswers } = require('../utils/ortScoring');
+const { publicQuestionShape } = require('../utils/ortLinkedQuestions');
 const { previewMainExam, assembleMainExam } = require('../utils/buildMainExam');
 const { isCompare } = require('../utils/compareQuestions');
+const {
+  practiceTest: practiceTestInclude,
+  sectionPath,
+  loadUserLastAnswers,
+  gradeSubmission,
+} = require('../utils/practiceGrading');
 
 const router = express.Router();
 
 // Everything here is the practice bank; simulation questions must never be served, graded or counted.
 const PRACTICE = { bank: 'practice' };
-const practiceTest = { model: Test, attributes: [], where: PRACTICE, required: true };
+const practiceTest = practiceTestInclude();
 
 router.use(requireAuth);
 
@@ -56,72 +57,6 @@ async function loadQuestionsForTest(testId, extraWhere = {}) {
   });
 }
 
-function parseIdList(value) {
-  const raw = Array.isArray(value) ? value : String(value || '').split(',');
-  return [...new Set(raw.map((item) => Number(item)).filter(Boolean))];
-}
-
-function parseModes(value) {
-  const raw = Array.isArray(value) ? value : String(value || '').split(',');
-  const allowed = new Set(['unused', 'unsolved', 'solved', 'correct', 'incorrect']);
-  return [...new Set(raw.map((item) => String(item || '').trim()).filter((item) => allowed.has(item)))]
-    .map((item) => (item === 'unsolved' ? 'unused' : item));
-}
-
-async function loadUserLastAnswers(userId) {
-  const results = await TestResult.findAll({
-    where: { userId },
-    attributes: ['answers'],
-    order: [['id', 'ASC']],
-  });
-  const last = new Map();
-  for (const result of results) {
-    for (const item of result.answers || []) {
-      if (item.questionId) last.set(item.questionId, item.correct === true);
-    }
-  }
-  return last;
-}
-
-function questionFlags(questionId, last) {
-  const seen = last.has(questionId);
-  const ok = last.get(questionId) === true;
-  return {
-    unused: !seen,
-    solved: seen,
-    correct: seen && ok,
-    incorrect: seen && !ok,
-  };
-}
-
-function matchesModes(flags, modes) {
-  if (!modes.length) return true;
-  return modes.some((mode) => flags[mode]);
-}
-
-function emptyStats() {
-  return { all: 0, unused: 0, solved: 0, correct: 0, incorrect: 0, available: 0 };
-}
-
-function bumpStats(bucket, flags, available) {
-  bucket.all += 1;
-  if (flags.unused) bucket.unused += 1;
-  if (flags.solved) bucket.solved += 1;
-  if (flags.correct) bucket.correct += 1;
-  if (flags.incorrect) bucket.incorrect += 1;
-  if (available) bucket.available += 1;
-}
-
-function sectionPath(test, byId) {
-  const names = [test.name];
-  let parent = byId.get(test.parentId);
-  while (parent && names.length < 6) {
-    names.unshift(parent.name);
-    parent = byId.get(parent.parentId);
-  }
-  return names.join(' · ');
-}
-
 function serializeSubjectForStudent(subject) {
   const json = subject.toJSON();
   const byId = new Map((json.Tests || []).map((test) => [test.id, test]));
@@ -135,71 +70,6 @@ function serializeSubjectForStudent(subject) {
   delete json.Tests;
   delete json.tests;
   return { ...json, Tests: tests };
-}
-
-async function gradeSubmission({ userId, testId, answers, durationSec, questionMode, examType }) {
-  const ids = (answers || []).map((item) => item.questionId).filter(Boolean);
-  const questions = await Question.findAll({
-    where: { id: { [Op.in]: ids.length ? ids : [0] }, isActive: true },
-    include: [{ model: Answer }, practiceTest],
-    order: [['sortOrder', 'ASC'], ['id', 'ASC'], [Answer, 'sortOrder', 'ASC']],
-  });
-  const tests = await Test.findAll({
-    where: { id: [...new Set(questions.map((q) => q.testId))] },
-  });
-  const testById = new Map(tests.map((row) => [row.id, row]));
-  const byId = new Map(questions.map((q) => [q.id, q]));
-
-  let score = 0;
-  const reviewed = (answers || []).map((item) => {
-    const q = byId.get(item.questionId);
-    const correct = q
-      ? (q.Answers || []).some((a) => a.id === item.answerId && a.isCorrect)
-      : false;
-    if (correct) score += 1;
-    const part = q ? testById.get(q.testId)?.ortPart : null;
-    return {
-      questionId: item.questionId,
-      answerId: item.answerId,
-      correct,
-      ortPart: part || null,
-      question: q ? publicQuestionWithCorrect(q) : null,
-    };
-  });
-
-  const scoring = scoreAnswers(reviewed, examType);
-  const result = await TestResult.create({
-    userId,
-    testId,
-    score,
-    officialScore: scoring.officialScore,
-    scoreBreakdown: {
-      examType: examType || scoring.examType,
-      maxScore: scoring.maxScore,
-      blocks: scoring.breakdown,
-    },
-    total: reviewed.length,
-    questionMode: questionMode || 'all',
-    answers: reviewed.map((row) => ({
-      questionId: row.questionId,
-      answerId: row.answerId,
-      correct: row.correct,
-      ortPart: row.ortPart,
-    })),
-    durationSec: durationSec || null,
-  });
-
-  return {
-    resultId: result.id,
-    score,
-    officialScore: scoring.officialScore,
-    maxScore: scoring.maxScore,
-    breakdown: scoring.breakdown,
-    examType: examType || scoring.examType,
-    total: reviewed.length,
-    accuracy: reviewed.length ? Math.round((score / reviewed.length) * 100) : 0,
-    items: reviewed,
-  };
 }
 
 router.get('/ort/dashboard', async (req, res) => {
@@ -278,121 +148,6 @@ router.get('/ort/history', async (req, res) => {
       durationSec: r.durationSec,
       createdAt: r.createdAt,
     })),
-  });
-});
-
-router.get('/ort/builder', async (req, res) => {
-  const selectedTests = parseIdList(req.query.testIds);
-  const modes = parseModes(req.query.modes);
-  const last = await loadUserLastAnswers(req.user.id);
-
-  const subjects = await Subject.findAll({
-    where: { isActive: true, ...PRACTICE },
-    include: [{ model: Test, where: { isActive: true }, required: false }],
-    order: [['sortOrder', 'ASC'], ['id', 'ASC'], [Test, 'sortOrder', 'ASC']],
-  });
-
-  const questions = await Question.findAll({
-    where: { isActive: true, passageId: null },
-    attributes: ['id', 'testId'],
-    include: [practiceTest],
-  });
-
-  const byTest = new Map();
-  const status = emptyStats();
-  let available = 0;
-
-  for (const question of questions) {
-    const flags = questionFlags(question.id, last);
-    const testsOk = !selectedTests.length || selectedTests.includes(question.testId);
-    const modeOk = matchesModes(flags, modes);
-
-    if (!byTest.has(question.testId)) byTest.set(question.testId, emptyStats());
-    bumpStats(byTest.get(question.testId), flags, modeOk);
-
-    if (testsOk) bumpStats(status, flags, modeOk);
-    if (testsOk && modeOk) available += 1;
-  }
-
-  const groups = subjects.map((subject) => {
-    const byId = new Map((subject.Tests || []).map((test) => [test.id, test]));
-    const sections = (subject.Tests || [])
-      .map((test) => ({
-        id: test.id,
-        name: sectionPath(test, byId),
-        subjectId: subject.id,
-        subjectName: subject.name,
-        trackGroup: subject.trackGroup,
-        ...(byTest.get(test.id) || emptyStats()),
-      }))
-      .filter((test) => test.all > 0);
-    return {
-      id: subject.id,
-      name: subject.name,
-      trackGroup: subject.trackGroup,
-      sections,
-    };
-  }).filter((group) => group.sections.length);
-
-  res.json({ groups, status, available });
-});
-
-router.post('/ort/custom-test/questions', async (req, res) => {
-  const {
-    testId,
-    testIds = [],
-    questionCount = 20,
-    questionMode = 'all',
-    modes = [],
-    minutes,
-    name,
-    randomizeAnswers = true,
-  } = req.body || {};
-
-  const sectionIds = parseIdList([...testIds, testId].filter(Boolean));
-  let selectedModes = parseModes(modes);
-  if (!selectedModes.length && (questionMode === 'unsolved' || questionMode === 'incorrect')) {
-    selectedModes = [questionMode === 'unsolved' ? 'unused' : 'incorrect'];
-  }
-
-  const testWhere = { isActive: true, ...PRACTICE };
-  if (sectionIds.length) testWhere.id = sectionIds;
-  const tests = await Test.findAll({ where: testWhere });
-  if (!tests.length) return res.status(404).json({ error: 'Разделы не найдены' });
-
-  const questions = await Question.findAll({
-    where: { testId: tests.map((row) => row.id), isActive: true, passageId: null },
-    include: [{ model: Answer }],
-    order: [['sortOrder', 'ASC'], ['id', 'ASC'], [Answer, 'sortOrder', 'ASC']],
-  });
-
-  const last = await loadUserLastAnswers(req.user.id);
-
-  const filtered = questions.filter((question) => matchesModes(questionFlags(question.id, last), selectedModes));
-
-  const limit = Math.max(1, Math.min(150, Number(questionCount) || 20));
-  const picked = pickQuestionsKeepingLinkedOrder(shuffle(filtered), limit);
-  if (!picked.length) return res.status(400).json({ error: 'Нет вопросов по выбранным фильтрам' });
-
-  const payload = picked.map((question) => {
-    const shaped = publicQuestionShape(question);
-    if (randomizeAnswers && !isCompare(shaped)) shaped.answers = shuffle(shaped.answers);
-    return shaped;
-  });
-
-  const title = String(name || '').trim() || (tests.length === 1 ? tests[0].name : 'Свой тест');
-  const timed = Math.max(0, Math.min(240, Number(minutes) || 0));
-
-  res.json({
-    examType: 'custom',
-    test: {
-      id: tests[0].id,
-      name: title,
-      hasExplanations: tests.some((row) => row.hasExplanations),
-      ortPart: tests[0].ortPart,
-    },
-    questions: payload,
-    minutes: timed,
   });
 });
 

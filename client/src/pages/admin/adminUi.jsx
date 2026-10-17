@@ -119,6 +119,7 @@ const SAMPLE_SIMPLE = [
   '"A4":"Нарын"',
   '"Correct":"2"',
   '"E":"Бишкек — столица Кыргызской Республики."',
+  '"Difficulty":"1"',
   '',
   '"ID":"2"',
   '"Q":"Какая планета ближе всего к Солнцу?"',
@@ -179,6 +180,7 @@ export function TxtFormatHelp({ math = false, geometry = false }) {
         <li>{t('admin.txtFormat.ruleCorrect')}</li>
         <li>{t('admin.txtFormat.ruleE')}</li>
         <li>{t('admin.txtFormat.ruleQuotes')}</li>
+        <li>{t('admin.txtFormat.ruleDifficulty')}</li>
         {math && <li>{t('admin.txtFormat.ruleMath')}</li>}
         {geometry && <li><b>{t('admin.geoHint')}</b></li>}
       </ul>

@@ -34,16 +34,6 @@ export function bumpToday(n = 1) {
   return p;
 }
 
-export function toggleFavorite(questionId) {
-  const p = loadProgress();
-  const id = Number(questionId);
-  p.favorites = p.favorites.includes(id)
-    ? p.favorites.filter((x) => x !== id)
-    : [...p.favorites, id];
-  saveProgress(p);
-  return p;
-}
-
 export const ACHIEVEMENT_DEFS = [
   { id: 'first', icon: '🏆' },
   { id: 'week', icon: '🔥' },
