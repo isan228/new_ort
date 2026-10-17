@@ -40,9 +40,11 @@ const router = express.Router();
 function readUploaded(req) {
   const file = (req.files?.pdf && req.files.pdf[0]) || (req.files?.file && req.files.file[0]);
   if (!file) return null;
-  const raw = fs.readFileSync(file.path, 'utf8');
+  const buffer = fs.readFileSync(file.path);
   fs.unlink(file.path, () => {});
-  return raw;
+  const utf8 = buffer.toString('utf8');
+  // Files saved by old Windows Notepad / Word come in cp1251.
+  return utf8.includes('\uFFFD') ? new TextDecoder('windows-1251').decode(buffer) : utf8;
 }
 
 const IMAGE_TYPES = {

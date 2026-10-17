@@ -1,6 +1,6 @@
 import { Fragment } from 'react';
 
-const MATH_HINT = /[\^_/√∛∜]|sqrt|cbrt|root\(|<=|>=|!=|\d\s?deg\b|(?<![A-Za-z])(pi|alpha|beta|gamma|phi)(?![A-Za-z])/;
+const MATH_HINT = /[\^_/√∛∜]|sqrt|cbrt|root\(|<=|>=|!=|\d\s?deg\b|[0-9A-Za-z)]\*[0-9A-Za-z(√]|(?<![A-Za-z])(pi|alpha|beta|gamma|phi)(?![A-Za-z])/;
 const WORDS = [['alpha', 'α'], ['beta', 'β'], ['gamma', 'γ'], ['phi', 'φ'], ['pi', 'π']];
 const ROOT_SIGNS = { '√': 2, '∛': 3, '∜': 4 };
 const CLOSE = { '(': ')', '{': '}' };
@@ -49,6 +49,43 @@ function readScript(s, i) {
   if (CLOSE[s[i]]) return readOperand(s, i);
   const m = s.slice(i).match(SCRIPT);
   return m ? { inner: m[0], end: i + m[0].length } : null;
+}
+
+// One factor of a product: operand or root, with its powers and indices (m_1, v^2, sqrt(l/g), (a+b)^2).
+function readFactor(s, i) {
+  let end;
+  const fn = ['sqrt', 'cbrt'].find((name) => s.startsWith(name, i) && CLOSE[s[i + 4]]);
+  if (fn) {
+    const close = groupEnd(s, i + 4);
+    if (close < 0) return null;
+    end = close + 1;
+  } else {
+    const op = readOperand(s, ROOT_SIGNS[s[i]] ? i + 1 : i);
+    if (!op) return null;
+    end = op.end;
+  }
+  while (s[end] === '^' || s[end] === '_') {
+    const script = readScript(s, end + 1);
+    if (!script) break;
+    end = script.end;
+  }
+  return end;
+}
+
+// "m*v^2" in "m*v^2/2": the whole product before "/" is the numerator.
+function readProduct(s, i) {
+  let end = readFactor(s, i);
+  if (end == null) return null;
+  while (s[end] === '*') {
+    const next = readFactor(s, end + 1);
+    if (next == null) break;
+    end = next;
+  }
+  return end;
+}
+
+function unwrap(s) {
+  return CLOSE[s[0]] && groupEnd(s, 0) === s.length - 1 ? s.slice(1, -1) : s;
 }
 
 function parse(s) {
@@ -127,6 +164,14 @@ function parse(s) {
 
     const startsOperand = CLOSE[ch] || (!WORD.test(prev) && /[0-9A-Za-z]/.test(ch));
     if (startsOperand) {
+      const numEnd = readProduct(s, i);
+      const denEnd = numEnd != null && s[numEnd] === '/' ? readFactor(s, numEnd + 1) : null;
+      if (denEnd != null) {
+        flush();
+        out.push({ type: 'frac', num: parse(unwrap(s.slice(i, numEnd))), den: parse(unwrap(s.slice(numEnd + 1, denEnd))) });
+        i = denEnd;
+        continue;
+      }
       const left = readOperand(s, i);
       if (left && s[left.end] === '/') {
         const right = readOperand(s, left.end + 1);
@@ -147,7 +192,7 @@ function parse(s) {
       }
     }
 
-    buf += ch;
+    buf += ch === '*' ? '·' : ch;
     i += 1;
   }
   flush();
@@ -160,10 +205,12 @@ function render(nodes) {
     if (node.type === 'sup') return <sup key={i}>{render(node.body)}</sup>;
     if (node.type === 'sub') return <sub key={i}>{render(node.body)}</sub>;
     if (node.type === 'root') {
+      const tall = node.body.some((part) => part?.type === 'frac');
       return (
-        <span key={i} className="mt-root">
+        <span key={i} className={`mt-root${tall ? ' has-frac' : ''}`}>
           {node.index && <span className="mt-root-idx">{node.index}</span>}
-          √<span className="mt-root-body">{render(node.body)}</span>
+          <span className="mt-root-sign">√</span>
+          <span className="mt-root-body">{render(node.body)}</span>
         </span>
       );
     }
