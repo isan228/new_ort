@@ -28,6 +28,7 @@ const bcrypt = require('bcryptjs');
 const { loginKey, assertLogin } = require('../utils/userLogin');
 const { normalizeCode, reservedCount } = require('../utils/promoCodes');
 const { addCoins } = require('../utils/coins');
+const { publicUserWithPlan } = require('../middleware/auth');
 const {
   COMPARE_KIND,
   compareAnswers,
@@ -989,7 +990,7 @@ router.post('/users/:id/grant-subscription', async (req, res) => {
   base.setMonth(base.getMonth() + months);
   user.subscriptionEndDate = base;
   await user.save();
-  res.json({ user });
+  res.json({ user: await publicUserWithPlan(user) });
 });
 
 module.exports = router;

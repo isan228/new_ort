@@ -23,6 +23,7 @@ const {
   planAllowed,
   publicPromo,
 } = require('../utils/promoCodes');
+const { createLimiter, clientIp } = require('../utils/rateLimit');
 
 const router = express.Router();
 
@@ -65,20 +66,11 @@ router.get('/plans', async (req, res) => {
   res.json({ plans, finik: isFinikConfigured() });
 });
 
-const promoHits = new Map();
-
-function promoRateLimited(req) {
-  const key = String(req.headers['x-forwarded-for'] || req.ip || '').split(',')[0].trim();
-  const now = Date.now();
-  const recent = (promoHits.get(key) || []).filter((at) => now - at < 10 * 60 * 1000);
-  recent.push(now);
-  promoHits.set(key, recent);
-  if (promoHits.size > 5000) promoHits.clear();
-  return recent.length > 30;
-}
+const PROMO_MAX_TRIES = 30;
+const promoLimiter = createLimiter({ windowMs: 10 * 60 * 1000, max: PROMO_MAX_TRIES });
 
 router.post('/promo', async (req, res) => {
-  if (promoRateLimited(req)) {
+  if (promoLimiter.hit(clientIp(req)) > PROMO_MAX_TRIES) {
     return res.status(429).json({ error: 'Слишком много попыток, попробуйте позже', code: 'PROMO_RATE' });
   }
   try {

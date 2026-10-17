@@ -1,6 +1,23 @@
 const jwt = require('jsonwebtoken');
 const { User } = require('../models');
 
+const DEV_SECRET = 'dev-secret';
+// Values from .env.example and DEPLOY.md are public, so a token signed with them can be forged.
+const PLACEHOLDER_SECRETS = new Set([DEV_SECRET, 'change-this-to-a-long-random-string', 'длинная_случайная_строка']);
+
+function jwtSecret() {
+  const secret = String(process.env.JWT_SECRET || '').trim();
+  if (process.env.NODE_ENV === 'production' && (!secret || PLACEHOLDER_SECRETS.has(secret))) {
+    throw new Error('JWT_SECRET в .env не задан или взят из примера. Сгенерируйте: node -e "console.log(require(\'crypto\').randomBytes(48).toString(\'hex\'))"');
+  }
+  return secret || DEV_SECRET;
+}
+
+function assertJwtSecret() {
+  const secret = jwtSecret();
+  if (secret.length < 32) console.warn('JWT_SECRET короче 32 символов — лучше заменить на длинную случайную строку');
+}
+
 function getToken(req) {
   const header = req.headers.authorization || '';
   if (header.startsWith('Bearer ')) return header.slice(7);
@@ -13,7 +30,7 @@ async function requireAuth(req, res, next) {
     if (!token) {
       return res.status(401).json({ error: 'Нужна авторизация', code: 'AUTH_REQUIRED' });
     }
-    const payload = jwt.verify(token, process.env.JWT_SECRET || 'dev-secret');
+    const payload = jwt.verify(token, jwtSecret());
     const user = await User.findByPk(payload.id);
     if (!user) {
       return res.status(401).json({ error: 'Пользователь не найден', code: 'AUTH_REQUIRED' });
@@ -46,7 +63,7 @@ async function requireStaff(req, res, next) {
 function signToken(user) {
   return jwt.sign(
     { id: user.id, role: user.role },
-    process.env.JWT_SECRET || 'dev-secret',
+    jwtSecret(),
     { expiresIn: '30d' },
   );
 }
@@ -82,4 +99,12 @@ async function publicUserWithPlan(user) {
   return publicUser(user, plan);
 }
 
-module.exports = { requireAuth, requireAdmin, requireStaff, signToken, publicUser, publicUserWithPlan };
+module.exports = {
+  assertJwtSecret,
+  requireAuth,
+  requireAdmin,
+  requireStaff,
+  signToken,
+  publicUser,
+  publicUserWithPlan,
+};

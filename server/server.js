@@ -7,7 +7,7 @@ require('./utils/asyncErrors');
 const cors = require('cors');
 const { ensureDatabase } = require('./utils/ensureDatabase');
 const { prepareAppData } = require('./utils/prepareAppData');
-const { requireStaff } = require('./middleware/auth');
+const { requireStaff, assertJwtSecret } = require('./middleware/auth');
 const { staffScope } = require('./middleware/staffScope');
 
 const authRoutes = require('./routes/auth');
@@ -20,6 +20,9 @@ const { chatRouter } = require('./routes/chat');
 const app = express();
 const port = Number(process.env.PORT) || 4000;
 
+// nginx proxies from 127.0.0.1; only its X-Forwarded-For entry is trusted, so req.ip is the real client.
+app.set('trust proxy', 'loopback');
+
 const allowedOrigins = new Set(
   [process.env.CLIENT_URL, 'https://ort.kg', 'https://www.ort.kg', 'http://localhost:5173', 'http://127.0.0.1:5173']
     .filter(Boolean),
@@ -27,8 +30,7 @@ const allowedOrigins = new Set(
 
 app.use(cors({
   origin(origin, callback) {
-    if (!origin || allowedOrigins.has(origin)) return callback(null, true);
-    return callback(null, true);
+    callback(null, !origin || allowedOrigins.has(origin));
   },
   credentials: true,
 }));
@@ -74,6 +76,7 @@ app.use((err, req, res, next) => {
 });
 
 async function boot() {
+  assertJwtSecret();
   await ensureDatabase();
   await prepareAppData();
 

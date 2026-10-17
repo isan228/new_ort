@@ -8,8 +8,29 @@ const { userStats, rankingFor } = require('../utils/userProgress');
 const { REFERRAL_COINS, coinHistory } = require('../utils/coins');
 const { normalizeLogin, loginKey, assertLogin } = require('../utils/userLogin');
 const { applyPaidSubscription, startCheckout, sendCheckoutError } = require('../utils/paymentFlow');
+const { createLimiter, clientIp } = require('../utils/rateLimit');
 
 const router = express.Router();
+
+const LOGIN_WINDOW_MS = 15 * 60 * 1000;
+// Whole schools sit behind one NAT address, so the per-IP cap is loose and the IP+login cap is tight.
+const ipLoginFails = createLimiter({ windowMs: LOGIN_WINDOW_MS, max: 10 });
+const loginFails = createLimiter({ windowMs: LOGIN_WINDOW_MS, max: 50 });
+const ipFails = createLimiter({ windowMs: LOGIN_WINDOW_MS, max: 100 });
+
+function loginGuard(req, res, ident) {
+  const ip = clientIp(req);
+  const account = loginKey(ident) || '-';
+  const keys = [[ipLoginFails, `${ip}|${account}`], [loginFails, account], [ipFails, ip]];
+  if (keys.some(([limiter, key]) => limiter.blocked(key))) {
+    res.status(429).json({ error: 'Слишком много попыток входа. Попробуйте через 15 минут', code: 'LOGIN_RATE' });
+    return null;
+  }
+  return {
+    fail: () => keys.forEach(([limiter, key]) => limiter.hit(key)),
+    ok: () => ipLoginFails.reset(keys[0][1]),
+  };
+}
 
 async function findByLoginOrEmail(ident) {
   const raw = String(ident || '').trim();
@@ -83,10 +104,14 @@ async function checkPassword(user, password) {
 
 router.post('/login', async (req, res) => {
   const ident = req.body.login || req.body.email;
+  const guard = loginGuard(req, res, ident);
+  if (!guard) return;
   const user = await findByLoginOrEmail(ident);
   if (!user || !(await checkPassword(user, req.body.password))) {
+    guard.fail();
     return res.status(401).json({ error: 'Неверный логин или пароль' });
   }
+  guard.ok();
   if (user.role === 'admin' || user.role === 'editor') {
     return res.status(401).json({ error: 'Неверный логин или пароль' });
   }
@@ -96,10 +121,14 @@ router.post('/login', async (req, res) => {
 
 router.post('/admin-login', async (req, res) => {
   const ident = req.body.login || req.body.email;
+  const guard = loginGuard(req, res, ident);
+  if (!guard) return;
   const user = await findByLoginOrEmail(ident);
   if (!user || !(await checkPassword(user, req.body.password))) {
+    guard.fail();
     return res.status(401).json({ error: 'Неверный логин или пароль' });
   }
+  guard.ok();
   if (user.role !== 'admin' && user.role !== 'editor') {
     return res.status(403).json({ error: 'Нет доступа к админке', code: 'ADMIN_REQUIRED' });
   }
