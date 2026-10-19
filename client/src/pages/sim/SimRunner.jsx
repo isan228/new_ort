@@ -319,6 +319,7 @@ export default function SimRunner() {
             <div className="sim-question">
               {locked && <p className="err">{t('simulation.timeOver')}</p>}
               {error && <p className="err">{error}</p>}
+              <p className="sim-mobile-block">{t('simulation.blockN', { a: current.index + 1, b: state.blocks.length })} · {block.title}</p>
               {current.parts.length > 1 && <p className="usmle-section-label">{q.partName}</p>}
               {isCompare(q) && <CompareInstruction t={t} />}
               <div className="sim-qnum">{safeIndex + 1}</div>

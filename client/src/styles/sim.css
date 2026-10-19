@@ -284,6 +284,55 @@
 .sim-topic-add { max-width: 260px; }
 .sim-move { min-width: 34px; padding: 6px 8px; }
 
+@media (max-width: 640px) {
+  .sim-block-head > div:nth-child(2),
+  .sim-part-head > div:first-child { flex-basis: 100%; }
+  /* The flexible spacer becomes a line break: name and count on top, buttons below. */
+  .sim-topic > span:nth-child(3) { flex: 0 0 100% !important; height: 0; }
+  .sim-block-head .row, .sim-part-head .row { width: 100%; }
+}
+
+/* Result tables turn into one card per row on phones, so the percent never hides behind a scroll. */
+@media (max-width: 640px) {
+  .table.sim-table { min-width: 0; }
+  .sim-table thead { display: none; }
+  .sim-table, .sim-table tbody { display: block; width: 100%; }
+  .sim-table tr {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(60px, 1fr));
+    gap: 6px 10px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--line);
+  }
+  .table.sim-table td { display: block; padding: 0; border: 0; font-size: 14px; }
+  .table.sim-table td:first-child { grid-column: 1 / -1; }
+  .table.sim-table td[data-label]::before {
+    content: attr(data-label);
+    display: block;
+    font-size: 11px;
+    color: var(--muted);
+    margin-bottom: 2px;
+  }
+  .table.sim-table td.sim-pct { grid-column: 1 / -1; display: flex; align-items: center; gap: 8px; }
+  .table.sim-table td.sim-pct::before { display: none; }
+  .sim-table .sim-bar { flex: 1; width: auto; height: 8px; }
+  .sim-result .tabs button { min-height: 38px; }
+  .sim-review-item { padding: 14px; }
+}
+
+.sim-mobile-block { display: none; margin: 0 0 10px; font-size: 13px; font-weight: 600; color: #475569; }
+
+@media (max-width: 720px) {
+  .sim-runner .uworld-tb-left { flex: 1 1 auto; }
+  .sim-runner .uworld-tb-item-info { flex-shrink: 0; }
+  .sim-runner .uworld-tb-nav { margin: 0 4px; }
+  /* The timer is already in the top bar, so the footer only keeps the actions. */
+  .sim-runner .uworld-sf-left { display: none; }
+  .sim-runner .uworld-sf-tools { flex: 1 1 auto; justify-content: space-between; }
+  .sim-runner .uworld-sf-tool { flex: 1 1 0; padding: 0 6px; font-size: 13px; text-align: center; }
+  .sim-mobile-block { display: block; }
+}
+
 @media (max-width: 860px) {
   .sim-with-passage { display: block; }
   .sim-passage { position: static; max-height: none; margin-bottom: 14px; }

@@ -37,6 +37,8 @@
   background: transparent;
   font-size: 26px;
   line-height: 1;
+  min-width: 36px;
+  min-height: 38px;
   padding: 2px 3px;
   cursor: pointer;
   color: #a3a3ab;
@@ -82,6 +84,11 @@
 .pr-feedback.is-ok > b { color: #059669; }
 .pr-feedback.is-bad > b { color: #dc2626; }
 .pr-feedback .sim-explanation { background: #f5f8ff; color: #1e293b; }
+
+@media (max-width: 720px) {
+  .pr-runner .uworld-tb-left .pr-flag span { display: none; }
+  .pr-runner .uworld-tb-left .pr-flag { padding: 6px 8px; }
+}
 
 .pr-timeup {
   position: fixed;

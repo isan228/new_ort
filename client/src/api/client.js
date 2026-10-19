@@ -130,6 +130,13 @@ export const practiceApi = {
   setFlag: (questionId, flagged) => put(`/api/practice/flags/${questionId}`, { flagged }),
 };
 
+export const ugcApi = {
+  list: () => api('/api/admin/ugc'),
+  create: (body) => post('/api/admin/ugc', body),
+  update: (id, body) => put(`/api/admin/ugc/${id}`, body),
+  invitees: (id) => api(`/api/admin/ugc/${id}/invitees`),
+};
+
 const SIM = '/api/admin/sim';
 export const simAdminApi = {
   tests: () => api(`${SIM}/tests`),

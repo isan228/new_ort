@@ -61,10 +61,17 @@ const indexHtml = path.join(clientDist, 'index.html');
 const serveFrontend = fs.existsSync(indexHtml);
 
 if (serveFrontend) {
-  app.use(express.static(clientDist));
+  // index.html must be revalidated on every visit: after a deploy it points to new hashed assets.
+  app.use(express.static(clientDist, {
+    setHeaders(res, filePath) {
+      if (filePath.endsWith('index.html')) res.setHeader('Cache-Control', 'no-cache');
+      else if (filePath.includes(`${path.sep}assets${path.sep}`)) res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+    },
+  }));
   app.use((req, res, next) => {
     if (req.path.startsWith('/api') || req.path.startsWith('/uploads')) return next();
     if (req.method !== 'GET' && req.method !== 'HEAD') return next();
+    res.setHeader('Cache-Control', 'no-cache');
     return res.sendFile(indexHtml);
   });
 }

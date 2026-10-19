@@ -2590,3 +2590,19 @@ sup, sub { font-size: 0.72em; line-height: 0; }
 .dp-star { border: none; background: transparent; font-size: 22px; line-height: 1; padding: 2px; cursor: pointer; color: #a3a3ab; }
 .dp-star.on { color: #f5a524; }
 .dp-badge { color: #f5a524; letter-spacing: 1px; font-size: 13px; }
+
+/* Larger tap targets on phones */
+@media (max-width: 720px) {
+  .lang-switch button { min-height: 36px; padding: 6px 12px; }
+  .promo-toggle { min-height: 40px; padding: 8px 0; }
+}
+
+/* Admin: UGC accounts */
+.ugc-login { font-size: 13px; font-weight: 500; }
+.ugc-stats { display: flex; flex-wrap: wrap; gap: 6px 16px; margin: 8px 0 4px; font-size: 14px; }
+.ugc-stats b { font-size: 16px; }
+.ugc-link { margin: 0; font-size: 12px; word-break: break-all; }
+.ugc-actions { flex-wrap: wrap; gap: 6px; }
+@media (max-width: 640px) {
+  .ugc-item { flex-direction: column; align-items: stretch; }
+}

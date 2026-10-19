@@ -11,15 +11,15 @@ import { FlagButton, useFlags } from './PracticeRunner';
 import '../../styles/sim.css';
 import '../../styles/practice.css';
 
-function Row({ row, name }) {
+function Row({ row, name, t }) {
   return (
     <tr>
       <td><b>{name}</b></td>
-      <td>{row.total || '—'}</td>
-      <td>{row.correct}</td>
-      <td>{row.wrong}</td>
-      <td>{row.skipped}</td>
-      <td className="sim-pct">
+      <td data-label={t('practice.colTotal')}>{row.total || '—'}</td>
+      <td data-label={t('simulation.colCorrect')}>{row.correct}</td>
+      <td data-label={t('simulation.colWrong')}>{row.wrong}</td>
+      <td data-label={t('simulation.colSkipped')}>{row.skipped}</td>
+      <td data-label="%" className="sim-pct">
         {row.total ? <><span className="sim-bar"><i style={{ width: `${row.percent}%` }} /></span> {row.percent}%</> : '—'}
       </td>
     </tr>
@@ -142,18 +142,18 @@ export default function PracticeResult() {
       {result.subjects.length > 1 && (
         <div className="card table-scroll">
           <h3>{t('practice.bySubjects')}</h3>
-          <table className="table">
+          <table className="table sim-table">
             <thead><Head t={t} /></thead>
-            <tbody>{result.subjects.map((s) => <Row key={s.subjectId} row={s} name={s.name} />)}</tbody>
+            <tbody>{result.subjects.map((s) => <Row key={s.subjectId} row={s} name={s.name} t={t} />)}</tbody>
           </table>
         </div>
       )}
       {result.subjects.map((s) => (
         <div key={s.subjectId} className="card table-scroll">
           <h3>{s.name} · {s.correct}/{s.total}</h3>
-          <table className="table">
+          <table className="table sim-table">
             <thead><Head t={t} /></thead>
-            <tbody>{s.topics.map((topic) => <Row key={topic.testId} row={topic} name={topic.name} />)}</tbody>
+            <tbody>{s.topics.map((topic) => <Row key={topic.testId} row={topic} name={topic.name} t={t} />)}</tbody>
           </table>
         </div>
       ))}

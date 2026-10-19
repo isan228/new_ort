@@ -74,12 +74,15 @@ export default function AdminUsers() {
               const active = end && end > new Date();
               return (
                 <tr key={u.id}>
-                  <td>{u.name}</td>
+                  <td>
+                    {u.name}
+                    {u.isUgc && <span className="badge brand" style={{ marginLeft: 6 }}>UGC</span>}
+                  </td>
                   <td>{u.login || '—'}</td>
                   <td>{u.email}</td>
                   <td>
-                    <span className={`badge ${active ? 'ok' : ''}`}>
-                      {end ? end.toLocaleDateString(locale) : t('admin.noSub')}
+                    <span className={`badge ${active || (u.isUgc && !u.ugcDisabled) ? 'ok' : ''}`}>
+                      {u.isUgc && !u.ugcDisabled ? t('admin.ugc.unlimited') : (end ? end.toLocaleDateString(locale) : t('admin.noSub'))}
                     </span>
                   </td>
                   <td>

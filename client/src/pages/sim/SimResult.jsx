@@ -13,13 +13,13 @@ function Bar({ percent }) {
   return <span className="sim-bar"><i style={{ width: `${percent}%` }} /></span>;
 }
 
-function ScoreCells({ row }) {
+function ScoreCells({ row, t }) {
   return (
     <>
-      <td><b>{row.correct}</b> / {row.total}</td>
-      <td>{row.wrong}</td>
-      <td>{row.skipped}</td>
-      <td className="sim-pct"><Bar percent={row.percent} /> {row.percent}%</td>
+      <td data-label={t('simulation.colCorrect')}><b>{row.correct}</b> / {row.total}</td>
+      <td data-label={t('simulation.colWrong')}>{row.wrong}</td>
+      <td data-label={t('simulation.colSkipped')}>{row.skipped}</td>
+      <td data-label="%" className="sim-pct"><Bar percent={row.percent} /> {row.percent}%</td>
     </>
   );
 }
@@ -141,7 +141,7 @@ export default function SimResult() {
 
       <div className="card table-scroll">
         <h3>{t('simulation.byBlocks')}</h3>
-        <table className="table">
+        <table className="table sim-table">
           <thead><ScoreHead t={t} first={t('simulation.colBlock')} /></thead>
           <tbody>
             {result.blocks.map((b, i) => (
@@ -153,7 +153,7 @@ export default function SimResult() {
                     {b.reason === 'timeout' && ` · ${t('simulation.closed.timeout')}`}
                   </div>
                 </td>
-                <ScoreCells row={b} />
+                <ScoreCells row={b} t={t} />
               </tr>
             ))}
           </tbody>
@@ -163,13 +163,13 @@ export default function SimResult() {
       {result.parts.length > result.blocks.length && (
         <div className="card table-scroll">
           <h3>{t('simulation.byParts')}</h3>
-          <table className="table">
+          <table className="table sim-table">
             <thead><ScoreHead t={t} first={t('simulation.colPart')} /></thead>
             <tbody>
               {result.parts.map((p) => (
                 <tr key={p.partId}>
                   <td><b>{p.name}</b></td>
-                  <ScoreCells row={p} />
+                  <ScoreCells row={p} t={t} />
                 </tr>
               ))}
             </tbody>
@@ -180,7 +180,7 @@ export default function SimResult() {
       {result.topics.length > 0 && (
         <div className="card table-scroll">
           <h3>{t('simulation.byTopics')}</h3>
-          <table className="table">
+          <table className="table sim-table">
             <thead><ScoreHead t={t} first={t('simulation.colTopic')} /></thead>
             <tbody>
               {result.topics.map((topic) => (
@@ -194,7 +194,7 @@ export default function SimResult() {
                       </div>
                     )}
                   </td>
-                  <ScoreCells row={topic} />
+                  <ScoreCells row={topic} t={t} />
                 </tr>
               ))}
             </tbody>

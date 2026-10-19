@@ -38,6 +38,7 @@ const ADMIN_ROOT = '/админ';
 const ADMIN_SIDE = [
   [ADMIN_ROOT, 'admin.dashboard'],
   [`${ADMIN_ROOT}/users`, 'admin.users'],
+  [`${ADMIN_ROOT}/ugc`, 'admin.ugc.title'],
   [`${ADMIN_ROOT}/content`, 'admin.program'],
   [`${ADMIN_ROOT}/sim`, 'admin.simulation.title'],
   [`${ADMIN_ROOT}/plans`, 'admin.plans'],
@@ -95,6 +96,7 @@ const ROUTE_ICON = {
   '/app/profile': 'user',
   [ADMIN_ROOT]: 'home',
   [`${ADMIN_ROOT}/users`]: 'users',
+  [`${ADMIN_ROOT}/ugc`]: 'gift',
   [`${ADMIN_ROOT}/content`]: 'book',
   [`${ADMIN_ROOT}/sim`]: 'stopwatch',
   [`${EDITOR_ROOT}/sim`]: 'stopwatch',

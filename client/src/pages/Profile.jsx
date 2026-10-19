@@ -29,7 +29,8 @@ export default function Profile() {
 
   const end = user?.subscriptionEndDate ? new Date(user.subscriptionEndDate) : null;
   const active = !!user?.subscriptionActive;
-  const title = user?.subscriptionTitle || t('profile.noPlan');
+  const unlimited = !!user?.unlimited;
+  const title = unlimited ? t('profile.unlimited') : (user?.subscriptionTitle || t('profile.noPlan'));
 
   async function renew(plan) {
     setSelectedId(plan.id);
@@ -70,21 +71,26 @@ export default function Profile() {
           <div>
             <div className="muted">{t('profile.sub')}</div>
             <h2 style={{ margin: '6px 0 8px' }}>{title}</h2>
-            {active && end && <p className="ok" style={{ margin: 0 }}>{t('profile.until', { date: end.toLocaleDateString(locale) })}</p>}
-            {!active && end && <p className="err" style={{ margin: 0 }}>{t('profile.expired', { date: end.toLocaleDateString(locale) })}</p>}
-            {!active && !end && <p className="muted" style={{ margin: 0 }}>{t('profile.needPay')}</p>}
+            {unlimited && <p className="ok" style={{ margin: 0 }}>{t('profile.unlimitedHint')}</p>}
+            {!unlimited && active && end && <p className="ok" style={{ margin: 0 }}>{t('profile.until', { date: end.toLocaleDateString(locale) })}</p>}
+            {!unlimited && !active && end && <p className="err" style={{ margin: 0 }}>{t('profile.expired', { date: end.toLocaleDateString(locale) })}</p>}
+            {!unlimited && !active && !end && <p className="muted" style={{ margin: 0 }}>{t('profile.needPay')}</p>}
           </div>
           <span className={`badge ${active ? 'ok' : 'bad'}`}>
             {active ? t('profile.active') : t('profile.inactive')}
           </span>
         </div>
-        <h3 style={{ marginTop: 20 }}>{active ? t('profile.renew') : t('profile.buy')}</h3>
-        <p className="muted">{t('pay.renewHint')}</p>
-        {error && <p className="err">{error}</p>}
-        <PromoField promo={promo} onChange={setPromo} />
-        <CoinsToggle balance={user?.coins || 0} checked={useCoins} onChange={setUseCoins} />
-        <PlanPicker plans={plans} selectedId={selectedId} onSelect={renew} promo={promo} coins={coins} />
-        {busy && <p className="muted" style={{ marginTop: 12 }}>{t('common.loading')}</p>}
+        {!unlimited && (
+          <>
+            <h3 style={{ marginTop: 20 }}>{active ? t('profile.renew') : t('profile.buy')}</h3>
+            <p className="muted">{t('pay.renewHint')}</p>
+            {error && <p className="err">{error}</p>}
+            <PromoField promo={promo} onChange={setPromo} />
+            <CoinsToggle balance={user?.coins || 0} checked={useCoins} onChange={setUseCoins} />
+            <PlanPicker plans={plans} selectedId={selectedId} onSelect={renew} promo={promo} coins={coins} />
+            {busy && <p className="muted" style={{ marginTop: 12 }}>{t('common.loading')}</p>}
+          </>
+        )}
       </div>
 
       <div className="grid-4" style={{ marginTop: 16 }}>

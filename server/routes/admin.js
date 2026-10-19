@@ -55,6 +55,7 @@ const router = express.Router();
 
 router.use(txtUpload);
 router.use('/sim', require('./adminSim'));
+router.use('/ugc', require('./adminUgc'));
 
 router.get('/ort-stats', async (req, res) => {
   const now = new Date();

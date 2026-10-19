@@ -19,6 +19,11 @@ const User = sequelize.define('User', {
   referralBonusGranted: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },
   coins: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 0 },
   referralCoinsGranted: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },
+  // UGC / blogger account created by the admin: full access with no end date, tracked by referrals.
+  isUgc: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },
+  // Switched off by the admin: the account keeps its type and stats but loses free access.
+  ugcDisabled: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },
+  ugcNote: { type: DataTypes.STRING(300), allowNull: true },
 }, {
   indexes: [{ fields: ['loginKey'] }],
   hooks: {

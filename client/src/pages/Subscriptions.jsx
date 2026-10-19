@@ -53,6 +53,15 @@ function Plans({ wrap }) {
     }
   }
 
+  if (user?.unlimited && wrap !== 'public') {
+    return (
+      <>
+        <h1>{t('profile.unlimited')}</h1>
+        <p className="ok">{t('profile.unlimitedHint')}</p>
+      </>
+    );
+  }
+
   const inner = (
     <>
       <h1>{user ? t('pay.renewTitle') : t('pay.title')}</h1>

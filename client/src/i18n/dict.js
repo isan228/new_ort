@@ -2364,6 +2364,60 @@ dict.ru.admin.simulation = simAdminRu;
 dict.ky.admin.simulation = simAdminKy;
 dict.ru.nav.sim = 'Симуляция ОРТ';
 dict.ky.nav.sim = 'ОРТ симуляциясы';
+dict.ru.admin.ugc = {
+  title: 'UGC-аккаунты',
+  lead: 'Аккаунты блогеров и авторов: полный доступ ко всем тестам без оплаты. Здесь видно, сколько людей пришло по их реферальной ссылке.',
+  add: '+ UGC-аккаунт',
+  empty: 'UGC-аккаунтов пока нет. Нажмите «+ UGC-аккаунт».',
+  name: 'Имя (как подписать в списке)',
+  phone: 'Телефон (необязательно)',
+  note: 'Заметка',
+  notePh: 'Например: Instagram @blogger, договор до декабря',
+  accounts: 'аккаунтов',
+  invited: 'зарегистрировались по ссылкам',
+  paidUsers: 'из них оплатили',
+  revenue: 'оплачено, сом',
+  invitedShort: 'пришли',
+  last30: 'за 30 дней',
+  paidShort: 'оплатили',
+  pendingShort: 'не завершили оплату',
+  lastInvite: 'последний — {date}',
+  copyLink: 'Скопировать ссылку',
+  whoInvited: 'Кого пригласил',
+  inviteesOf: 'Пришли по ссылке: {name}',
+  noInvitees: 'По ссылке пока никто не зарегистрировался.',
+  registered: 'Регистрация',
+  paidSum: 'Оплаты',
+  paymentsN: 'оплат: {n}',
+  disabled: 'доступ отключён',
+  disable: 'Отключить доступ',
+  enable: 'Вернуть доступ',
+  confirmDisable: 'Отключить безлимитный доступ у «{name}»? Аккаунт станет обычным: без активной подписки тесты будут закрыты.',
+  unlimited: 'Безлимит (UGC)',
+};
+dict.ky.admin.ugc = {
+  ...dict.ru.admin.ugc,
+  title: 'UGC-аккаунттар',
+  lead: 'Блогерлердин жана авторлордун аккаунттары: төлөмсүз бардык тесттерге толук жеткиликтүүлүк. Бул жерде алардын реферал шилтемеси менен канча адам келгени көрүнөт.',
+  add: '+ UGC-аккаунт',
+  empty: 'UGC-аккаунттар азырынча жок. «+ UGC-аккаунт» баскычын басыңыз.',
+  invitedShort: 'келди',
+  last30: '30 күндө',
+  paidShort: 'төлөдү',
+  copyLink: 'Шилтемени көчүрүү',
+  whoInvited: 'Кимди чакырды',
+  disable: 'Жеткиликтүүлүктү өчүрүү',
+  enable: 'Жеткиликтүүлүктү кайтаруу',
+  unlimited: 'Чексиз (UGC)',
+};
+Object.assign(dict.ru.profile, {
+  unlimited: 'Безлимитный доступ',
+  unlimitedHint: 'Все тесты, симуляция и конструктор открыты без срока. Оплачивать подписку не нужно.',
+});
+Object.assign(dict.ky.profile, {
+  unlimited: 'Чексиз жеткиликтүүлүк',
+  unlimitedHint: 'Бардык тесттер, симуляция жана конструктор мөөнөтсүз ачык. Жазылууну төлөөнүн кереги жок.',
+});
 dict.ru.practice = practiceRu;
 dict.ky.practice = practiceKy;
 dict.ru.nav.create = 'Создать тест';
