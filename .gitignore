@@ -9,4 +9,5 @@ uploads/
 Thumbs.db
 client/dist/
 server/uploads/*
+server/.cache/
 !server/uploads/.gitkeep

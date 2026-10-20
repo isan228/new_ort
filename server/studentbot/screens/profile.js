@@ -6,6 +6,7 @@ const {
 const { accessStatus, referralStats, REF_BONUS_DAYS, REF_LIMIT_DAYS } = require('../access');
 const { humanDateTime, humanDate } = require('../time');
 const { NICK_BAD, WA } = require('./registration');
+const payments = require('../payments');
 const {
   esc, btn, kb, show, send, SEX, ratingsFor, ratingText,
 } = require('../ui');
@@ -81,19 +82,60 @@ async function access(ctx) {
 
 async function tariffs(ctx) {
   const cfg = await loadConfig();
+  const online = payments.onlinePayments(cfg);
   const lines = cfg.tariffs.map((t) => `• ${t.days} дней${t.price ? ` — ${esc(t.price)}` : ''}`);
-  return show(ctx, `Выберите доступ:\n${lines.join('\n')}\n\nПокупка продлевает остаток доступа, а не обнуляет его.${cfg.paymentsEnabled ? '' : '\n\nОплата внутри бота ещё настраивается. Чтобы получить доступ сейчас, напишите в поддержку.'}`, kb(
+  return show(ctx, `Выберите доступ:\n${lines.join('\n')}\n\nПокупка продлевает остаток доступа, а не обнуляет его.${online
+    ? '\nОплата через Finik: QR-код придёт сюда в чат, доступ продлится сразу после оплаты.'
+    : '\n\nОплата внутри бота ещё настраивается. Чтобы получить доступ сейчас, напишите в поддержку.'}`, kb(
     cfg.tariffs.map((t) => btn(`${t.days} дней`, `buy:${t.days}`)),
     [btn('Поддержка', 'rc:idea'), btn('Назад', 'acc')],
   ));
 }
 
+function invoiceText(checkout) {
+  return [
+    `💳 К оплате: <b>${checkout.amount} сом</b> · доступ на ${checkout.days} дней.`,
+    '',
+    '1. Нажмите «Оплатить» или отсканируйте QR-код ниже в приложении банка (Mbank, O!Деньги, Optima и др.: «Сканировать QR» → из галереи).',
+    '2. После оплаты доступ продлится автоматически — я пришлю сообщение.',
+  ].join('\n');
+}
+
 async function buy(ctx, days) {
   const cfg = await loadConfig();
-  if (!cfg.paymentsEnabled) {
+  if (!payments.onlinePayments(cfg)) {
     return show(ctx, `Оплата ${days} дней пока недоступна внутри бота. Напишите администратору через «Поддержку» — он активирует доступ после оплаты.`, kb([btn('Поддержка', 'rc:idea'), btn('Назад', 'acc:tariffs')]));
   }
-  return show(ctx, 'Платёжный провайдер ещё не подключён.', kb([btn('Назад', 'acc:tariffs')]));
+  await ctx.answer('Готовлю оплату…');
+  let checkout;
+  try {
+    checkout = await payments.startCheckout(ctx.user, days);
+  } catch (err) {
+    if (!(err instanceof payments.PayError)) throw err;
+    return show(ctx, err.message, kb([btn('Поддержка', 'rc:idea'), btn('Назад', 'acc:tariffs')]));
+  }
+  await show(ctx, invoiceText(checkout), kb(
+    [{ text: '💳 Оплатить', url: checkout.paymentUrl }],
+    [btn('Проверить оплату', `pay:${checkout.id}`)],
+    [btn('Назад', 'acc:tariffs')],
+  ));
+  payments.sendQr(checkout, ctx.chatId);
+  return null;
+}
+
+async function payStatus(ctx, id) {
+  const checkout = await payments.checkoutStatus(ctx.user.id, id);
+  if (!checkout) return ctx.answer('Оплата не найдена');
+  if (checkout.status === 'paid') {
+    return show(ctx, `✅ Оплата ${checkout.amount} сом получена. Доступ до ${humanDateTime(ctx.user.accessEnd)}.`, kb([btn('Мой доступ', 'acc')]));
+  }
+  if (checkout.status === 'failed') {
+    return show(ctx, 'Эта оплата не прошла. Создайте новую.', kb([btn('Тарифы', 'acc:tariffs')]));
+  }
+  if (checkout.status === 'review') {
+    return show(ctx, 'Оплата на проверке у администратора — сумма не совпала со счётом. Мы напишем вам.', kb([btn('Поддержка', 'sup')]));
+  }
+  return ctx.answer('Оплата ещё не поступила. Если вы уже оплатили — подождите минуту и проверьте снова.', true);
 }
 
 async function accessHistory(ctx) {
@@ -204,6 +246,7 @@ async function onCallback(ctx, data) {
       if (a === 'hist') return accessHistory(ctx);
       return access(ctx);
     case 'buy': return buy(ctx, Number(a));
+    case 'pay': return payStatus(ctx, Number(a));
     case 'ref': return referral(ctx, a === 'list');
     case 'sup': return support(ctx);
     case 'rc': return startReport(ctx, a);
@@ -241,7 +284,7 @@ async function onText(ctx, text) {
 }
 
 const SCREENS = ['pe_nick', 'pe_fac', 'pe_wa', 'report_text'];
-const KEYS = ['pr', 'pe', 'pef', 'pec', 'pes', 'notif', 'acc', 'buy', 'ref', 'sup', 'rc', 'rp', 'ru', 'appeal', 'rsend', 'rfix'];
+const KEYS = ['pr', 'pe', 'pef', 'pec', 'pes', 'notif', 'acc', 'buy', 'pay', 'ref', 'sup', 'rc', 'rp', 'ru', 'appeal', 'rsend', 'rfix'];
 
 module.exports = {
   onCallback, onText, profile, SCREENS, KEYS,

@@ -24,6 +24,7 @@ const {
   publicPromo,
 } = require('../utils/promoCodes');
 const { createLimiter, clientIp } = require('../utils/rateLimit');
+const { handleFinikWebhook: handleStudentbotPayment } = require('../studentbot/payments');
 
 const router = express.Router();
 
@@ -166,6 +167,8 @@ router.post('/webhook', async (req, res) => {
       return res.status(401).json({ error: 'Invalid signature' });
     }
   }
+
+  if (await handleStudentbotPayment(payload)) return res.json({ ok: true });
 
   const payment = await findPaymentByFinik(payload);
   if (!payment) {

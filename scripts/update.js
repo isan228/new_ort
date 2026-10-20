@@ -9,7 +9,7 @@ const SKIP_PULL = process.argv.includes('--skip-pull');
 function run(cmd, args, opts = {}) {
   console.log(`$ ${cmd} ${args.join(' ')}`);
   const result = spawnSync(cmd, args, {
-    cwd: ROOT,
+    cwd: opts.cwd || ROOT,
     encoding: 'utf8',
     stdio: opts.silent ? ['ignore', 'pipe', 'pipe'] : 'inherit',
     env: { ...process.env, ...opts.env },
@@ -63,6 +63,19 @@ if (!SKIP_PULL) {
 
 run('npm', ['install']);
 run('npm', ['run', 'install:all']);
+
+// Chrome for the Student Bot QR screenshots; newer npm skips puppeteer's own download step.
+// --install-deps pulls the system libraries Chrome needs (apt, so root only).
+const chromeArgs = ['--yes', 'puppeteer', 'browsers', 'install', 'chrome'];
+try {
+  run('npx', [...chromeArgs, '--install-deps'], { cwd: path.join(ROOT, 'server') });
+} catch (_) {
+  try {
+    run('npx', chromeArgs, { cwd: path.join(ROOT, 'server') });
+  } catch (err) {
+    console.warn('Chrome для QR не установился — бот будет присылать только ссылку на оплату:', err.message);
+  }
+}
 
 if (!SKIP_DB) {
   try {

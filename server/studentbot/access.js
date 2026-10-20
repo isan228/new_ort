@@ -94,9 +94,11 @@ async function settleReferrals(userId, transaction) {
 }
 
 // A paid 7/30-day period. The used advance day is taken out of it, and a fresh advance is earned.
-async function applyPurchase(userId, days, { provider = 'manual', externalId = null, note = null } = {}) {
+async function applyPurchase(userId, days, {
+  provider = 'manual', externalId = null, note = null, transaction: outer = null,
+} = {}) {
   const cfg = await loadConfig();
-  return sequelize.transaction(async (transaction) => {
+  const run = async (transaction) => {
     const user = await SbUser.findByPk(userId, { transaction, lock: transaction.LOCK.UPDATE });
     const now = Date.now();
     const debt = Math.min(user.advanceDebt, days);
@@ -115,7 +117,8 @@ async function applyPurchase(userId, days, { provider = 'manual', externalId = n
       debt ? `Оплачено ${days} дн., вычтено ${debt} дн. за использованный аванс` : `Оплачено ${days} дн.`, transaction);
     const referrals = await settleReferrals(userId, transaction);
     return { user, payment, net, debt, referrals };
-  });
+  };
+  return outer ? run(outer) : sequelize.transaction(run);
 }
 
 async function adminAdjust(userId, days, note) {

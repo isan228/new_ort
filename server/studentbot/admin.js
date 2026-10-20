@@ -9,6 +9,8 @@ const {
   accessStatus, applyPurchase, adminAdjust, refundPayment,
 } = require('./access');
 const { invalidateForOrder, notifyInvalidated } = require('./deals');
+const { notifyPurchase, tariffAmount } = require('./payments');
+const { isFinikConfigured } = require('../utils/finikClient');
 const {
   DAY, HOUR, humanDateTime, localToUtc, parseRange,
 } = require('./time');
@@ -211,10 +213,12 @@ async function accessScreen(ctx) {
   return show(ctx, [
     '<b>Доступ и тарифы</b>',
     `LAUNCH_AT: ${cfg.launchAt ? humanDateTime(cfg.launchAt) : 'не задан'} (+${cfg.promoHours} ч бесплатно для всех)`,
-    `Тарифы: ${cfg.tariffs.map((t) => `${t.days} дн. — ${t.price || 'цена не задана'}`).join('; ')}`,
-    `Платёжная интеграция: ${cfg.paymentsEnabled ? 'включена' : 'не подключена — доступ выдаётся вручную (Пользователь → Изменить доступ)'}`,
+    `Тарифы: ${cfg.tariffs.map((t) => `${t.days} дн. — ${t.price || 'цена не задана'}${t.price && !tariffAmount(t) ? ' (нет суммы цифрами)' : ''}`).join('; ')}`,
+    `Онлайн-оплата Finik: ${cfg.paymentsEnabled === false ? 'выключена' : 'включена'}${isFinikConfigured() ? '' : ' — но ключи Finik на сервере не настроены'}`,
+    'Вручную доступ всегда можно выдать: Пользователь → Изменить доступ.',
   ].join('\n'), kb(
     [btn('Задать LAUNCH_AT', 'ad:launch'), btn('Цены тарифов', 'ad:prices')],
+    [btn(cfg.paymentsEnabled === false ? 'Включить оплату Finik' : 'Выключить оплату Finik', 'ad:paytoggle')],
     [btn('Реферальная аналитика', 'ad:refstats')],
     back(),
   ));
@@ -311,12 +315,7 @@ async function onInput(ctx, text) {
     case 'pay': return needReason(async () => {
       const res = await applyPurchase(adm.id, adm.days, { provider: 'manual', note: value });
       await journal(ctx, { subjectId: adm.id, action: 'manual_purchase', reason: value, after: { days: adm.days, net: res.net, accessEnd: res.user.accessEnd } });
-      await send(res.user.tgId, `✅ Доступ продлён на ${res.net} дн.${res.debt ? ` (${res.debt} дн. вычтено за использованный аванс)` : ''} — до ${humanDateTime(res.user.accessEnd)}.`);
-      for (const g of res.referrals) {
-        for (const [u, state] of [[g.referrer, g.referrerBonus], [g.invitee, g.inviteeBonus]]) {
-          await send(u.tgId, state === 'granted' ? '🎁 Реферальный бонус: +3 дня доступа.' : 'Реферальный бонус не начислен: исчерпан лимит 30 дней за 30 суток.');
-        }
-      }
+      await notifyPurchase(res);
       await setState(ctx, null);
       return userCard({ ...ctx, messageId: null }, adm.id);
     });
@@ -464,6 +463,13 @@ async function onCallback(ctx, data) {
     case 'acc': return accessScreen(ctx);
     case 'launch': return ask(ctx, 'Дата и время старта бесплатного периода, время Бишкека: 2026-10-25 09:00', 'launch', {}, 'ad:acc');
     case 'prices': return ask(ctx, 'Цены через точку с запятой: 7=300 сом; 30=900 сом', 'prices', {}, 'ad:acc');
+    case 'paytoggle': {
+      const cfg = await loadConfig();
+      const enabled = cfg.paymentsEnabled === false;
+      await saveConfig('paymentsEnabled', enabled);
+      await journal(ctx, { action: 'set_payments', before: { enabled: !enabled }, after: { enabled } });
+      return accessScreen(ctx);
+    }
     case 'refstats': {
       const [total, granted, limit, review] = await Promise.all([
         SbReferral.count(), SbReferral.count({ where: { state: 'granted' } }),

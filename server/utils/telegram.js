@@ -26,6 +26,18 @@ async function tg(method, params = {}) {
   return data.result;
 }
 
+async function tgUpload(method, params, field, buffer, filename) {
+  const form = new FormData();
+  for (const [key, value] of Object.entries(params)) {
+    if (value !== undefined && value !== null) form.append(key, typeof value === 'object' ? JSON.stringify(value) : String(value));
+  }
+  form.append(field, new Blob([buffer]), filename);
+  const res = await fetch(`${apiBase()}/bot${token()}/${method}`, { method: 'POST', body: form });
+  const data = await res.json().catch(() => ({}));
+  if (!data.ok) throw new TelegramError(method, data);
+  return data.result;
+}
+
 // Telegram sends this back in X-Telegram-Bot-Api-Secret-Token, so nobody else can post fake updates.
 function webhookSecret() {
   const own = String(process.env.TELEGRAM_WEBHOOK_SECRET || '').trim();
@@ -40,4 +52,4 @@ function escapeHtml(text) {
   return String(text ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
-module.exports = { isTelegramConfigured, tg, TelegramError, webhookSecret, publicUrl, escapeHtml };
+module.exports = { isTelegramConfigured, tg, tgUpload, TelegramError, webhookSecret, publicUrl, escapeHtml };

@@ -163,6 +163,21 @@ const SbPayment = sequelize.define('SbPayment', {
   note: { type: DataTypes.STRING(300), allowNull: true },
 });
 
+// An online payment started from the bot; it turns into an SbPayment once Finik confirms it.
+const SbCheckout = sequelize.define('SbCheckout', {
+  userId: { type: DataTypes.INTEGER, allowNull: false },
+  days: { type: DataTypes.INTEGER, allowNull: false },
+  amount: { type: DataTypes.INTEGER, allowNull: false },
+  providerRef: { type: DataTypes.STRING(64), allowNull: false, unique: true },
+  paymentUrl: { type: DataTypes.TEXT, allowNull: true },
+  qrFileId: { type: DataTypes.STRING(300), allowNull: true },
+  // pending | paid | failed | review
+  status: { type: DataTypes.STRING(10), allowNull: false, defaultValue: 'pending' },
+  transactionId: { type: DataTypes.STRING(120), allowNull: true },
+  paymentId: { type: DataTypes.INTEGER, allowNull: true },
+  paidAt: { type: DataTypes.DATE, allowNull: true },
+}, { indexes: [{ fields: ['userId', 'status'] }] });
+
 const SbReferral = sequelize.define('SbReferral', {
   referrerId: { type: DataTypes.INTEGER, allowNull: false },
   inviteeId: { type: DataTypes.INTEGER, allowNull: false, unique: true },
@@ -198,6 +213,7 @@ module.exports = {
   SbMessage,
   SbAccessLog,
   SbPayment,
+  SbCheckout,
   SbReferral,
   SbModeration,
 };
