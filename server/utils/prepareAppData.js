@@ -21,6 +21,8 @@ async function prepareAppData() {
   await sequelize.sync({ alter: true });
   // sync({ alter }) does not drop NOT NULL on columns that carry a foreign key.
   await sequelize.query('ALTER TABLE "Payments" ALTER COLUMN "userId" DROP NOT NULL');
+  // Tables of the group-request bot that Student Bot replaced.
+  await sequelize.query('DROP TABLE IF EXISTS "TelegramRequests", "TelegramDrafts"');
   await fillLoginKeys();
   await ensurePlansForOrt();
   await seedDemoContent();
