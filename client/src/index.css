@@ -2606,3 +2606,14 @@ sup, sub { font-size: 0.72em; line-height: 0; }
 @media (max-width: 640px) {
   .ugc-item { flex-direction: column; align-items: stretch; }
 }
+
+/* Admin: Telegram requests */
+.tg-status { display: grid; gap: 8px; border: 1px solid var(--warn); }
+.tg-status.is-ready { border-color: var(--ok); }
+.tg-status-row { display: flex; gap: 12px; flex-wrap: wrap; font-size: 14px; }
+.tg-status-row > span { min-width: 70px; color: var(--muted); }
+.tg-status .btn { justify-self: start; }
+.tg-steps { margin: 6px 0 0; padding-left: 20px; font-size: 14px; display: grid; gap: 4px; }
+.tg-req.is-cancelled { opacity: 0.6; }
+.tg-desc { margin: 6px 0; white-space: pre-wrap; }
+.tg-meta { margin: 0; font-size: 13px; line-height: 1.5; }

@@ -45,6 +45,7 @@ const ADMIN_SIDE = [
   [`${ADMIN_ROOT}/promo`, 'admin.promos'],
   [`${ADMIN_ROOT}/editors`, 'admin.editors'],
   [`${ADMIN_ROOT}/chat`, 'admin.chat'],
+  [`${ADMIN_ROOT}/telegram`, 'admin.tg.title'],
 ];
 const EDITOR_SIDE = [
   [`${EDITOR_ROOT}/content`, 'admin.program'],
@@ -76,6 +77,7 @@ const ICON_PATHS = {
   logout: 'M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9',
   pen: 'M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z',
   stopwatch: 'M12 22a8 8 0 1 0 0-16 8 8 0 0 0 0 16M12 10v4l2.5 1.5M10 2h4M12 2v4',
+  send: 'M22 2 11 13M22 2l-7 20-4-9-9-4z',
 };
 
 const ROUTE_ICON = {
@@ -97,6 +99,7 @@ const ROUTE_ICON = {
   [ADMIN_ROOT]: 'home',
   [`${ADMIN_ROOT}/users`]: 'users',
   [`${ADMIN_ROOT}/ugc`]: 'gift',
+  [`${ADMIN_ROOT}/telegram`]: 'send',
   [`${ADMIN_ROOT}/content`]: 'book',
   [`${ADMIN_ROOT}/sim`]: 'stopwatch',
   [`${EDITOR_ROOT}/sim`]: 'stopwatch',

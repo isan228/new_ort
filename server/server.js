@@ -18,6 +18,7 @@ const termImagesRoutes = require('./routes/termImages');
 const { chatRouter } = require('./routes/chat');
 const simRoutes = require('./routes/sim');
 const practiceRoutes = require('./routes/practice');
+const { telegramRouter, startTelegram } = require('./routes/telegram');
 
 const app = express();
 const port = Number(process.env.PORT) || 4000;
@@ -55,6 +56,7 @@ app.use('/api/term-images', termImagesRoutes);
 app.use('/api/chat', chatRouter);
 app.use('/api/sim', simRoutes);
 app.use('/api/practice', practiceRoutes);
+app.use('/api/telegram', telegramRouter);
 
 const clientDist = path.join(__dirname, '..', 'client', 'dist');
 const indexHtml = path.join(clientDist, 'index.html');
@@ -95,6 +97,7 @@ async function boot() {
     console.log(`ОРТ 2026 API: http://localhost:${port}`);
     if (serveFrontend) console.log('Фронт: client/dist');
     else console.warn('Нет client/dist — выполни npm run build');
+    startTelegram();
   });
 }
 
