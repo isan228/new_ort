@@ -2,6 +2,7 @@ const crypto = require('crypto');
 const express = require('express');
 const { isTelegramConfigured, tg, webhookSecret, publicUrl } = require('../utils/telegram');
 const { handleUpdate, startScheduler, COMMANDS } = require('../studentbot');
+const { adminIds } = require('../studentbot/ctx');
 
 const router = express.Router();
 
@@ -49,6 +50,7 @@ async function poll() {
 // Production gets a webhook on ort.kg; locally TELEGRAM_POLLING=true works without a public URL.
 async function startTelegram() {
   if (!isTelegramConfigured()) return;
+  console.log(`Student Bot: администраторов в SB_ADMIN_IDS — ${adminIds().length}`);
   startScheduler();
   try {
     await tg('setMyCommands', { commands: COMMANDS, scope: { type: 'all_private_chats' } });

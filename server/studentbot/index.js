@@ -45,7 +45,7 @@ async function onMessage(ctx, msg) {
 
   if (command === 'start') return registration.onStart(ctx, text.split(/\s+/)[1] || null);
   if (command === 'admin') {
-    if (!isAdmin(ctx.from.id)) return send(ctx.chatId, 'Команда недоступна.');
+    if (!isAdmin(ctx.from.id)) return send(ctx.chatId, `Команда недоступна. Ваш Telegram ID: <code>${ctx.from.id}</code> — администратор добавляет его в SB_ADMIN_IDS.`);
     return admin.home(ctx);
   }
   if (ctx.state.screen === 'ad_input' && isAdmin(ctx.from.id) && text && !MENU_ACTIONS[text]) return admin.onInput(ctx, text);
