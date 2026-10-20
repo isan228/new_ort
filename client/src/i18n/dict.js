@@ -2418,44 +2418,6 @@ Object.assign(dict.ky.profile, {
   unlimited: 'Чексиз жеткиликтүүлүк',
   unlimitedHint: 'Бардык тесттер, симуляция жана конструктор мөөнөтсүз ачык. Жазылууну төлөөнүн кереги жок.',
 });
-dict.ru.admin.tg = {
-  title: 'Telegram-заявки',
-  lead: 'Заявки «нужен человек на дату» из Telegram-бота: кто создал, кто первым нажал «Смогу» и когда.',
-  bot: 'Бот',
-  group: 'Группа',
-  mode: 'Связь',
-  noToken: 'не настроен — нет TELEGRAM_BOT_TOKEN в .env',
-  noGroup: 'не подключена — напишите /bind в группе',
-  polling: 'опрос (локальный режим)',
-  webhookOn: 'вебхук подключён',
-  webhookOff: 'вебхук не подключён',
-  reconnect: 'Переподключить вебхук',
-  step1: 'В Telegram откройте @BotFather → /newbot, придумайте имя и получите токен.',
-  step2: 'На сервере добавьте в .env строку TELEGRAM_BOT_TOKEN=токен и перезапустите сайт (sudo npm run update).',
-  step3: 'Добавьте бота в рабочую группу.',
-  step4: 'Администратор группы пишет в группе /bind — бот ответит «Группа подключена».',
-  people: 'Кто сколько принял',
-  person: 'Человек',
-  taken: 'Принял заявок',
-  lastTaken: 'Последний раз',
-  status: { all: 'Все', open: 'Ищем', taken: 'Принята', cancelled: 'Отменена' },
-  search: 'Поиск по описанию или имени',
-  empty: 'Заявок пока нет.',
-  from: 'Создал(а): {who} · {date}',
-  takenBy: 'Принял(а): {who} · {date}',
-  cancelledBy: 'Отменил: {who} · {date}',
-  cancel: 'Отменить',
-  confirmCancel: 'Отменить заявку? В группе сообщение обновится, кнопка «Смогу» исчезнет.',
-};
-dict.ky.admin.tg = {
-  ...dict.ru.admin.tg,
-  title: 'Telegram-өтүнмөлөр',
-  lead: 'Telegram-боттон «датага адам керек» өтүнмөлөрү: ким түздү, ким биринчи «Колумдан келет» деди жана качан.',
-  people: 'Ким канча кабыл алды',
-  status: { all: 'Баары', open: 'Изделүүдө', taken: 'Кабыл алынды', cancelled: 'Жокко чыгарылды' },
-  empty: 'Өтүнмөлөр азырынча жок.',
-  cancel: 'Жокко чыгаруу',
-};
 dict.ru.practice = practiceRu;
 dict.ky.practice = practiceKy;
 dict.ru.nav.create = 'Создать тест';

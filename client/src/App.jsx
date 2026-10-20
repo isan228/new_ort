@@ -32,7 +32,6 @@ import AdminPromos from './pages/admin/AdminPromos';
 import AdminContent from './pages/admin/AdminContent';
 import AdminSimHome from './pages/admin/AdminSimHome';
 import AdminUgc from './pages/admin/AdminUgc';
-import AdminTelegram from './pages/admin/AdminTelegram';
 import AdminSimTest from './pages/admin/AdminSimTest';
 import AdminSimVariant from './pages/admin/AdminSimVariant';
 import AdminSimSlot from './pages/admin/AdminSimSlot';
@@ -121,7 +120,6 @@ function adminPages() {
       <Route index element={<AdminHome />} />
       <Route path="users" element={<AdminUsers />} />
       <Route path="ugc" element={<AdminUgc />} />
-      <Route path="telegram" element={<AdminTelegram />} />
       {contentPages()}
       <Route path="editors" element={<AdminEditors />} />
       <Route path="flashcards" element={<Navigate to="../content" replace />} />

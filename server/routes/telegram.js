@@ -1,7 +1,7 @@
 const crypto = require('crypto');
 const express = require('express');
 const { isTelegramConfigured, tg, webhookSecret, publicUrl } = require('../utils/telegram');
-const { handleUpdate } = require('../utils/telegramBot');
+const { handleUpdate, startScheduler, COMMANDS } = require('../studentbot');
 
 const router = express.Router();
 
@@ -18,12 +18,6 @@ router.post('/webhook', async (req, res) => {
   await handleUpdate(req.body || {});
   return res.json({ ok: true });
 });
-
-const COMMANDS = [
-  { command: 'new', description: 'Найти человека на дату' },
-  { command: 'my', description: 'Мои заявки' },
-  { command: 'cancel', description: 'Отменить ввод' },
-];
 
 async function setWebhook() {
   return tg('setWebhook', {
@@ -55,6 +49,7 @@ async function poll() {
 // Production gets a webhook on ort.kg; locally TELEGRAM_POLLING=true works without a public URL.
 async function startTelegram() {
   if (!isTelegramConfigured()) return;
+  startScheduler();
   try {
     await tg('setMyCommands', { commands: COMMANDS, scope: { type: 'all_private_chats' } });
     if (process.env.TELEGRAM_POLLING === 'true') {

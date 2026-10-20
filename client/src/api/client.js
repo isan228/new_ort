@@ -137,16 +137,6 @@ export const ugcApi = {
   invitees: (id) => api(`/api/admin/ugc/${id}/invitees`),
 };
 
-export const telegramAdminApi = {
-  status: () => api('/api/admin/telegram/status'),
-  webhook: () => post('/api/admin/telegram/webhook'),
-  requests: (params = {}) => {
-    const q = new URLSearchParams(Object.entries(params).filter(([, v]) => v)).toString();
-    return api(`/api/admin/telegram/requests${q ? `?${q}` : ''}`);
-  },
-  cancel: (id) => post(`/api/admin/telegram/requests/${id}/cancel`),
-};
-
 const SIM = '/api/admin/sim';
 export const simAdminApi = {
   tests: () => api(`${SIM}/tests`),

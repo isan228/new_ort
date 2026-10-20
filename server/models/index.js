@@ -27,9 +27,9 @@ const { SimAnswer } = require('./SimAnswer');
 const { QuestionFlag } = require('./QuestionFlag');
 const { PracticeSession } = require('./PracticeSession');
 const { PracticeAnswer } = require('./PracticeAnswer');
-const { TelegramRequest } = require('./TelegramRequest');
-const { TelegramDraft } = require('./TelegramDraft');
 const { AppSetting } = require('./AppSetting');
+// Student Bot tables live in their own module but share the database and sync.
+require('../studentbot/models');
 
 Subject.hasMany(Test, { foreignKey: 'subjectId' });
 Test.belongsTo(Subject, { foreignKey: 'subjectId' });
@@ -151,7 +151,5 @@ module.exports = {
   QuestionFlag,
   PracticeSession,
   PracticeAnswer,
-  TelegramRequest,
-  TelegramDraft,
   AppSetting,
 };
