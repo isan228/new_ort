@@ -14,7 +14,7 @@ const Question = sequelize.define('Question', {
   compareA: { type: DataTypes.TEXT, allowNull: true },
   compareB: { type: DataTypes.TEXT, allowNull: true },
   externalId: { type: DataTypes.STRING, allowNull: true },
-  // 1–5 stars; null = not set, such questions only appear in "mixed" difficulty.
+  // 1–4 stars; null = not set, such questions only appear in "mixed" difficulty.
   difficulty: { type: DataTypes.INTEGER, allowNull: true },
   sortOrder: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 0 },
   isActive: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: true },

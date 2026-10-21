@@ -2428,5 +2428,5 @@ dict.ru.admin.q.difficulty = 'Сложность';
 dict.ky.admin.q.difficulty = 'Татаалдыгы';
 dict.ru.admin.q.difficultyNone = 'не задана';
 dict.ky.admin.q.difficultyNone = 'берилген эмес';
-dict.ru.admin.txtFormat.ruleDifficulty = '"Difficulty" — сложность от 1 до 5 (необязательно). Без неё вопрос попадёт только в тесты со сложностью «Смешанные».';
-dict.ky.admin.txtFormat.ruleDifficulty = '"Difficulty" — татаалдыгы 1ден 5ке чейин (милдеттүү эмес). Ансыз суроо «Аралаш» татаалдыктагы тесттерге гана түшөт.';
+dict.ru.admin.txtFormat.ruleDifficulty = '"Difficulty" — сложность от 1 до 4 (необязательно). Без неё вопрос попадёт только в тесты со сложностью «Смешанные».';
+dict.ky.admin.txtFormat.ruleDifficulty = '"Difficulty" — татаалдыгы 1ден 4кө чейин (милдеттүү эмес). Ансыз суроо «Аралаш» татаалдыктагы тесттерге гана түшөт.';

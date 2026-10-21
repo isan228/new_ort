@@ -3,6 +3,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { practiceApi } from '../api/client';
 import { isOrtGate } from '../context/AuthContext';
 import { useLang } from '../context/LangContext';
+import { DIFFICULTY_LEVELS } from './admin/DifficultyPicker';
 import '../styles/practice.css';
 
 const FILTERS = ['unused', 'incorrect', 'correct', 'flagged'];
@@ -25,7 +26,7 @@ function Stars({ value, onChange, t }) {
         {t('practice.mixed')}
       </button>
       <span className="pb-stars">
-        {[1, 2, 3, 4, 5].map((n) => (
+        {DIFFICULTY_LEVELS.map((n) => (
           <button
             key={n}
             type="button"

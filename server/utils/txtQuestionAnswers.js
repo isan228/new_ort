@@ -47,13 +47,15 @@ function isValidCorrectIndex(answers, correctRaw) {
   return Number.isInteger(correctNum) && answers.some((a) => a.index === correctNum);
 }
 
-// Accepts 3, "3", "3/5", "★★★" or "***"; anything else means "not set".
+const MAX_DIFFICULTY = 4;
+
+// Accepts 3, "3", "3/4", "★★★" or "***"; anything else means "not set".
 function cleanDifficulty(value) {
   const raw = String(value ?? '').trim();
   if (!raw) return null;
   const stars = raw.match(/^[★*☆]+$/) ? (raw.match(/[★*]/g) || []).length : null;
   const n = stars ?? parseInt(raw, 10);
-  return Number.isInteger(n) && n >= 1 && n <= 5 ? n : null;
+  return Number.isInteger(n) && n >= 1 && n <= MAX_DIFFICULTY ? n : null;
 }
 
 function extractDifficulty(block) {
@@ -65,6 +67,7 @@ function extractDifficulty(block) {
 }
 
 module.exports = {
+  MAX_DIFFICULTY,
   cleanDifficulty,
   extractDifficulty,
   MAX_TXT_ANSWERS,

@@ -9,6 +9,7 @@ const {
 } = require('../models');
 const { publicQuestionShape } = require('./ortLinkedQuestions');
 const { isCompare } = require('./compareQuestions');
+const { MAX_DIFFICULTY } = require('./txtQuestionAnswers');
 const { practiceTest, sectionPath, loadUserLastAnswers, gradeSubmission } = require('./practiceGrading');
 
 const FILTERS = ['unused', 'incorrect', 'correct', 'flagged'];
@@ -42,7 +43,7 @@ function parseIds(value) {
 
 function parseDifficulty(value) {
   const n = Number(value);
-  return Number.isInteger(n) && n >= 1 && n <= 5 ? n : 'mixed';
+  return Number.isInteger(n) && n >= 1 && n <= MAX_DIFFICULTY ? n : 'mixed';
 }
 
 // "all" (or nothing) means no status filter; the other filters are combined as a union.

@@ -1,5 +1,7 @@
 import { useLang } from '../../context/LangContext';
 
+export const DIFFICULTY_LEVELS = [1, 2, 3, 4];
+
 export function DifficultyPicker({ value, onChange }) {
   const { t } = useLang();
   return (
@@ -9,7 +11,7 @@ export function DifficultyPicker({ value, onChange }) {
         <button type="button" className={`chip${value ? '' : ' on'}`} onClick={() => onChange(null)}>
           {t('admin.q.difficultyNone')}
         </button>
-        {[1, 2, 3, 4, 5].map((n) => (
+        {DIFFICULTY_LEVELS.map((n) => (
           <button
             key={n}
             type="button"
