@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { adminApi } from '../../api/client';
 import { useLang } from '../../context/LangContext';
-import { pickTextFile } from '../../lib/textFile';
+import { newUploadId, pickTextFile } from '../../lib/textFile';
 import { CompareFields, compareItemPayload } from './AdminCompare';
 import { QuestionCard, questionProblems, withKeys } from './TxtPreview';
 import { kindLabel } from './adminUi';
@@ -120,11 +120,12 @@ export function MixedPreview({ fileName, parsed, onClose, onSaved }) {
     setBusy(true);
     setError('');
     const saved = [];
+    const meta = { fileName, uploadId: newUploadId() };
     try {
       for (const section of sections) {
         const batch = items.filter((item) => item.targetId === section.id);
         if (!batch.length) continue;
-        await adminApi.importQuestions({ testId: section.id }, batch.map(toPayload));
+        await adminApi.importQuestions({ testId: section.id }, batch.map(toPayload), meta);
         saved.push(section.id);
       }
       onSaved(t('admin.mixed.saved', {

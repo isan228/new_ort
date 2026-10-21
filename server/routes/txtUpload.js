@@ -104,6 +104,7 @@ async function upsertQuestions(test, parsed, passageId = null) {
   const taken = new Set(existing.map((row) => row.externalId).filter(Boolean));
   let maxOrder = (await Question.max('sortOrder', { where: { testId, passageId } })) || 0;
   const renamed = [];
+  const ids = [];
   for (const item of parsed) {
     let externalId = item.externalId ? String(item.externalId).trim() : null;
     if (externalId && taken.has(externalId)) {
@@ -129,8 +130,9 @@ async function upsertQuestions(test, parsed, passageId = null) {
       ...media,
     });
     await replaceAnswers(question.id, item.answers);
+    ids.push(question.id);
   }
-  return { created: parsed.length, renamed, total: parsed.length };
+  return { created: parsed.length, renamed, total: parsed.length, ids };
 }
 
 function uploadMessage(verb, stats) {

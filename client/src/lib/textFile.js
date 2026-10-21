@@ -8,6 +8,11 @@ export function pickTextFile() {
   });
 }
 
+// Groups the save requests of one TXT file in the editor journal.
+export function newUploadId() {
+  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+}
+
 export async function readTextFile(file) {
   const buffer = await file.arrayBuffer();
   const utf8 = new TextDecoder('utf-8').decode(buffer);

@@ -2,7 +2,7 @@ const express = require('express');
 const path = require('path');
 const fs = require('fs');
 const multer = require('multer');
-const { Op } = require('sequelize');
+const { Op, QueryTypes } = require('sequelize');
 const {
   User,
   Subject,
@@ -831,21 +831,96 @@ function publicEditor(user, stats = {}) {
   };
 }
 
+// Log entries of one TXT file share an uploadId; older entries without it count as their own upload.
+const UPLOAD_KEY = `COALESCE(details->>'uploadId', 'log-' || id::text)`;
+
 router.get('/editors', async (req, res) => {
   const editors = await User.findAll({ where: { role: 'editor' }, order: [['id', 'ASC']] });
-  const rows = editors.length ? await ActivityLog.findAll({
-    where: { userId: editors.map((u) => u.id) },
-    attributes: ['userId', 'action', [sequelize.fn('COUNT', sequelize.col('id')), 'n'], [sequelize.fn('MAX', sequelize.col('createdAt')), 'last']],
-    group: ['userId', 'action'],
-    raw: true,
-  }) : [];
+  const rows = editors.length ? await sequelize.query(
+    `SELECT "userId", action, COUNT(*) AS n, COUNT(DISTINCT ${UPLOAD_KEY}) AS uploads, MAX("createdAt") AS last
+     FROM "ActivityLogs" WHERE "userId" IN (:ids) GROUP BY "userId", action`,
+    { replacements: { ids: editors.map((u) => u.id) }, type: QueryTypes.SELECT },
+  ) : [];
   const stats = {};
   for (const row of rows) {
     const s = stats[row.userId] || (stats[row.userId] = {});
-    s[row.action] = row.n;
+    s[row.action] = row.action === 'import' ? row.uploads : row.n;
     if (!s.last || new Date(row.last) > new Date(s.last)) s.last = row.last;
   }
   res.json({ editors: editors.map((u) => publicEditor(u, stats[u.id])) });
+});
+
+const EDITOR_ACTIONS = ['create', 'update', 'delete', 'import'];
+
+async function existingQuestionIds(ids) {
+  const list = [...new Set(ids.map(Number).filter(Boolean))];
+  if (!list.length) return new Set();
+  const rows = await Question.findAll({ where: { id: list }, attributes: ['id'], raw: true });
+  return new Set(rows.map((r) => r.id));
+}
+
+async function editorUploads(userId, page, limit) {
+  const where = `"userId" = :userId AND action = 'import'`;
+  const [{ total }] = await sequelize.query(`SELECT COUNT(DISTINCT ${UPLOAD_KEY}) AS total FROM "ActivityLogs" WHERE ${where}`, {
+    replacements: { userId }, type: QueryTypes.SELECT,
+  });
+  const keys = (await sequelize.query(
+    `SELECT ${UPLOAD_KEY} AS key, MAX("createdAt") AS at FROM "ActivityLogs" WHERE ${where}
+     GROUP BY key ORDER BY at DESC LIMIT :limit OFFSET :offset`,
+    { replacements: { userId, limit, offset: (page - 1) * limit }, type: QueryTypes.SELECT },
+  )).map((r) => r.key);
+  const entries = keys.length ? await sequelize.query(
+    `SELECT * FROM "ActivityLogs" WHERE ${where} AND ${UPLOAD_KEY} IN (:keys) ORDER BY "createdAt" ASC, id ASC`,
+    { replacements: { userId, keys }, type: QueryTypes.SELECT },
+  ) : [];
+  const exists = await existingQuestionIds(entries.flatMap((e) => e.details?.questionIds || []));
+  const byKey = new Map(keys.map((key) => [key, {
+    key, fileName: null, at: null, total: 0, parts: [], items: [], questionIds: [], tracked: false,
+  }]));
+  for (const e of entries) {
+    const key = e.details?.uploadId || `log-${e.id}`;
+    const upload = byKey.get(key);
+    const d = e.details || {};
+    upload.fileName = upload.fileName || d.fileName || null;
+    upload.at = e.createdAt;
+    upload.total += Number(d.count) || 0;
+    upload.parts.push({ place: e.place, testId: e.testId, count: Number(d.count) || 0, message: d.message || null });
+    upload.items.push(...(d.items || []));
+    if (Array.isArray(d.questionIds) && d.questionIds.length) {
+      upload.tracked = true;
+      upload.questionIds.push(...d.questionIds);
+    }
+  }
+  const uploads = keys.map((key) => {
+    const u = byKey.get(key);
+    return { ...u, remaining: u.tracked ? u.questionIds.filter((id) => exists.has(id)).length : null };
+  });
+  return { uploads, total: Number(total) || 0 };
+}
+
+// What exactly one editor added, changed, deleted or uploaded — the admin's control view.
+router.get('/editors/:id/activity', async (req, res) => {
+  const editor = await User.findOne({ where: { id: req.params.id, role: 'editor' } });
+  if (!editor) return res.status(404).json({ error: 'Редактор не найден' });
+  const action = EDITOR_ACTIONS.includes(req.query.action) ? req.query.action : 'create';
+  const page = Math.max(1, Number(req.query.page) || 1);
+  const limit = Math.min(100, Math.max(10, Number(req.query.limit) || 30));
+  const head = { editor: { id: editor.id, name: editor.name, login: editor.login }, action, page, limit };
+
+  if (action === 'import') return res.json({ ...head, ...await editorUploads(editor.id, page, limit) });
+
+  const { count, rows } = await ActivityLog.findAndCountAll({
+    where: { userId: editor.id, action },
+    order: [['createdAt', 'DESC'], ['id', 'DESC']],
+    limit,
+    offset: (page - 1) * limit,
+  });
+  const exists = await existingQuestionIds(rows.filter((r) => r.entity === 'question').map((r) => r.entityId));
+  const items = rows.map((r) => ({
+    ...r.toJSON(),
+    exists: r.entity === 'question' && r.entityId ? exists.has(r.entityId) : null,
+  }));
+  res.json({ ...head, items, total: count });
 });
 
 router.post('/editors', async (req, res) => {

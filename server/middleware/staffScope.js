@@ -46,6 +46,9 @@ async function questionSnapshot(id) {
     compareB: q.compareB || null,
     imageUrl: q.imageUrl || null,
     explanation: q.explanation || '',
+    explanationImageUrl: q.explanationImageUrl || null,
+    evidence: q.evidence || null,
+    difficulty: q.difficulty || null,
     answers: (q.Answers || []).map((a) => ({ text: a.text, imageUrl: a.imageUrl || null, isCorrect: !!a.isCorrect })),
   };
 }
@@ -82,6 +85,13 @@ function questionLabel(q) {
   return short(q.text);
 }
 
+// Multer hands non-ASCII file names over as latin1-decoded UTF-8.
+function fileNameOf(req) {
+  let name = req.body?.fileName || '';
+  if (!name && req.file?.originalname) name = Buffer.from(req.file.originalname, 'latin1').toString('utf8');
+  return String(name).trim().slice(0, 200) || null;
+}
+
 function testIdOf(entity, snapshot) {
   if (!snapshot) return null;
   return entity === 'section' ? snapshot.id : snapshot.testId;
@@ -102,12 +112,17 @@ async function buildEntry(req, rule, id, before, beforePlace, body) {
     details = {
       count: items.length || Number(body?.created) || null,
       message: body?.message || null,
+      fileName: fileNameOf(req),
+      // One TXT split across several subsections arrives as several requests with the same uploadId.
+      uploadId: String(req.body?.uploadId || '').slice(0, 64) || null,
+      questionIds: Array.isArray(body?.ids) ? body.ids.slice(0, 1000) : [],
       items: items.slice(0, 200).map((item) => ({
         externalId: item.externalId || null,
+        difficulty: item.difficulty || null,
         text: item.kind === 'compare' ? `${item.compareA} ⟷ ${item.compareB}` : short(item.text, 300),
       })),
     };
-    label = `${details.count || 0} шт.`;
+    label = `${details.fileName ? `${details.fileName} · ` : ''}${details.count || 0} шт.`;
   } else {
     if (action === 'create') entityId = body?.question?.id || body?.passage?.id || body?.test?.id || body?.id || null;
     if (action !== 'delete' && entityId) after = await SNAPSHOT[entity](entityId);

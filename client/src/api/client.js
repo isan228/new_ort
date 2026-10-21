@@ -252,8 +252,13 @@ export const adminApi = {
     form.append('image', file);
     return api('/api/admin/upload-image', { method: 'POST', body: form });
   },
-  importQuestions: (target, items) => api('/api/admin/import-questions', {
+  // meta = { fileName, uploadId }: lets the editor journal show which TXT file the questions came from.
+  importQuestions: (target, items, meta = {}) => api('/api/admin/import-questions', {
     method: 'POST',
-    body: JSON.stringify({ ...target, items }),
+    body: JSON.stringify({ ...target, ...meta, items }),
   }),
+  editorActivity: (id, params = {}) => {
+    const q = new URLSearchParams(Object.entries(params).filter(([, v]) => v)).toString();
+    return api(`/api/admin/editors/${id}/activity${q ? `?${q}` : ''}`);
+  },
 };

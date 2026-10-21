@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { adminApi } from '../../api/client';
 import { useLang } from '../../context/LangContext';
 import { MathLive } from '../../components/MathText';
+import { newUploadId } from '../../lib/textFile';
 import { DifficultyPicker } from './DifficultyPicker';
 
 const LETTERS = 'ABCDEFGHIJ';
@@ -273,7 +274,7 @@ export default function TxtPreview({ fileName, parsed, target, requireImage = fa
         ...rest,
         answers: answers.map(({ _key: k, ...a }) => a),
       }));
-      const data = await adminApi.importQuestions(target, payload);
+      const data = await adminApi.importQuestions(target, payload, { fileName, uploadId: newUploadId() });
       onSaved(data.message);
     } catch (err) {
       setError(err.message);

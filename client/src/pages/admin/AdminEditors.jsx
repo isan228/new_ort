@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { adminApi } from '../../api/client';
 import { useLang } from '../../context/LangContext';
 import MathText from '../../components/MathText';
@@ -67,7 +68,7 @@ function EditorForm({ editor, onSave, onClose }) {
   );
 }
 
-function QuestionSnapshot({ q, label }) {
+export function QuestionSnapshot({ q, label }) {
   const { t } = useLang();
   if (!q) return null;
   return (
@@ -260,7 +261,9 @@ export default function AdminEditors() {
               <h4>{editor.name} <span className="muted ed-login">@{editor.login}</span></h4>
               <div className="ed-stats">
                 {ACTIONS.map((a) => (
-                  <span key={a} className={`act-badge act-${a}`}>{t(`admin.ed.stat.${a}`)}: {editor.stats?.[a] || 0}</span>
+                  <Link key={a} to={`${editor.id}/${a}`} className={`act-badge act-${a} ed-stat-link`} title={t('admin.ed.openList')}>
+                    {t(`admin.ed.stat.${a}`)}: {editor.stats?.[a] || 0} →
+                  </Link>
                 ))}
               </div>
               <p className="muted" style={{ margin: '6px 0 0', fontSize: 13 }}>

@@ -4,7 +4,7 @@ import { useLang } from '../../context/LangContext';
 import { CompareColumns } from '../../components/QuestionStem';
 import MathText, { MathLive } from '../../components/MathText';
 import { COMPARE_LETTERS, compareCorrectLetter } from '../../lib/compare';
-import { pickTextFile } from '../../lib/textFile';
+import { newUploadId, pickTextFile } from '../../lib/textFile';
 import { Modal, confirmDelete, previewText } from './adminUi';
 import { ImageSlot, imageFromClipboard } from './TxtPreview';
 import { DifficultyPicker } from './DifficultyPicker';
@@ -233,7 +233,7 @@ function CompareTxtPreview({ testId, fileName, parsed, onClose, onSaved }) {
     setBusy(true);
     setError('');
     try {
-      const data = await adminApi.importQuestions({ testId }, items.map(compareItemPayload));
+      const data = await adminApi.importQuestions({ testId }, items.map(compareItemPayload), { fileName, uploadId: newUploadId() });
       await onSaved(data.message);
     } catch (err) {
       setError(err.message);

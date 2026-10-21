@@ -45,6 +45,7 @@ import AdminSection from './pages/admin/AdminSection';
 import AdminReadingEditor from './pages/admin/AdminReadingEditor';
 import AdminChat from './pages/admin/AdminChat';
 import AdminEditors from './pages/admin/AdminEditors';
+import AdminEditorActivity from './pages/admin/AdminEditorActivity';
 import { EDITOR_ROOT } from './pages/admin/adminUi';
 
 export const ADMIN_PATH = '/админ';
@@ -122,6 +123,7 @@ function adminPages() {
       <Route path="ugc" element={<AdminUgc />} />
       {contentPages()}
       <Route path="editors" element={<AdminEditors />} />
+      <Route path="editors/:id/:action" element={<AdminEditorActivity />} />
       <Route path="flashcards" element={<Navigate to="../content" replace />} />
       <Route path="plans" element={<AdminPlans />} />
       <Route path="promo" element={<AdminPromos />} />
