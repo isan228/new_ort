@@ -73,6 +73,12 @@ async function requireDeal(ctx) {
     await needUsernameScreen(ctx, true);
     return false;
   }
+  // Profiles registered while WhatsApp was optional fill it in before their next deal.
+  if (!user.whatsapp) {
+    await show(ctx, 'Для новых сделок нужен номер WhatsApp. Укажите его — номер увидит только участник подтверждённого заказа и только если вы сами его отправите.',
+      kb([btn('Указать WhatsApp', 'pe:wa')]));
+    return false;
+  }
   if (restricted(user)) {
     await show(ctx, `⛔ Новые сделки временно недоступны: ${esc(user.blockReason || 'ограничение администратора')}. ${user.needsReview ? 'Ограничение до решения администратора.' : `Ограничение до ${humanDateTime(user.blockedUntil)}.`}`,
       kb([btn('Оспорить', 'appeal')], [btn('Мои действующие', 'my:active'), btn('Поддержка', 'sup')]));

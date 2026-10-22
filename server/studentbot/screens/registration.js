@@ -46,9 +46,8 @@ async function sexScreen(ctx) {
   const r = regData(ctx);
   await setState(ctx, 'reg_s04');
   const mark = (on, text) => (on ? `✅ ${text}` : text);
-  return show(ctx, `Укажите пол. По желанию напишите WhatsApp в формате +996XXXXXXXXX — его увидит только участник подтверждённого заказа и только если вы сами его отправите.${r.whatsapp ? `\nWhatsApp: <b>${esc(r.whatsapp)}</b>` : ''}`, kb(
+  return show(ctx, `Укажите пол и напишите номер WhatsApp в формате +996XXXXXXXXX — он обязателен. Номер увидит только участник подтверждённого заказа и только если вы сами его отправите.${r.whatsapp ? `\nWhatsApp: <b>${esc(r.whatsapp)}</b>` : '\nWhatsApp: <b>не указан</b>'}`, kb(
     [btn(mark(r.sex === 'm', 'Парень'), 'reg:sex:m'), btn(mark(r.sex === 'f', 'Девушка'), 'reg:sex:f')],
-    [btn('Пропустить WhatsApp', 'reg:nowa')],
     [btn('Назад', 'reg:back3'), btn('Далее', 'reg:next4')],
   ));
 }
@@ -82,12 +81,13 @@ async function finish(ctx) {
   const r = regData(ctx);
   const { user } = ctx;
   if (!r.nickname || !r.faculty || !r.course || !r.sex) return askNick(ctx);
+  if (!r.whatsapp) return sexScreen(ctx);
   const patch = {
     nickname: r.nickname,
     faculty: r.faculty,
     course: r.course,
     sex: r.sex,
-    whatsapp: r.whatsapp || null,
+    whatsapp: r.whatsapp,
     registered: true,
     consentAt: new Date(),
   };
@@ -145,11 +145,9 @@ async function onCallback(ctx, data) {
     case 'sex':
       await saveReg(ctx, 'reg_s04', { sex: arg });
       return sexScreen(ctx);
-    case 'nowa':
-      await saveReg(ctx, 'reg_s04', { whatsapp: null });
-      return regData(ctx).sex ? previewScreen(ctx) : sexScreen(ctx);
     case 'next4':
       if (!regData(ctx).sex) return ctx.answer('Пол обязателен');
+      if (!regData(ctx).whatsapp) return ctx.answer('Напишите номер WhatsApp сообщением: +996XXXXXXXXX', true);
       return previewScreen(ctx);
     case 'edit': return askNick(ctx);
     case 'cancel':
@@ -178,9 +176,9 @@ async function onText(ctx, text) {
   }
   if (screen === 'reg_s04') {
     const phone = text.replace(/[\s()-]/g, '');
-    if (!WA.test(phone)) return send(ctx.chatId, 'Номер WhatsApp — в формате +996XXXXXXXXX. Или нажмите «Пропустить WhatsApp».');
+    if (!WA.test(phone)) return send(ctx.chatId, 'Номер WhatsApp — в формате +996XXXXXXXXX, например +996700123456.');
     await saveReg(ctx, 'reg_s04', { whatsapp: phone });
-    return sexScreen(ctx);
+    return regData(ctx).sex ? previewScreen(ctx) : sexScreen(ctx);
   }
   return null;
 }

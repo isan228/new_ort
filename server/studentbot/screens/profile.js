@@ -51,10 +51,7 @@ async function onEdit(ctx, field) {
       return show(ctx, 'Укажите пол.', kb([btn('Парень', 'pes:m'), btn('Девушка', 'pes:f')], [btn('Назад', 'pe')]));
     case 'wa':
       await setState(ctx, 'pe_wa');
-      return show(ctx, 'Напишите WhatsApp в формате +996XXXXXXXXX.', kb(ctx.user.whatsapp ? [btn('Удалить номер', 'pe:wadel')] : null, [btn('Назад', 'pe')]));
-    case 'wadel':
-      await ctx.user.update({ whatsapp: null });
-      return profile(ctx);
+      return show(ctx, 'Напишите номер WhatsApp в формате +996XXXXXXXXX — он обязателен.', kb([btn('Назад', 'pe')]));
     default:
       return editMenu(ctx);
   }
