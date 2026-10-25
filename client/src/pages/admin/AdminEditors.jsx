@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { adminApi } from '../../api/client';
+import { adminApi, simAdminApi } from '../../api/client';
 import { useLang } from '../../context/LangContext';
 import MathText from '../../components/MathText';
 import { EDITOR_ROOT, Modal } from './adminUi';
@@ -8,11 +8,72 @@ import { EDITOR_ROOT, Modal } from './adminUi';
 const ACTIONS = ['create', 'update', 'delete', 'import'];
 const PAGE_SIZE = 30;
 
+// Practice subjects and simulation tests the admin can open to an editor.
+export function useSubjectCatalog() {
+  const [catalog, setCatalog] = useState(null);
+  useEffect(() => {
+    Promise.all([adminApi.subjects(), simAdminApi.tests()])
+      .then(([practice, sim]) => setCatalog({
+        practice: (practice.subjects || []).map((s) => ({ id: s.id, name: s.name })),
+        simulation: (sim.tests || []).map((s) => ({ id: s.id, name: s.name })),
+      }))
+      .catch(() => setCatalog({ practice: [], simulation: [] }));
+  }, []);
+  return catalog;
+}
+
+function SubjectAccess({ value, onChange }) {
+  const { t } = useLang();
+  const catalog = useSubjectCatalog();
+  const chosen = new Set(value);
+  const toggle = (id) => onChange(chosen.has(id) ? value.filter((v) => v !== id) : [...value, id]);
+  const setGroup = (list, on) => {
+    const ids = list.map((s) => s.id);
+    onChange(on ? [...new Set([...value, ...ids])] : value.filter((v) => !ids.includes(v)));
+  };
+  if (!catalog) return <p className="muted">{t('common.loading')}</p>;
+  return (
+    <div className="field ed-access">
+      <span>{t('admin.ed.access')}</span>
+      <p className="muted ed-access-hint">{t('admin.ed.accessHint')}</p>
+      {['practice', 'simulation'].map((bank) => (
+        <div key={bank} className="ed-access-group">
+          <div className="ed-access-head">
+            <b>{t(`admin.ed.bank.${bank}`)}</b>
+            {catalog[bank].length > 0 && (
+              <span className="row" style={{ gap: 6 }}>
+                <button type="button" className="btn ghost sm" onClick={() => setGroup(catalog[bank], true)}>{t('admin.ed.all')}</button>
+                <button type="button" className="btn ghost sm" onClick={() => setGroup(catalog[bank], false)}>{t('admin.ed.none')}</button>
+              </span>
+            )}
+          </div>
+          {!catalog[bank].length && <p className="muted">—</p>}
+          {catalog[bank].map((s) => (
+            <label key={s.id} className="ed-access-item">
+              <input type="checkbox" checked={chosen.has(s.id)} onChange={() => toggle(s.id)} />
+              <span>{s.name}</span>
+            </label>
+          ))}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function EditorAccessLine({ ids, catalog }) {
+  const { t } = useLang();
+  if (!ids.length) return <p className="ed-access-line warn">{t('admin.ed.noAccess')}</p>;
+  if (!catalog) return null;
+  const names = [...catalog.practice, ...catalog.simulation].filter((s) => ids.includes(s.id)).map((s) => s.name);
+  return <p className="muted ed-access-line">{t('admin.ed.accessTo')}: {names.join(', ') || '—'}</p>;
+}
+
 function EditorForm({ editor, onSave, onClose }) {
   const { t } = useLang();
   const [name, setName] = useState(editor?.name || '');
   const [login, setLogin] = useState(editor?.login || '');
   const [password, setPassword] = useState('');
+  const [subjectIds, setSubjectIds] = useState(editor?.subjectIds || []);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
 
@@ -21,7 +82,7 @@ function EditorForm({ editor, onSave, onClose }) {
     setError('');
     setBusy(true);
     try {
-      const body = editor ? { name: name.trim() } : { name: name.trim(), login: login.trim(), password };
+      const body = editor ? { name: name.trim(), subjectIds } : { name: name.trim(), login: login.trim(), password, subjectIds };
       if (editor && password) body.password = password;
       await onSave(body);
     } catch (err) {
@@ -59,6 +120,7 @@ function EditorForm({ editor, onSave, onClose }) {
           required={!editor}
         />
       </label>
+      <SubjectAccess value={subjectIds} onChange={setSubjectIds} />
       {error && <p className="err">{error}</p>}
       <div className="row" style={{ justifyContent: 'flex-end' }}>
         <button className="btn ghost" type="button" onClick={onClose}>{t('common.cancel')}</button>
@@ -212,6 +274,7 @@ function ActivityLog({ editors }) {
 
 export default function AdminEditors() {
   const { t, locale } = useLang();
+  const catalog = useSubjectCatalog();
   const [editors, setEditors] = useState(null);
   const [editing, setEditing] = useState(null);
   const [error, setError] = useState('');
@@ -269,6 +332,7 @@ export default function AdminEditors() {
               <p className="muted" style={{ margin: '6px 0 0', fontSize: 13 }}>
                 {t('admin.ed.lastActivity')}: {editor.lastActivity ? new Date(editor.lastActivity).toLocaleString(locale) : '—'}
               </p>
+              <EditorAccessLine ids={editor.subjectIds || []} catalog={catalog} />
             </div>
             <div className="row" style={{ flexWrap: 'wrap' }}>
               <button className="btn ghost sm" type="button" onClick={() => setEditing(editor)}>{t('common.edit')}</button>

@@ -88,6 +88,7 @@ function publicUser(user, plan) {
     subscriptionMonths: resolved?.months || null,
     referralCode: user.referralCode || null,
     coins: user.coins || 0,
+    ...(user.role === 'editor' ? { editorSubjectIds: user.editorSubjectIds || [] } : {}),
   };
 }
 

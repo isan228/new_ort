@@ -46,6 +46,7 @@ import AdminReadingEditor from './pages/admin/AdminReadingEditor';
 import AdminChat from './pages/admin/AdminChat';
 import AdminEditors from './pages/admin/AdminEditors';
 import AdminEditorActivity from './pages/admin/AdminEditorActivity';
+import EditorMyQuestions from './pages/admin/EditorMyQuestions';
 import { EDITOR_ROOT } from './pages/admin/adminUi';
 
 export const ADMIN_PATH = '/админ';
@@ -178,7 +179,8 @@ export default function App() {
       <Route path={ADMIN_PATH} element={<AdminGate />}>{adminPages()}</Route>
       <Route path="/admin" element={<AdminGate />}>{adminPages()}</Route>
       <Route path={EDITOR_ROOT} element={<EditorGate />}>
-        <Route index element={<Navigate to="content" replace />} />
+        <Route index element={<Navigate to="mine" replace />} />
+        <Route path="mine" element={<EditorMyQuestions />} />
         {contentPages()}
       </Route>
 

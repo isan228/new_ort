@@ -166,7 +166,9 @@ async function variantJson(variantId) {
 }
 
 router.get('/tests', async (req, res) => {
-  const subjects = await Subject.findAll({ where: { bank: 'simulation' }, order: [['sortOrder', 'ASC'], ['id', 'ASC']] });
+  const where = { bank: 'simulation' };
+  if (req.editorSubjects) where.id = [...req.editorSubjects];
+  const subjects = await Subject.findAll({ where, order: [['sortOrder', 'ASC'], ['id', 'ASC']] });
   const ids = subjects.map((s) => s.id);
   const [variants, topics] = await Promise.all([
     ids.length ? SimVariant.findAll({ where: { subjectId: ids }, attributes: ['id', 'subjectId', 'status'] }) : [],

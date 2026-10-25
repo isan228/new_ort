@@ -257,6 +257,10 @@ export const adminApi = {
     method: 'POST',
     body: JSON.stringify({ ...target, ...meta, items }),
   }),
+  myQuestions: (params = {}) => {
+    const q = new URLSearchParams(Object.entries(params).filter(([, v]) => v)).toString();
+    return api(`/api/admin/my-questions${q ? `?${q}` : ''}`);
+  },
   editorActivity: (id, params = {}) => {
     const q = new URLSearchParams(Object.entries(params).filter(([, v]) => v)).toString();
     return api(`/api/admin/editors/${id}/activity${q ? `?${q}` : ''}`);

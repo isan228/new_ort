@@ -2582,6 +2582,28 @@ sup, sub { font-size: 0.72em; line-height: 0; }
 .act-import-list { margin: 0; padding-left: 22px; max-height: 320px; overflow: auto; font-size: 14px; }
 .act-import-list li { margin: 3px 0; }
 .act-pager { justify-content: center; gap: 12px; margin-top: 12px; }
+.ed-access { gap: 6px; }
+.ed-access-hint { margin: 0; font-size: 13px; }
+.ed-access-group { border: 1px solid var(--line, #dde3ee); border-radius: 10px; padding: 8px 10px; display: flex; flex-direction: column; gap: 4px; max-height: 240px; overflow: auto; }
+.ed-access-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; position: sticky; top: -8px; background: var(--card, #fff); padding: 4px 0; }
+.ed-access-item { display: flex; align-items: center; gap: 8px; font-size: 14px; cursor: pointer; }
+.ed-access-item input { width: 16px; height: 16px; flex: none; }
+.ed-access-line { margin: 4px 0 0; font-size: 13px; }
+.ed-access-line.warn { color: var(--bad, #b42318); font-weight: 600; }
+.my-q-filters { gap: 8px; flex-wrap: wrap; margin: 4px 0 14px; }
+.my-q-filters select, .my-q-filters input { padding: 8px 10px; border-radius: 10px; border: 1px solid var(--line, #dde3ee); background: var(--card, #fff); color: var(--ink); font: inherit; }
+.my-q-filters select { max-width: 100%; min-width: 220px; }
+.my-q-filters input { flex: 1; min-width: 200px; }
+.my-q { align-items: flex-start; }
+.my-q-meta { margin: 0 0 6px; font-size: 12.5px; display: flex; flex-wrap: wrap; align-items: center; gap: 4px; }
+.my-q-meta a { color: var(--brand); }
+.my-q-bank { font-size: 11px; }
+.my-q-text { display: flex; gap: 10px; align-items: flex-start; overflow-wrap: anywhere; }
+.my-q-text p { margin: 2px 0; }
+.my-q-answers { margin: 6px 0 0; padding-left: 20px; font-size: 14px; }
+.my-q-answers li.ok { font-weight: 600; color: #1c7c3a; }
+.my-q-actions { gap: 6px; flex-wrap: wrap; }
+.ok-note { color: #1c7c3a; font-weight: 600; }
 a.ed-stat-link { text-decoration: none; cursor: pointer; transition: filter .15s, box-shadow .15s; }
 a.ed-stat-link:hover { filter: brightness(0.95); box-shadow: 0 0 0 2px currentColor inset; }
 .ed-tabs { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0 16px; }

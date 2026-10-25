@@ -24,6 +24,8 @@ const User = sequelize.define('User', {
   // Switched off by the admin: the account keeps its type and stats but loses free access.
   ugcDisabled: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },
   ugcNote: { type: DataTypes.STRING(300), allowNull: true },
+  // Editors only: subjects (practice and simulation) the admin opened for them. Empty = no access.
+  editorSubjectIds: { type: DataTypes.JSONB, allowNull: false, defaultValue: [] },
 }, {
   indexes: [{ fields: ['loginKey'] }],
   hooks: {

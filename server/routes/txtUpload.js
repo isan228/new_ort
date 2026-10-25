@@ -25,6 +25,9 @@ const {
 } = require('../utils/compareQuestions');
 const { parseFlashcardsTxt } = require('../utils/parseFlashcardsTxt');
 const { findOrCreateTag } = require('../utils/findOrCreateTag');
+const { outsideScope } = require('../utils/editorAccess');
+
+const SUBJECT_FORBIDDEN = 'Нет доступа к этому предмету — его выдаёт администратор';
 
 const uploadDir = path.join(__dirname, '..', 'uploads');
 fs.mkdirSync(uploadDir, { recursive: true });
@@ -98,7 +101,7 @@ function freeExternalId(id, taken) {
 }
 
 // A repeated ID never overwrites an existing question: the new one is saved under the next free ID.
-async function upsertQuestions(test, parsed, passageId = null) {
+async function upsertQuestions(test, parsed, passageId = null, createdById = null) {
   const testId = test.id;
   const existing = await Question.findAll({ where: { testId, passageId }, attributes: ['externalId'] });
   const taken = new Set(existing.map((row) => row.externalId).filter(Boolean));
@@ -126,6 +129,7 @@ async function upsertQuestions(test, parsed, passageId = null) {
       explanation: item.explanation,
       difficulty: cleanDifficulty(item.difficulty),
       externalId,
+      createdById,
       sortOrder: maxOrder,
       ...media,
     });
@@ -182,6 +186,7 @@ function testError(res, test) {
 async function handleQuestionTxt(req, res) {
   const test = await resolveTest(req);
   if (testError(res, test)) return;
+  if (outsideScope(req, test.subjectId)) return res.status(403).json({ error: SUBJECT_FORBIDDEN, code: 'SUBJECT_FORBIDDEN' });
   if (requiresImage(test)) {
     return res.status(400).json({ error: 'В геометрию загружайте TXT через превью — там к каждому вопросу добавляется рисунок' });
   }
@@ -194,7 +199,7 @@ async function handleQuestionTxt(req, res) {
       stats: parsed._parseStats || {},
     });
   }
-  const stats = await upsertQuestions(test, parsed);
+  const stats = await upsertQuestions(test, parsed, null, req.user.id);
   res.json({
     message: uploadMessage('Загружено', stats),
     ...stats,
@@ -271,6 +276,7 @@ router.post('/parse-txt', fileField, async (req, res) => {
     if (!group || group.kind !== 'group') {
       return res.status(400).json({ error: 'Общая загрузка работает только в разделе-группе' });
     }
+    if (outsideScope(req, group.subjectId)) return res.status(403).json({ error: SUBJECT_FORBIDDEN, code: 'SUBJECT_FORBIDDEN' });
     const sections = (await Test.findAll({
       where: { parentId: group.id, kind: MIXED_KINDS },
       order: [['sortOrder', 'ASC'], ['id', 'ASC']],
@@ -377,7 +383,7 @@ router.post('/import-questions', express.json({ limit: '8mb' }), async (req, res
     });
   }
   if (!prepared.length) return res.status(400).json({ error: 'Нет вопросов для сохранения' });
-  const stats = await upsertQuestions(test, prepared, Number(req.body.passageId) || null);
+  const stats = await upsertQuestions(test, prepared, Number(req.body.passageId) || null, req.user.id);
   res.json({
     message: uploadMessage('Сохранено', stats),
     ...stats,

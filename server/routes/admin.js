@@ -22,6 +22,8 @@ const {
   ReadingPassageTagMap,
   PromoCode,
   ActivityLog,
+  SimBlock,
+  SimVariant,
   sequelize,
 } = require('../models');
 const bcrypt = require('bcryptjs');
@@ -286,6 +288,7 @@ router.delete('/term-images/:id', async (req, res) => {
 router.get('/subjects', async (req, res) => {
   const where = { bank: 'practice' };
   if (req.query.trackGroup) where.trackGroup = req.query.trackGroup;
+  if (req.editorSubjects) where.id = [...req.editorSubjects];
   const subjects = await Subject.findAll({
     where,
     include: [
@@ -378,6 +381,11 @@ router.delete('/subjects/:id', async (req, res) => {
 router.get('/tests', async (req, res) => {
   const where = { bank: 'practice' };
   if (req.query.subjectId) where.subjectId = req.query.subjectId;
+  if (req.editorSubjects) {
+    where.subjectId = req.query.subjectId && req.editorSubjects.has(Number(req.query.subjectId))
+      ? Number(req.query.subjectId)
+      : (req.query.subjectId ? -1 : [...req.editorSubjects]);
+  }
   const tests = await Test.findAll({
     where,
     include: [Subject, { model: Question, attributes: ['id'] }],
@@ -661,6 +669,7 @@ router.post('/questions', async (req, res) => {
     evidence: optionalText(req.body.evidence),
     externalId: req.body.externalId || null,
     difficulty: cleanDifficulty(req.body.difficulty),
+    createdById: req.user.id,
     sortOrder: req.body.sortOrder || 0,
   });
   for (const [idx, answer] of (req.body.answers || []).entries()) {
@@ -730,6 +739,91 @@ router.delete('/questions/:id', async (req, res) => {
   await QuestionTagMap.destroy({ where: { questionId: req.params.id } });
   await Question.destroy({ where: { id: req.params.id } });
   res.json({ ok: true });
+});
+
+// "Subject · section · subsection" (and "Вариант №N · block" for simulation) for each test id.
+async function placesFor(testIds) {
+  const tests = new Map();
+  let pending = [...new Set(testIds.filter(Boolean))];
+  while (pending.length) {
+    const rows = await Test.findAll({
+      where: { id: pending }, attributes: ['id', 'name', 'parentId', 'subjectId', 'kind', 'bank', 'simBlockId'], raw: true,
+    });
+    rows.forEach((row) => tests.set(row.id, row));
+    pending = [...new Set(rows.map((row) => row.parentId).filter((id) => id && !tests.has(id)))];
+  }
+  const all = [...tests.values()];
+  const [subjects, blocks] = await Promise.all([
+    Subject.findAll({ where: { id: [...new Set(all.map((t) => t.subjectId))] }, attributes: ['id', 'name', 'bank'], raw: true }),
+    SimBlock.findAll({ where: { id: [...new Set(all.map((t) => t.simBlockId).filter(Boolean))] }, attributes: ['id', 'title', 'variantId'], raw: true }),
+  ]);
+  const variants = blocks.length
+    ? await SimVariant.findAll({ where: { id: [...new Set(blocks.map((b) => b.variantId))] }, attributes: ['id', 'number'], raw: true })
+    : [];
+  const subjectById = new Map(subjects.map((s) => [s.id, s]));
+  const blockById = new Map(blocks.map((b) => [b.id, b]));
+  const variantById = new Map(variants.map((v) => [v.id, v]));
+  const out = new Map();
+  for (const id of new Set(testIds)) {
+    const test = tests.get(id);
+    if (!test) continue;
+    const names = [];
+    let root = test;
+    for (let row = test, guard = 0; row && guard < 8; row = tests.get(row.parentId), guard += 1) {
+      names.unshift(row.name);
+      root = row;
+    }
+    const block = root.simBlockId && blockById.get(root.simBlockId);
+    if (block) names.unshift(`Вариант №${variantById.get(block.variantId)?.number ?? '?'}`, block.title);
+    const subject = subjectById.get(test.subjectId);
+    if (subject) names.unshift(subject.name);
+    out.set(id, { place: names.join(' · '), subjectId: test.subjectId, bank: subject?.bank || test.bank, sectionKind: test.kind });
+  }
+  return out;
+}
+
+// The editor's own questions (added by hand or from TXT), limited to the subjects still open to them.
+router.get('/my-questions', async (req, res) => {
+  const page = Math.max(1, Number(req.query.page) || 1);
+  const limit = Math.min(50, Math.max(5, Number(req.query.limit) || 20));
+  const base = { createdById: req.user.id };
+  if (req.editorSubjects) {
+    const scoped = await Test.findAll({ where: { subjectId: [...req.editorSubjects] }, attributes: ['id'], raw: true });
+    base.testId = scoped.map((t) => t.id);
+  }
+  const counts = await Question.findAll({
+    where: base, attributes: ['testId', [sequelize.fn('COUNT', sequelize.col('id')), 'n']], group: ['testId'], raw: true,
+  });
+  const where = { ...base };
+  const sectionIds = counts.map((c) => c.testId);
+  if (req.query.testId) where.testId = sectionIds.includes(Number(req.query.testId)) ? Number(req.query.testId) : -1;
+  const q = String(req.query.q || '').trim();
+  if (q) {
+    where[Op.or] = ['text', 'compareA', 'compareB', 'explanation', 'externalId'].map((field) => ({ [field]: { [Op.iLike]: `%${q}%` } }));
+  }
+  const { count, rows } = await Question.findAndCountAll({
+    where,
+    include: [Answer],
+    order: [['createdAt', 'DESC'], ['id', 'DESC'], [Answer, 'sortOrder', 'ASC']],
+    limit,
+    offset: (page - 1) * limit,
+    distinct: true,
+  });
+  const places = await placesFor([...sectionIds, ...rows.map((r) => r.testId)]);
+  res.json({
+    items: rows.map((row) => ({
+      ...publicQuestionWithCorrect(row),
+      ...places.get(row.testId),
+      createdAt: row.createdAt,
+      updatedAt: row.updatedAt,
+    })),
+    total: count,
+    page,
+    limit,
+    sections: counts
+      .map((c) => ({ testId: c.testId, count: Number(c.n), ...places.get(c.testId) }))
+      .sort((a, b) => String(a.place).localeCompare(String(b.place), 'ru')),
+  });
 });
 
 router.get('/flashcards', async (req, res) => {
@@ -821,6 +915,7 @@ function publicEditor(user, stats = {}) {
     name: user.name,
     login: user.login,
     createdAt: user.createdAt,
+    subjectIds: user.editorSubjectIds || [],
     stats: {
       create: Number(stats.create) || 0,
       update: Number(stats.update) || 0,
@@ -923,6 +1018,14 @@ router.get('/editors/:id/activity', async (req, res) => {
   res.json({ ...head, items, total: count });
 });
 
+// Only real subjects of either bank can be opened to an editor.
+async function cleanSubjectIds(value) {
+  const ids = [...new Set((Array.isArray(value) ? value : []).map(Number).filter(Boolean))];
+  if (!ids.length) return [];
+  const found = await Subject.findAll({ where: { id: ids }, attributes: ['id'], raw: true });
+  return found.map((s) => s.id).sort((a, b) => a - b);
+}
+
 router.post('/editors', async (req, res) => {
   const name = String(req.body.name || '').trim();
   const password = String(req.body.password || '');
@@ -943,6 +1046,7 @@ router.post('/editors', async (req, res) => {
     email,
     role: 'editor',
     passwordHash: await bcrypt.hash(password, 10),
+    editorSubjectIds: await cleanSubjectIds(req.body.subjectIds),
   });
   res.json({ editor: publicEditor(user) });
 });
@@ -959,6 +1063,7 @@ router.put('/editors/:id', async (req, res) => {
     if (String(req.body.password).length < 6) return res.status(400).json({ error: 'Пароль — минимум 6 символов' });
     patch.passwordHash = await bcrypt.hash(String(req.body.password), 10);
   }
+  if (req.body.subjectIds !== undefined) patch.editorSubjectIds = await cleanSubjectIds(req.body.subjectIds);
   await user.update(patch);
   res.json({ editor: publicEditor(user) });
 });

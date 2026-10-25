@@ -14,10 +14,12 @@ const Question = sequelize.define('Question', {
   compareA: { type: DataTypes.TEXT, allowNull: true },
   compareB: { type: DataTypes.TEXT, allowNull: true },
   externalId: { type: DataTypes.STRING, allowNull: true },
+  // Who added the question (by hand or from TXT): powers the editor's "Мои вопросы".
+  createdById: { type: DataTypes.INTEGER, allowNull: true },
   // 1–4 stars; a question without an explicit level gets 3.
   difficulty: { type: DataTypes.INTEGER, allowNull: true, defaultValue: 3 },
   sortOrder: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 0 },
   isActive: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: true },
-});
+}, { indexes: [{ fields: ['createdById'] }] });
 
 module.exports = { Question };

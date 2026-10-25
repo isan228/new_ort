@@ -161,7 +161,7 @@ export function CompareFields({ d, onChange, onUpload }) {
   );
 }
 
-function CompareModal({ testId, initial, onClose, onSaved }) {
+export function CompareModal({ testId, initial, onClose, onSaved }) {
   const { t } = useLang();
   const [d, setD] = useState(() => toDraft(initial));
   const [busy, setBusy] = useState(false);

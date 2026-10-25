@@ -1,4 +1,5 @@
 const { ActivityLog, Question, Answer, ReadingPassage, Test, Subject } = require('../models');
+const { editorSubjects, outsideScope, requestSubject } = require('../utils/editorAccess');
 
 // Editors only work with questions and reading texts; everything else under /api/admin is admin-only.
 const EDITOR_ALLOWED = [
@@ -9,6 +10,7 @@ const EDITOR_ALLOWED = [
   ['POST', /^\/(parse-txt|upload-image|import-questions|upload-txt-explained)$/],
   // Simulation: editors see the structure the admin built and fill it with questions, nothing more.
   ['GET', /^\/sim\//],
+  ['GET', /^\/my-questions$/],
 ];
 
 const LOGGED = [
@@ -155,6 +157,11 @@ async function staffScope(req, res, next) {
   if (req.user.role === 'editor') {
     const allowed = EDITOR_ALLOWED.some(([m, re]) => (m === '*' || m === method) && re.test(path));
     if (!allowed) return res.status(403).json({ error: 'Редактору это действие недоступно', code: 'ADMIN_REQUIRED' });
+    req.editorSubjects = editorSubjects(req.user);
+    const subjectId = await requestSubject(req);
+    if (subjectId !== undefined && outsideScope(req, subjectId)) {
+      return res.status(403).json({ error: 'Нет доступа к этому предмету — его выдаёт администратор', code: 'SUBJECT_FORBIDDEN' });
+    }
   }
 
   const rule = LOGGED.find(([m, re]) => m === method && re.test(path));
