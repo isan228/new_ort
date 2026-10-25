@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useState } from 'react';
+import { Fragment, useCallback, useEffect, useState } from 'react';
 import { NavLink, Link, useLocation, useNavigate } from 'react-router-dom';
 import { adminApi, chatApi } from '../api/client';
 import { CONTENT_CHANGED, EDITOR_ROOT, contentPath, splitSubjects } from '../pages/admin/adminUi';
@@ -149,36 +149,98 @@ function SideItem({ to, label, end, unread }) {
   );
 }
 
-function TreeSubject({ subject, label, expanded }) {
+// Which branches of the admin content tree are folded; kept per browser.
+const TREE_KEY = 'ort_admin_tree';
+
+function useTreeState() {
+  const [state, setState] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem(TREE_KEY)) || {};
+    } catch {
+      return {};
+    }
+  });
+  const update = useCallback((patch) => setState((prev) => {
+    const next = { ...prev, ...patch };
+    localStorage.setItem(TREE_KEY, JSON.stringify(next));
+    return next;
+  }), []);
+  return [state, update];
+}
+
+function TreeToggle({ open, onToggle }) {
+  const { t } = useLang();
+  return (
+    <button
+      type="button"
+      className={`side-tree-toggle${open ? ' open' : ''}`}
+      aria-expanded={open}
+      aria-label={open ? t('admin.tree.collapse') : t('admin.tree.expand')}
+      title={open ? t('admin.tree.collapse') : t('admin.tree.expand')}
+      onClick={onToggle}
+    >
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 6 6 6-6 6" /></svg>
+    </button>
+  );
+}
+
+function TreeSubject({ subject, label, expanded, tree, setTree }) {
   const location = useLocation();
   const root = contentPath(subject.id);
   const path = decodeURIComponent(location.pathname);
-  const open = expanded || path === root || path.startsWith(`${root}/`);
+  const inside = path === root || path.startsWith(`${root}/`);
   const sections = subject.sections || [];
+  const byId = new Map(sections.map((row) => [row.id, row]));
+  const parents = new Set(sections.map((row) => row.parentId).filter(Boolean));
+  const subjectKey = `s:${subject.id}`;
+  const subjectOpen = tree[subjectKey] ?? (expanded || inside);
+
+  // Opening a section from a page link unfolds the branches above it.
+  useEffect(() => {
+    if (!inside) return;
+    const current = sections.find((row) => {
+      const p = contentPath(subject.id, row.id);
+      return path === p || path.startsWith(`${p}/`);
+    });
+    const patch = {};
+    if (tree[subjectKey] === false) patch[subjectKey] = true;
+    for (let row = current && byId.get(current.parentId); row; row = byId.get(row.parentId)) {
+      if (tree[`t:${row.id}`] === false) patch[`t:${row.id}`] = true;
+    }
+    if (Object.keys(patch).length) setTree(patch);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [path, sections.length]);
 
   function branch(parentId, depth) {
     return sections
       .filter((row) => (row.parentId || null) === parentId)
-      .map((row) => (
-        <Fragment key={row.id}>
-          <NavLink
-            to={contentPath(subject.id, row.id)}
-            className={({ isActive }) => `side-tree-link ${isActive ? 'active' : ''}`}
-            style={{ paddingLeft: 14 + depth * 14 }}
-          >
-            {row.name}
-          </NavLink>
-          {branch(row.id, depth + 1)}
-        </Fragment>
-      ));
+      .map((row) => {
+        const key = `t:${row.id}`;
+        const hasKids = parents.has(row.id);
+        const open = tree[key] ?? true;
+        return (
+          <Fragment key={row.id}>
+            <div className="side-tree-row" style={{ paddingLeft: (depth - 1) * 14 }}>
+              {hasKids ? <TreeToggle open={open} onToggle={() => setTree({ [key]: !open })} /> : <span className="side-tree-toggle-space" />}
+              <NavLink to={contentPath(subject.id, row.id)} className={({ isActive }) => `side-tree-link ${isActive ? 'active' : ''}`} title={row.name}>
+                {row.name}
+              </NavLink>
+            </div>
+            {hasKids && open && branch(row.id, depth + 1)}
+          </Fragment>
+        );
+      });
   }
 
   return (
     <>
-      <NavLink to={root} end className={({ isActive }) => `side-tree-link side-tree-subject ${isActive ? 'active' : ''}`}>
-        {label || subject.name}
-      </NavLink>
-      {open && branch(null, 1)}
+      <div className="side-tree-row">
+        {sections.length ? <TreeToggle open={subjectOpen} onToggle={() => setTree({ [subjectKey]: !subjectOpen })} /> : <span className="side-tree-toggle-space" />}
+        <NavLink to={root} end className={({ isActive }) => `side-tree-link side-tree-subject ${isActive ? 'active' : ''}`} title={label || subject.name}>
+          {label || subject.name}
+        </NavLink>
+      </div>
+      {subjectOpen && branch(null, 1)}
     </>
   );
 }
@@ -186,6 +248,7 @@ function TreeSubject({ subject, label, expanded }) {
 function AdminContentTree() {
   const { t } = useLang();
   const [subjects, setSubjects] = useState([]);
+  const [tree, setTree] = useTreeState();
 
   useEffect(() => {
     const onChange = (e) => setSubjects(e.detail || []);
@@ -199,9 +262,9 @@ function AdminContentTree() {
 
   return (
     <div className="side-tree">
-      {main && <TreeSubject subject={main} label={t('admin.tree.main')} expanded />}
+      {main && <TreeSubject subject={main} label={t('admin.tree.main')} expanded tree={tree} setTree={setTree} />}
       {others.length > 0 && <div className="side-tree-title">{t('admin.tree.subjects')}</div>}
-      {others.map((subject) => <TreeSubject key={subject.id} subject={subject} />)}
+      {others.map((subject) => <TreeSubject key={subject.id} subject={subject} tree={tree} setTree={setTree} />)}
     </div>
   );
 }

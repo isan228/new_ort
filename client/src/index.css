@@ -2476,6 +2476,16 @@ body.tp-open { overflow: hidden; }
 .side-tree-link:hover { background: var(--bg); color: var(--ink); }
 .side-tree-link.active { background: var(--brand-soft); color: var(--brand); font-weight: 600; }
 .side-tree-subject { color: var(--ink); font-weight: 600; }
+.side-tree-row { display: flex; align-items: center; gap: 0; min-width: 0; }
+.side-tree-row .side-tree-link { flex: 1; min-width: 0; padding-left: 4px; }
+.side-tree-toggle {
+  flex: none; display: grid; place-items: center; width: 20px; height: 22px; padding: 0;
+  border: 0; border-radius: 6px; background: none; color: var(--muted); cursor: pointer;
+}
+.side-tree-toggle:hover { background: var(--bg); color: var(--ink); }
+.side-tree-toggle svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; transition: transform .15s; }
+.side-tree-toggle.open svg { transform: rotate(90deg); }
+.side-tree-toggle-space { flex: none; width: 20px; }
 .side-tree-title {
   margin: 10px 0 2px; padding: 0 12px;
   font-size: 10.5px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase;

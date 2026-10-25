@@ -2206,7 +2206,7 @@ Object.assign(dict.ru.admin, {
   subsectionsCount: 'Подразделов: {n}',
   answersCount: 'Вариантов ответа: {n}',
   confirmDeleteSection: 'Удалить «{name}» вместе с подразделами и всеми вопросами внутри?',
-  tree: { main: 'Основной тест', subjects: 'Предметные тесты' },
+  tree: { main: 'Основной тест', subjects: 'Предметные тесты', collapse: 'Свернуть', expand: 'Развернуть' },
 });
 Object.assign(dict.ky.admin, {
   kind: 'Бөлүмдүн түрү',
@@ -2228,7 +2228,7 @@ Object.assign(dict.ky.admin, {
   subsectionsCount: 'Бөлүмчөлөр: {n}',
   answersCount: 'Жооп варианттары: {n}',
   confirmDeleteSection: '«{name}» бөлүмчөлөрү жана ичиндеги бардык суроолору менен өчүрүлсүнбү?',
-  tree: { main: 'Негизги тест', subjects: 'Предметтик тесттер' },
+  tree: { main: 'Негизги тест', subjects: 'Предметтик тесттер', collapse: 'Жыйыштыруу', expand: 'Ачуу' },
 });
 
 dict.ru.admin.kinds.geometry = 'Геометрия';
