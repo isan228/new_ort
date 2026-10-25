@@ -7,7 +7,7 @@ import { COMPARE_LETTERS, compareCorrectLetter } from '../../lib/compare';
 import { newUploadId, pickTextFile } from '../../lib/textFile';
 import { Modal, confirmDelete, previewText } from './adminUi';
 import { ImageSlot, imageFromClipboard } from './TxtPreview';
-import { DifficultyPicker } from './DifficultyPicker';
+import { DEFAULT_DIFFICULTY, DifficultyPicker } from './DifficultyPicker';
 
 function toDraft(q) {
   return {
@@ -19,7 +19,7 @@ function toDraft(q) {
     imageUrl: q?.imageUrl || null,
     explanation: q?.explanation || '',
     explanationImageUrl: q?.explanationImageUrl || null,
-    difficulty: q?.difficulty || null,
+    difficulty: q?.difficulty || DEFAULT_DIFFICULTY,
   };
 }
 
@@ -39,7 +39,7 @@ function draftPayload(d) {
     imageUrl: d.imageUrl || null,
     explanation: d.explanation.trim(),
     explanationImageUrl: d.explanationImageUrl || null,
-    difficulty: d.difficulty || null,
+    difficulty: d.difficulty || DEFAULT_DIFFICULTY,
   };
 }
 
@@ -60,7 +60,7 @@ export function compareItemPayload(item) {
     imageUrl: item.imageUrl || null,
     explanation: (item.explanation || '').trim(),
     explanationImageUrl: item.explanationImageUrl || null,
-    difficulty: item.difficulty || null,
+    difficulty: item.difficulty || DEFAULT_DIFFICULTY,
   };
 }
 
@@ -149,7 +149,7 @@ export function CompareFields({ d, onChange, onUpload }) {
         <small className="muted">{t('admin.q.imageOptional')}</small>
         <ImageSlot compact url={d.explanationImageUrl} onChange={(url) => set({ explanationImageUrl: url })} onUpload={onUpload} />
       </div>
-      <DifficultyPicker value={d.difficulty || null} onChange={(difficulty) => set({ difficulty })} />
+      <DifficultyPicker value={d.difficulty} onChange={(difficulty) => set({ difficulty })} />
       {(d.compareA?.trim() || d.compareB?.trim()) && (
         <div className="cmp-preview">
           <div className="qf-label">{t('admin.cmp.preview')}</div>

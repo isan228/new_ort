@@ -4,7 +4,7 @@ import { useLang } from '../../context/LangContext';
 import { LETTERS } from '../../lib/reading';
 import { ImageSlot, imageFromClipboard } from './TxtPreview';
 import { MathLive } from '../../components/MathText';
-import { DifficultyPicker } from './DifficultyPicker';
+import { DEFAULT_DIFFICULTY, DifficultyPicker } from './DifficultyPicker';
 
 let seq = 0;
 const nextKey = () => `qf${Date.now()}-${seq++}`;
@@ -19,7 +19,7 @@ export function toDraft(q) {
       explanation: '',
       explanationImageUrl: null,
       evidence: '',
-      difficulty: null,
+      difficulty: DEFAULT_DIFFICULTY,
       answers: [0, 1, 2, 3].map(() => ({ _key: nextKey(), text: '', imageUrl: null, isCorrect: false })),
       dirty: true,
     };
@@ -32,7 +32,7 @@ export function toDraft(q) {
     explanation: q.explanation || '',
     explanationImageUrl: q.explanationImageUrl || null,
     evidence: q.evidence || '',
-    difficulty: q.difficulty || null,
+    difficulty: q.difficulty || DEFAULT_DIFFICULTY,
     answers: (q.answers || []).map((a) => ({
       _key: nextKey(),
       text: a.text || '',
@@ -59,7 +59,7 @@ export function draftPayload(q) {
     explanation: q.explanation.trim(),
     explanationImageUrl: q.explanationImageUrl || null,
     evidence: q.evidence.trim(),
-    difficulty: q.difficulty || null,
+    difficulty: q.difficulty || DEFAULT_DIFFICULTY,
     answers: q.answers
       .filter((a) => a.text.trim() || a.imageUrl)
       .map((a, i) => ({ text: a.text.trim() || ' ', imageUrl: a.imageUrl || null, isCorrect: a.isCorrect, sortOrder: i + 1 })),

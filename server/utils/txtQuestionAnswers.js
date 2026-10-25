@@ -48,14 +48,14 @@ function isValidCorrectIndex(answers, correctRaw) {
 }
 
 const MAX_DIFFICULTY = 4;
+const DEFAULT_DIFFICULTY = 3;
 
-// Accepts 3, "3", "3/4", "★★★" or "***"; anything else means "not set".
+// Accepts 3, "3", "3/4", "★★★" or "***"; a missing or invalid value means the default level.
 function cleanDifficulty(value) {
   const raw = String(value ?? '').trim();
-  if (!raw) return null;
   const stars = raw.match(/^[★*☆]+$/) ? (raw.match(/[★*]/g) || []).length : null;
   const n = stars ?? parseInt(raw, 10);
-  return Number.isInteger(n) && n >= 1 && n <= MAX_DIFFICULTY ? n : null;
+  return Number.isInteger(n) && n >= 1 && n <= MAX_DIFFICULTY ? n : DEFAULT_DIFFICULTY;
 }
 
 function extractDifficulty(block) {
@@ -63,11 +63,12 @@ function extractDifficulty(block) {
     const value = extractQuotedField(block, name);
     if (value != null) return cleanDifficulty(value);
   }
-  return null;
+  return DEFAULT_DIFFICULTY;
 }
 
 module.exports = {
   MAX_DIFFICULTY,
+  DEFAULT_DIFFICULTY,
   cleanDifficulty,
   extractDifficulty,
   MAX_TXT_ANSWERS,

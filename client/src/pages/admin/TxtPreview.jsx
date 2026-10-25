@@ -210,7 +210,7 @@ export function QuestionCard({ q, index, onChange, onRemove, onUpload, requireIm
       </label>
       <MathLive text={q.explanation} />
       <ImageSlot url={q.explanationImageUrl} onChange={(url) => set({ explanationImageUrl: url })} onUpload={onUpload} />
-      <DifficultyPicker value={q.difficulty || null} onChange={(difficulty) => set({ difficulty })} />
+      <DifficultyPicker value={q.difficulty} onChange={(difficulty) => set({ difficulty })} />
     </article>
   );
 }

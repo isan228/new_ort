@@ -23,8 +23,8 @@ async function prepareAppData() {
   await sequelize.query('ALTER TABLE "Payments" ALTER COLUMN "userId" DROP NOT NULL');
   // Tables of the group-request bot that Student Bot replaced.
   await sequelize.query('DROP TABLE IF EXISTS "TelegramRequests", "TelegramDrafts"');
-  // The scale is 1–4 stars; questions left with 5 from the old 1–5 scale become "not set".
-  await sequelize.query('UPDATE "Questions" SET difficulty = NULL WHERE difficulty > 4');
+  // The scale is 1–4 stars; questions without a level (or left with 5 from the old scale) get the default 3.
+  await sequelize.query('UPDATE "Questions" SET difficulty = 3 WHERE difficulty IS NULL OR difficulty NOT BETWEEN 1 AND 4');
   await fillLoginKeys();
   await ensurePlansForOrt();
   await seedDemoContent();
