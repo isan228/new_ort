@@ -6,7 +6,7 @@ const {
 const { isAdmin, setState, loadConfig } = require('./ctx');
 const { saveConfig } = require('./config');
 const {
-  accessStatus, applyPurchase, adminAdjust, refundPayment,
+  accessStatus, applyPurchase, adminAdjust, refundPayment, promoEnd,
 } = require('./access');
 const { invalidateForOrder, notifyInvalidated } = require('./deals');
 const { notifyPurchase, tariffAmount } = require('./payments');
@@ -208,15 +208,27 @@ async function reportMessages(ctx, id) {
 
 // ---------- Access, tariffs, stats, settings ----------
 
+function promoLine(cfg, now = Date.now()) {
+  if (!cfg.launchAt) return 'Бесплатный старт (LAUNCH_AT): не задан';
+  const start = new Date(cfg.launchAt).getTime();
+  const end = promoEnd(cfg);
+  const when = `${humanDateTime(start)} → ${humanDateTime(end)}`;
+  if (now < start) return `Бесплатный старт: ещё не начался, ${when}`;
+  if (now < end) return `Бесплатный старт: ✅ идёт, ${when}`;
+  return `Бесплатный старт: закончился, ${when}`;
+}
+
 async function accessScreen(ctx) {
   const cfg = await loadConfig();
   return show(ctx, [
     '<b>Доступ и тарифы</b>',
-    `LAUNCH_AT: ${cfg.launchAt ? humanDateTime(cfg.launchAt) : 'не задан'} (+${cfg.promoHours} ч бесплатно для всех)`,
+    `Бесплатный режим для всех: ${cfg.freeMode ? '✅ включён — доступ открыт всем без срока' : 'выключен'}`,
+    promoLine(cfg),
     `Тарифы: ${cfg.tariffs.map((t) => `${t.days} дн. — ${t.price || 'цена не задана'}${t.price && !tariffAmount(t) ? ' (нет суммы цифрами)' : ''}`).join('; ')}`,
     `Онлайн-оплата Finik: ${cfg.paymentsEnabled === false ? 'выключена' : 'включена'}${isFinikConfigured() ? '' : ' — но ключи Finik на сервере не настроены'}`,
     'Вручную доступ всегда можно выдать: Пользователь → Изменить доступ.',
   ].join('\n'), kb(
+    [btn(cfg.freeMode ? 'Выключить бесплатный режим' : 'Включить бесплатный режим', 'ad:free')],
     [btn('Задать LAUNCH_AT', 'ad:launch'), btn('Цены тарифов', 'ad:prices')],
     [btn(cfg.paymentsEnabled === false ? 'Включить оплату Finik' : 'Выключить оплату Finik', 'ad:paytoggle')],
     [btn('Реферальная аналитика', 'ad:refstats')],
@@ -463,6 +475,12 @@ async function onCallback(ctx, data) {
     case 'acc': return accessScreen(ctx);
     case 'launch': return ask(ctx, 'Дата и время старта бесплатного периода, время Бишкека: 2026-10-25 09:00', 'launch', {}, 'ad:acc');
     case 'prices': return ask(ctx, 'Цены через точку с запятой: 7=300 сом; 30=900 сом', 'prices', {}, 'ad:acc');
+    case 'free': {
+      const cfg = await loadConfig();
+      await saveConfig('freeMode', !cfg.freeMode);
+      await journal(ctx, { action: 'set_free_mode', before: { freeMode: !!cfg.freeMode }, after: { freeMode: !cfg.freeMode } });
+      return accessScreen(ctx);
+    }
     case 'paytoggle': {
       const cfg = await loadConfig();
       const enabled = cfg.paymentsEnabled === false;

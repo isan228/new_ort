@@ -61,12 +61,12 @@ async function access(ctx) {
   const cfg = await loadConfig();
   const st = accessStatus(ctx.user, cfg);
   const label = {
-    promo: 'общий бесплатный старт', paid: 'оплачено / бонус', advance: 'авансовые сутки', expired: 'истёк',
+    free: 'бесплатный режим для всех', promo: 'общий бесплатный старт', paid: 'оплачено / бонус', advance: 'авансовые сутки', expired: 'истёк',
   }[st.kind];
   const u = ctx.user;
   const lines = [
     `Статус: <b>${label}</b>`,
-    `Доступ до: <b>${st.until ? humanDateTime(st.until) : '—'}</b>`,
+    `Доступ до: <b>${st.kind === 'free' ? 'без срока, пока действует бесплатный режим' : (st.until ? humanDateTime(st.until) : '—')}</b>`,
   ];
   if (u.advanceAvailable) lines.push('Авансовые сутки: доступны — включатся сами при первой новой сделке после окончания срока.');
   if (u.advanceDebt) lines.push(`Использованный аванс: ${u.advanceDebt} дн. — будет вычтен из следующей оплаты.`);
@@ -79,6 +79,9 @@ async function access(ctx) {
 
 async function tariffs(ctx) {
   const cfg = await loadConfig();
+  if (cfg.freeMode) {
+    return show(ctx, 'Сейчас действует бесплатный режим — доступ открыт всем, оплачивать ничего не нужно.', kb([btn('Назад', 'acc')]));
+  }
   const online = payments.onlinePayments(cfg);
   const lines = cfg.tariffs.map((t) => `• ${t.days} дней${t.price ? ` — ${esc(t.price)}` : ''}`);
   return show(ctx, `Выберите доступ:\n${lines.join('\n')}\n\nПокупка продлевает остаток доступа, а не обнуляет его.${online
@@ -100,6 +103,9 @@ function invoiceText(checkout) {
 
 async function buy(ctx, days) {
   const cfg = await loadConfig();
+  if (cfg.freeMode) {
+    return show(ctx, 'Сейчас действует бесплатный режим — доступ открыт всем, оплачивать ничего не нужно.', kb([btn('Мой доступ', 'acc')]));
+  }
   if (!payments.onlinePayments(cfg)) {
     return show(ctx, `Оплата ${days} дней пока недоступна внутри бота. Напишите администратору через «Поддержку» — он активирует доступ после оплаты.`, kb([btn('Поддержка', 'rc:idea'), btn('Назад', 'acc:tariffs')]));
   }

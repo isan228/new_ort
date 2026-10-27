@@ -19,8 +19,9 @@ function promoActive(cfg, now = Date.now()) {
 
 const ms = (d) => (d ? new Date(d).getTime() : 0);
 
-// Spending order: launch promo → paid/bonus days → the advance day.
+// Spending order: launch promo → paid/bonus days → the advance day. Free mode overrides everything.
 function accessStatus(user, cfg, now = Date.now()) {
+  if (cfg.freeMode) return { active: true, kind: 'free', until: null };
   if (promoActive(cfg, now)) return { active: true, kind: 'promo', until: new Date(Math.max(promoEnd(cfg), ms(user.accessEnd))) };
   if (ms(user.accessEnd) > now) return { active: true, kind: 'paid', until: user.accessEnd };
   if (ms(user.advanceUntil) > now) return { active: true, kind: 'advance', until: user.advanceUntil };
