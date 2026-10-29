@@ -31,6 +31,17 @@ import { isCompare } from '../../lib/compare';
 import { DifficultyBadge } from './DifficultyPicker';
 import '../../styles/reading-book.css';
 
+// The group's own subsection names, so the sample fits chemistry as well as maths.
+function mixedSample(children) {
+  const questionRows = children.filter((row) => QUESTION_KINDS.includes(sectionKind(row))).slice(0, 2);
+  const compareRow = children.find((row) => sectionKind(row) === 'compare');
+  const lines = questionRows.map((row, i) => (
+    `"ID":"${i + 1}" "Section":"${row.name}" "Q":"Текст вопроса" "A1":"Вариант 1" "A2":"Вариант 2" "A3":"Вариант 3" "A4":"Вариант 4" "Correct":"2" "E":"Объяснение" "Difficulty":"3"`
+  ));
+  if (compareRow) lines.push(`"ID":"${lines.length + 1}" "Section":"${compareRow.name}" "A":"2^5" "B":"5^2" "Correct":"А"`);
+  return lines.join('\n');
+}
+
 export function QuestionModal({ testId, initial, requireImage = false, onClose, onSaved }) {
   const { t } = useLang();
   const [draft, setDraft] = useState(() => toDraft(initial));
@@ -397,7 +408,7 @@ export default function AdminSection() {
       {canMix && (
         <details className="cmp-format">
           <summary>{t('admin.mixed.formatTitle')}</summary>
-          <pre>{'"ID":"1" "Section":"Вычисления" "Q":"3/4 + 5/8" "A1":"1 1/8" "A2":"1 3/8" "Correct":"2" "E":"..."\n"ID":"2" "Section":"Геометрия" "Q":"Найдите площадь" "A1":"12" "A2":"24" "Correct":"2"\n"ID":"3" "A":"2^5" "B":"5^2" "Correct":"А"'}</pre>
+          <pre>{mixedSample(children)}</pre>
           <p className="muted">{t('admin.mixed.formatHint')}</p>
         </details>
       )}

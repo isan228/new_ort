@@ -103,7 +103,7 @@ const KINDS_BY_SUBJECT = {
   main: SECTION_KINDS,
   math: SECTION_KINDS,
   reading: ['reading', 'standard', 'group'],
-  simple: ['standard'],
+  simple: ['standard', 'group'],
 };
 
 export function subjectKinds(subject) {
