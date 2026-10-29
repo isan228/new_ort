@@ -85,7 +85,7 @@ export default function Profile() {
             <h3 style={{ marginTop: 20 }}>{active ? t('profile.renew') : t('profile.buy')}</h3>
             <p className="muted">{t('pay.renewHint')}</p>
             {error && <p className="err">{error}</p>}
-            <PromoField promo={promo} onChange={setPromo} />
+            <PromoField promo={promo} onChange={setPromo} invited={!!user?.invited} />
             <CoinsToggle balance={user?.coins || 0} checked={useCoins} onChange={setUseCoins} />
             <PlanPicker plans={plans} selectedId={selectedId} onSelect={renew} promo={promo} coins={coins} />
             {busy && <p className="muted" style={{ marginTop: 12 }}>{t('common.loading')}</p>}

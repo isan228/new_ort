@@ -22,6 +22,8 @@ function Plans({ wrap }) {
   const [promo, setPromo] = useState(null);
   const [useCoins, setUseCoins] = useState(false);
   const coins = user && useCoins ? user.coins || 0 : 0;
+  // A visitor who came by a referral link keeps the referral bonus instead of a promo code.
+  const invited = user ? !!user.invited : !!(typeof sessionStorage !== 'undefined' && sessionStorage.getItem('ortRef'));
 
   useEffect(() => {
     payApi.plans()
@@ -71,7 +73,7 @@ function Plans({ wrap }) {
           : t('pay.one')}
       </p>
       {error && <p className="err">{error}</p>}
-      <PromoField promo={promo} onChange={setPromo} />
+      <PromoField promo={promo} onChange={setPromo} invited={invited} />
       {user && <CoinsToggle balance={user.coins || 0} checked={useCoins} onChange={setUseCoins} />}
       <PlanPicker plans={plans} selectedId={selectedId} onSelect={go} promo={promo} coins={coins} />
       {user && (
@@ -85,7 +87,7 @@ function Plans({ wrap }) {
       <PublicShell>
         <AuthLayout wide title={t('pay.title')} hint={t('pay.one')}>
           {error && <p className="err">{error}</p>}
-          <PromoField promo={promo} onChange={setPromo} />
+          <PromoField promo={promo} onChange={setPromo} invited={invited} />
           <PlanPicker plans={plans} selectedId={selectedId} onSelect={go} promo={promo} />
         </AuthLayout>
         <SiteFooter />

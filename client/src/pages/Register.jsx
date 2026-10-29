@@ -43,6 +43,8 @@ export default function Register() {
       .catch(() => setPlans([]));
   }, [params]);
 
+  // Signing up by a referral link (or already invited) means the referral bonus instead of a promo code.
+  const invited = user ? !!user.invited : !!ref;
   const selected = (plans || []).find((plan) => plan.id === planId) || null;
   const promoted = promoPrice(promo, selected);
   const promoCode = promoted != null ? promo.code : undefined;
@@ -145,7 +147,7 @@ export default function Register() {
           {step === 'plan' && (
             <>
               <PlanPicker plans={plans} selectedId={planId} onSelect={pickPlan} promo={promo} />
-              <PromoField promo={promo} onChange={setPromo} initialCode={promoSeed} onInitialDone={() => setPromoSeed('')} />
+              <PromoField promo={promo} onChange={setPromo} initialCode={promoSeed} onInitialDone={() => setPromoSeed('')} invited={invited} />
               {error && <div className="form-alert" role="alert">{error}</div>}
               <div className="cl-auth-actions">
                 <button className="btn lg" type="button" disabled={!selected} onClick={() => setStep('form')}>
@@ -171,8 +173,8 @@ export default function Register() {
                   </button>
                 </div>
               )}
-              <PromoField promo={promo} onChange={setPromo} initialCode={promoSeed} onInitialDone={() => setPromoSeed('')} />
-              {ref && <p className="coins-ref-note"><i className="coin-dot" />{t('coins.refInvite')}</p>}
+              <PromoField promo={promo} onChange={setPromo} initialCode={promoSeed} onInitialDone={() => setPromoSeed('')} invited={invited} />
+              {ref && !user && <p className="coins-ref-note"><i className="coin-dot" />{t('coins.refInvite')}</p>}
               {promo && selected && promoted == null && <small className="field-error">{t('promo.err.PROMO_PLAN')}</small>}
               <label className={`field ${fieldErr.name ? 'has-error' : ''}`}>
                 <span>{t('common.name')}</span>

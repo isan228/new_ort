@@ -115,6 +115,13 @@ async function startCheckout({
   useCoins = false,
 }) {
   const paymentId = crypto.randomUUID();
+  // A referral bonus and a promo code never stack: whoever came by a referral link pays without promo codes.
+  if (promoCode) {
+    const referred = signup?.referredById || (userId && (await User.findByPk(userId, { attributes: ['referredById'] }))?.referredById);
+    if (referred) {
+      throw new PromoError('PROMO_REFERRAL', 'Промокод не действует: вы зарегистрировались по реферальной ссылке и уже получаете реферальный бонус');
+    }
+  }
   const payment = await sequelize.transaction(async (transaction) => {
     const applied = promoCode ? await applyPromo({ code: promoCode, plan, userId, transaction }) : null;
     const discount = applied ? applied.discount : 0;

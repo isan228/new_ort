@@ -2604,6 +2604,7 @@ sup, sub { font-size: 0.72em; line-height: 0; }
 .my-q-answers li.ok { font-weight: 600; color: #1c7c3a; }
 .my-q-actions { gap: 6px; flex-wrap: wrap; }
 .ok-note { color: #1c7c3a; font-weight: 600; }
+.promo-referral-note { margin: 6px 0 10px; font-size: 13px; line-height: 1.45; }
 a.ed-stat-link { text-decoration: none; cursor: pointer; transition: filter .15s, box-shadow .15s; }
 a.ed-stat-link:hover { filter: brightness(0.95); box-shadow: 0 0 0 2px currentColor inset; }
 .ed-tabs { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0 16px; }

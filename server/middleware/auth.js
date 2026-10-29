@@ -88,6 +88,8 @@ function publicUser(user, plan) {
     subscriptionMonths: resolved?.months || null,
     referralCode: user.referralCode || null,
     coins: user.coins || 0,
+    // Registered through a referral link: promo codes are not offered to them.
+    invited: !!user.referredById,
     ...(user.role === 'editor' ? { editorSubjectIds: user.editorSubjectIds || [] } : {}),
   };
 }

@@ -10,7 +10,8 @@ export function promoErrorText(t, err) {
   return text === key ? (err?.message || t('promo.err.PROMO_NOT_FOUND')) : text;
 }
 
-export default function PromoField({ promo, onChange, initialCode = '', onInitialDone }) {
+// invited = came by a referral link: the referral bonus replaces promo codes, so the field is not offered.
+export default function PromoField({ promo, onChange, initialCode = '', onInitialDone, invited = false }) {
   const { t } = useLang();
   const [open, setOpen] = useState(!!initialCode);
   const [code, setCode] = useState(initialCode);
@@ -37,9 +38,21 @@ export default function PromoField({ promo, onChange, initialCode = '', onInitia
   useEffect(() => {
     if (!initialCode || autoTried.current) return;
     autoTried.current = true;
+    if (invited) {
+      onInitialDone?.();
+      return;
+    }
     apply(initialCode).finally(() => onInitialDone?.());
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [initialCode]);
+  }, [initialCode, invited]);
+
+  useEffect(() => {
+    if (invited && promo) onChange(null);
+  }, [invited, promo, onChange]);
+
+  if (invited) {
+    return <p className="muted promo-referral-note">{t('promo.referralOnly')}</p>;
+  }
 
   if (promo) {
     return (
