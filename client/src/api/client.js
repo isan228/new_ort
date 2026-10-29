@@ -138,6 +138,19 @@ export const ugcApi = {
 };
 
 const SIM = '/api/admin/sim';
+const SCHOOLS = '/api/admin/schools';
+export const schoolsApi = {
+  list: (params = {}) => {
+    const q = new URLSearchParams(Object.entries(params).filter(([, v]) => v !== '' && v != null)).toString();
+    return api(`${SCHOOLS}${q ? `?${q}` : ''}`);
+  },
+  facets: () => api(`${SCHOOLS}/facets`),
+  import: () => api(`${SCHOOLS}/import`, { method: 'POST' }),
+  create: (body) => api(SCHOOLS, { method: 'POST', body: JSON.stringify(body) }),
+  update: (id, body) => api(`${SCHOOLS}/${id}`, { method: 'PUT', body: JSON.stringify(body) }),
+  remove: (id) => api(`${SCHOOLS}/${id}`, { method: 'DELETE' }),
+};
+
 export const simAdminApi = {
   tests: () => api(`${SIM}/tests`),
   test: (id) => api(`${SIM}/tests/${id}`),

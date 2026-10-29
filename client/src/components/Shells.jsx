@@ -39,6 +39,7 @@ const ADMIN_SIDE = [
   [ADMIN_ROOT, 'admin.dashboard'],
   [`${ADMIN_ROOT}/users`, 'admin.users'],
   [`${ADMIN_ROOT}/ugc`, 'admin.ugc.title'],
+  [`${ADMIN_ROOT}/schools`, 'admin.schools.title'],
   [`${ADMIN_ROOT}/content`, 'admin.program'],
   [`${ADMIN_ROOT}/sim`, 'admin.simulation.title'],
   [`${ADMIN_ROOT}/plans`, 'admin.plans'],
@@ -76,6 +77,7 @@ const ICON_PATHS = {
   moon: 'M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8',
   logout: 'M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9',
   pen: 'M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z',
+  school: 'M2 9.5 12 4l10 5.5-10 5.5zM6 11.7V16c0 1.7 2.7 3 6 3s6-1.3 6-3v-4.3M22 9.5V15',
   stopwatch: 'M12 22a8 8 0 1 0 0-16 8 8 0 0 0 0 16M12 10v4l2.5 1.5M10 2h4M12 2v4',
 };
 
@@ -98,6 +100,7 @@ const ROUTE_ICON = {
   [ADMIN_ROOT]: 'home',
   [`${ADMIN_ROOT}/users`]: 'users',
   [`${ADMIN_ROOT}/ugc`]: 'gift',
+  [`${ADMIN_ROOT}/schools`]: 'school',
   [`${ADMIN_ROOT}/content`]: 'book',
   [`${ADMIN_ROOT}/sim`]: 'stopwatch',
   [`${EDITOR_ROOT}/sim`]: 'stopwatch',

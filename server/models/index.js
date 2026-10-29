@@ -28,6 +28,7 @@ const { QuestionFlag } = require('./QuestionFlag');
 const { PracticeSession } = require('./PracticeSession');
 const { PracticeAnswer } = require('./PracticeAnswer');
 const { AppSetting } = require('./AppSetting');
+const { School } = require('./School');
 // Student Bot tables live in their own module but share the database and sync.
 require('../studentbot/models');
 
@@ -152,4 +153,5 @@ module.exports = {
   PracticeSession,
   PracticeAnswer,
   AppSetting,
+  School,
 };
