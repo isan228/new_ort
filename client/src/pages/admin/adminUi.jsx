@@ -11,6 +11,12 @@ export function useIsEditor() {
   return useAuth().user?.role === 'editor';
 }
 
+// The admin changes any structure; an editor only that of the subjects they created themselves.
+export function useCanManage() {
+  const { user } = useAuth();
+  return (subject) => user?.role !== 'editor' || (!!subject && subject.createdById === user.id);
+}
+
 export function contentPath(...parts) {
   const path = window.location.pathname;
   let root = '/админ';

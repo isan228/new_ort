@@ -31,6 +31,9 @@ const { loginKey, assertLogin } = require('../utils/userLogin');
 const { normalizeCode, reservedCount } = require('../utils/promoCodes');
 const { addCoins } = require('../utils/coins');
 const { cleanDifficulty } = require('../utils/txtQuestionAnswers');
+const {
+  questionVisible, seesAllQuestions, subjectOfTest, subjectOfPassage,
+} = require('../utils/editorAccess');
 const { publicUserWithPlan } = require('../middleware/auth');
 const {
   COMPARE_KIND,
@@ -289,7 +292,7 @@ router.delete('/term-images/:id', async (req, res) => {
 router.get('/subjects', async (req, res) => {
   const where = { bank: 'practice' };
   if (req.query.trackGroup) where.trackGroup = req.query.trackGroup;
-  if (req.editorSubjects) where.id = [...req.editorSubjects];
+  if (req.editorScope) where.id = [...req.editorScope.subjects];
   const subjects = await Subject.findAll({
     where,
     include: [
@@ -299,7 +302,7 @@ router.get('/subjects', async (req, res) => {
         separate: true,
         order: [['sortOrder', 'ASC'], ['id', 'ASC']],
         include: [
-          { model: Question, attributes: ['id'] },
+          { model: Question, attributes: ['id', 'createdById'] },
           { model: ReadingPassage, attributes: ['id'] },
         ],
       },
@@ -309,11 +312,12 @@ router.get('/subjects', async (req, res) => {
   res.json({
     subjects: subjects.map((row) => {
       const subject = row.toJSON();
+      const visible = (q) => questionVisible(req, q, subject.id);
       subject.sections = (subject.Tests || []).map((test) => {
         const { Questions, ReadingPassages, ...rest } = test;
         return {
           ...rest,
-          questionCount: (Questions || []).length,
+          questionCount: (Questions || []).filter(visible).length,
           passageCount: (ReadingPassages || []).length,
         };
       });
@@ -335,6 +339,7 @@ router.post('/subjects', async (req, res) => {
     language: req.body.language || 'ru',
     sortOrder: req.body.sortOrder || 0,
     isActive: req.body.isActive !== false,
+    createdById: req.user.role === 'editor' ? req.user.id : null,
   });
   res.json({ subject });
 });
@@ -345,6 +350,7 @@ router.put('/subjects/:id', async (req, res) => {
   if (subject.bank !== 'practice') return res.status(400).json({ error: SIM_STRUCTURE_ELSEWHERE });
   const patch = { ...req.body };
   delete patch.bank;
+  delete patch.createdById;
   if (patch.name != null) {
     patch.name = String(patch.name).trim();
     if (!patch.name) return res.status(400).json({ error: 'Название обязательно' });
@@ -382,10 +388,11 @@ router.delete('/subjects/:id', async (req, res) => {
 router.get('/tests', async (req, res) => {
   const where = { bank: 'practice' };
   if (req.query.subjectId) where.subjectId = req.query.subjectId;
-  if (req.editorSubjects) {
-    where.subjectId = req.query.subjectId && req.editorSubjects.has(Number(req.query.subjectId))
+  if (req.editorScope) {
+    const allowed = req.editorScope.subjects;
+    where.subjectId = req.query.subjectId && allowed.has(Number(req.query.subjectId))
       ? Number(req.query.subjectId)
-      : (req.query.subjectId ? -1 : [...req.editorSubjects]);
+      : (req.query.subjectId ? -1 : [...allowed]);
   }
   const tests = await Test.findAll({
     where,
@@ -537,13 +544,14 @@ router.get('/reading-passages', async (req, res) => {
   if (!testId) return res.status(400).json({ error: 'testId обязателен' });
   const passages = await ReadingPassage.findAll({
     where: { testId },
-    include: [{ model: Question, attributes: ['id'], required: false }],
+    include: [{ model: Question, attributes: ['id', 'createdById'], required: false }],
     order: [['sortOrder', 'ASC'], ['id', 'ASC']],
   });
+  const subjectId = req.editorScope ? await subjectOfTest(testId) : null;
   res.json({
     passages: passages.map((row) => {
       const p = row.toJSON();
-      p.questionCount = (p.Questions || []).length;
+      p.questionCount = (p.Questions || []).filter((q) => questionVisible(req, q, subjectId)).length;
       delete p.Questions;
       return p;
     }),
@@ -563,7 +571,8 @@ router.get('/reading-passages/:id', async (req, res) => {
     include: [Answer],
     order: [['sortOrder', 'ASC'], ['id', 'ASC'], [Answer, 'sortOrder', 'ASC']],
   });
-  res.json({ passage, questions: questions.map(publicQuestionWithCorrect) });
+  const subjectId = req.editorScope ? await subjectOfTest(passage.testId) : null;
+  res.json({ passage, questions: questions.filter((q) => questionVisible(req, q, subjectId)).map(publicQuestionWithCorrect) });
 });
 
 router.post('/reading-passages', async (req, res) => {
@@ -611,6 +620,10 @@ router.get('/questions', async (req, res) => {
   if (req.query.testId) where.testId = req.query.testId;
   if (req.query.passageId) where.passageId = req.query.passageId;
   else where.passageId = null;
+  if (req.editorScope) {
+    const subjectId = req.query.passageId ? await subjectOfPassage(req.query.passageId) : await subjectOfTest(req.query.testId);
+    if (!seesAllQuestions(req, subjectId)) where.createdById = req.user.id;
+  }
   const questions = await Question.findAll({
     where,
     include: [Answer],
@@ -788,8 +801,8 @@ router.get('/my-questions', async (req, res) => {
   const page = Math.max(1, Number(req.query.page) || 1);
   const limit = Math.min(50, Math.max(5, Number(req.query.limit) || 20));
   const base = { createdById: req.user.id };
-  if (req.editorSubjects) {
-    const scoped = await Test.findAll({ where: { subjectId: [...req.editorSubjects] }, attributes: ['id'], raw: true });
+  if (req.editorScope) {
+    const scoped = await Test.findAll({ where: { subjectId: [...req.editorScope.subjects] }, attributes: ['id'], raw: true });
     base.testId = scoped.map((t) => t.id);
   }
   const counts = await Question.findAll({
@@ -917,6 +930,7 @@ function publicEditor(user, stats = {}) {
     login: user.login,
     createdAt: user.createdAt,
     subjectIds: user.editorSubjectIds || [],
+    allQuestions: !!user.editorAllQuestions,
     stats: {
       create: Number(stats.create) || 0,
       update: Number(stats.update) || 0,
@@ -1048,6 +1062,7 @@ router.post('/editors', async (req, res) => {
     role: 'editor',
     passwordHash: await bcrypt.hash(password, 10),
     editorSubjectIds: await cleanSubjectIds(req.body.subjectIds),
+    editorAllQuestions: req.body.allQuestions === true,
   });
   res.json({ editor: publicEditor(user) });
 });
@@ -1065,6 +1080,7 @@ router.put('/editors/:id', async (req, res) => {
     patch.passwordHash = await bcrypt.hash(String(req.body.password), 10);
   }
   if (req.body.subjectIds !== undefined) patch.editorSubjectIds = await cleanSubjectIds(req.body.subjectIds);
+  if (req.body.allQuestions !== undefined) patch.editorAllQuestions = req.body.allQuestions === true;
   await user.update(patch);
   res.json({ editor: publicEditor(user) });
 });

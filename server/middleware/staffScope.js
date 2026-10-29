@@ -1,10 +1,12 @@
 const { ActivityLog, Question, Answer, ReadingPassage, Test, Subject } = require('../models');
-const { editorSubjects, outsideScope, requestSubject } = require('../utils/editorAccess');
+const {
+  editorScope, outsideScope, questionVisible, requestTarget, STRUCTURE,
+} = require('../utils/editorAccess');
 
-// Editors only work with questions and reading texts; everything else under /api/admin is admin-only.
+// Editors work with questions and reading texts, and build their own subjects; everything else is admin-only.
 const EDITOR_ALLOWED = [
-  ['GET', /^\/subjects$/],
-  ['GET', /^\/tests$/],
+  ['*', /^\/subjects(\/\d+)?$/],
+  ['*', /^\/tests(\/\d+)?$/],
   ['*', /^\/questions(\/\d+)?$/],
   ['*', /^\/reading-passages(\/\d+)?$/],
   ['POST', /^\/(parse-txt|upload-image|import-questions|upload-txt-explained)$/],
@@ -157,10 +159,19 @@ async function staffScope(req, res, next) {
   if (req.user.role === 'editor') {
     const allowed = EDITOR_ALLOWED.some(([m, re]) => (m === '*' || m === method) && re.test(path));
     if (!allowed) return res.status(403).json({ error: 'Редактору это действие недоступно', code: 'ADMIN_REQUIRED' });
-    req.editorSubjects = editorSubjects(req.user);
-    const subjectId = await requestSubject(req);
-    if (subjectId !== undefined && outsideScope(req, subjectId)) {
-      return res.status(403).json({ error: 'Нет доступа к этому предмету — его выдаёт администратор', code: 'SUBJECT_FORBIDDEN' });
+    req.editorScope = await editorScope(req.user);
+    const target = await requestTarget(req);
+    if (target !== undefined) {
+      if (outsideScope(req, target.subjectId)) {
+        return res.status(403).json({ error: 'Нет доступа к этому предмету — его выдаёт администратор', code: 'SUBJECT_FORBIDDEN' });
+      }
+      if (target.kind === STRUCTURE && !req.editorScope.own.has(Number(target.subjectId))) {
+        return res.status(403).json({ error: 'Менять разделы можно только в своих тестах', code: 'STRUCTURE_FORBIDDEN' });
+      }
+      // Someone else's question does not exist for this editor.
+      if (target.question && !questionVisible(req, target.question, target.subjectId)) {
+        return res.status(404).json({ error: 'Вопрос не найден' });
+      }
     }
   }
 

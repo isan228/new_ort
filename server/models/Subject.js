@@ -20,6 +20,8 @@ const Subject = sequelize.define('Subject', {
   bank: { type: DataTypes.STRING(20), allowNull: false, defaultValue: 'practice' },
   // Simulation course that is not an official ORT subject test (e.g. German).
   isExtra: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },
+  // Editor who created this subject: it is theirs to structure; null = created by the admin.
+  createdById: { type: DataTypes.INTEGER, allowNull: true },
 });
 
 module.exports = { Subject };

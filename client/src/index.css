@@ -2590,6 +2590,8 @@ sup, sub { font-size: 0.72em; line-height: 0; }
 .ed-access-item input { width: 16px; height: 16px; flex: none; }
 .ed-access-line { margin: 4px 0 0; font-size: 13px; }
 .ed-access-line.warn { color: var(--bad, #b42318); font-weight: 600; }
+.ed-all-questions { align-items: flex-start; margin: 4px 0 12px; padding: 10px 12px; border: 1px solid var(--line, #dde3ee); border-radius: 10px; }
+.ed-all-questions input { margin-top: 3px; }
 .my-q-filters { gap: 8px; flex-wrap: wrap; margin: 4px 0 14px; }
 .my-q-filters select, .my-q-filters input { padding: 8px 10px; border-radius: 10px; border: 1px solid var(--line, #dde3ee); background: var(--card, #fff); color: var(--ink); font: inherit; }
 .my-q-filters select { max-width: 100%; min-width: 220px; }

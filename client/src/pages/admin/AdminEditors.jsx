@@ -14,7 +14,7 @@ export function useSubjectCatalog() {
   useEffect(() => {
     Promise.all([adminApi.subjects(), simAdminApi.tests()])
       .then(([practice, sim]) => setCatalog({
-        practice: (practice.subjects || []).map((s) => ({ id: s.id, name: s.name })),
+        practice: (practice.subjects || []).map((s) => ({ id: s.id, name: s.name, createdById: s.createdById || null })),
         simulation: (sim.tests || []).map((s) => ({ id: s.id, name: s.name })),
       }))
       .catch(() => setCatalog({ practice: [], simulation: [] }));
@@ -22,7 +22,7 @@ export function useSubjectCatalog() {
   return catalog;
 }
 
-function SubjectAccess({ value, onChange }) {
+function SubjectAccess({ value, onChange, editorId }) {
   const { t } = useLang();
   const catalog = useSubjectCatalog();
   const chosen = new Set(value);
@@ -48,24 +48,36 @@ function SubjectAccess({ value, onChange }) {
             )}
           </div>
           {!catalog[bank].length && <p className="muted">—</p>}
-          {catalog[bank].map((s) => (
-            <label key={s.id} className="ed-access-item">
-              <input type="checkbox" checked={chosen.has(s.id)} onChange={() => toggle(s.id)} />
-              <span>{s.name}</span>
-            </label>
-          ))}
+          {catalog[bank].map((s) => {
+            const own = !!editorId && s.createdById === editorId;
+            return (
+              <label key={s.id} className="ed-access-item">
+                <input type="checkbox" checked={own || chosen.has(s.id)} disabled={own} onChange={() => toggle(s.id)} />
+                <span>{s.name}{own && <span className="badge" style={{ marginLeft: 6 }}>{t('admin.ed.ownSubject')}</span>}</span>
+              </label>
+            );
+          })}
         </div>
       ))}
     </div>
   );
 }
 
-function EditorAccessLine({ ids, catalog }) {
+function EditorAccessLine({ editor, catalog }) {
   const { t } = useLang();
-  if (!ids.length) return <p className="ed-access-line warn">{t('admin.ed.noAccess')}</p>;
   if (!catalog) return null;
-  const names = [...catalog.practice, ...catalog.simulation].filter((s) => ids.includes(s.id)).map((s) => s.name);
-  return <p className="muted ed-access-line">{t('admin.ed.accessTo')}: {names.join(', ') || '—'}</p>;
+  const ids = editor.subjectIds || [];
+  const own = catalog.practice.filter((s) => s.createdById === editor.id).map((s) => s.name);
+  const granted = [...catalog.practice, ...catalog.simulation].filter((s) => ids.includes(s.id) && s.createdById !== editor.id).map((s) => s.name);
+  return (
+    <>
+      {own.length > 0 && <p className="muted ed-access-line">{t('admin.ed.ownTests')}: {own.join(', ')}</p>}
+      {granted.length
+        ? <p className="muted ed-access-line">{t('admin.ed.accessTo')}: {granted.join(', ')}</p>
+        : <p className="ed-access-line warn">{t('admin.ed.noAccess')}</p>}
+      <p className="muted ed-access-line">{editor.allQuestions ? t('admin.ed.allQuestionsOn') : t('admin.ed.allQuestionsOff')}</p>
+    </>
+  );
 }
 
 function EditorForm({ editor, onSave, onClose }) {
@@ -74,6 +86,7 @@ function EditorForm({ editor, onSave, onClose }) {
   const [login, setLogin] = useState(editor?.login || '');
   const [password, setPassword] = useState('');
   const [subjectIds, setSubjectIds] = useState(editor?.subjectIds || []);
+  const [allQuestions, setAllQuestions] = useState(!!editor?.allQuestions);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
 
@@ -82,7 +95,9 @@ function EditorForm({ editor, onSave, onClose }) {
     setError('');
     setBusy(true);
     try {
-      const body = editor ? { name: name.trim(), subjectIds } : { name: name.trim(), login: login.trim(), password, subjectIds };
+      const body = editor
+        ? { name: name.trim(), subjectIds, allQuestions }
+        : { name: name.trim(), login: login.trim(), password, subjectIds, allQuestions };
       if (editor && password) body.password = password;
       await onSave(body);
     } catch (err) {
@@ -120,7 +135,14 @@ function EditorForm({ editor, onSave, onClose }) {
           required={!editor}
         />
       </label>
-      <SubjectAccess value={subjectIds} onChange={setSubjectIds} />
+      <SubjectAccess value={subjectIds} onChange={setSubjectIds} editorId={editor?.id} />
+      <label className="ed-access-item ed-all-questions">
+        <input type="checkbox" checked={allQuestions} onChange={(e) => setAllQuestions(e.target.checked)} />
+        <span>
+          <b>{t('admin.ed.allQuestions')}</b>
+          <small className="muted" style={{ display: 'block' }}>{t('admin.ed.allQuestionsHint')}</small>
+        </span>
+      </label>
       {error && <p className="err">{error}</p>}
       <div className="row" style={{ justifyContent: 'flex-end' }}>
         <button className="btn ghost" type="button" onClick={onClose}>{t('common.cancel')}</button>
@@ -332,7 +354,7 @@ export default function AdminEditors() {
               <p className="muted" style={{ margin: '6px 0 0', fontSize: 13 }}>
                 {t('admin.ed.lastActivity')}: {editor.lastActivity ? new Date(editor.lastActivity).toLocaleString(locale) : '—'}
               </p>
-              <EditorAccessLine ids={editor.subjectIds || []} catalog={catalog} />
+              <EditorAccessLine editor={editor} catalog={catalog} />
             </div>
             <div className="row" style={{ flexWrap: 'wrap' }}>
               <button className="btn ghost sm" type="button" onClick={() => setEditing(editor)}>{t('common.edit')}</button>

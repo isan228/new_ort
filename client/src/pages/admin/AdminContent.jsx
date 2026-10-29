@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { adminApi } from '../../api/client';
 import { useLang } from '../../context/LangContext';
-import { Crumbs, Modal, NameForm, confirmDelete, contentPath, loadSubjects, useIsEditor } from './adminUi';
+import { Crumbs, Modal, NameForm, confirmDelete, contentPath, loadSubjects, useCanManage } from './adminUi';
 
 export default function AdminContent() {
   const { t } = useLang();
@@ -11,7 +11,7 @@ export default function AdminContent() {
   const [msg, setMsg] = useState('');
   const [error, setError] = useState('');
   const [modal, setModal] = useState(null);
-  const editor = useIsEditor();
+  const canManage = useCanManage();
 
   async function reload() {
     setSubjects(await loadSubjects());
@@ -41,11 +41,9 @@ export default function AdminContent() {
           <h1>{t('admin.subjects')}</h1>
           <p className="muted">{t('admin.programLead')}</p>
         </div>
-        {!editor && (
-          <button className="btn" type="button" onClick={() => setModal({ type: 'subject' })}>
-            {t('admin.addSubject')}
-          </button>
-        )}
+        <button className="btn" type="button" onClick={() => setModal({ type: 'subject' })}>
+          {t('admin.addSubject')}
+        </button>
       </div>
       {msg && <p className="ok">{msg}</p>}
       {error && <p className="err">{error}</p>}
@@ -68,7 +66,7 @@ export default function AdminContent() {
                 <button className="btn sm" type="button" onClick={() => navigate(contentPath(subject.id))}>
                   {t('admin.open')}
                 </button>
-                {!editor && (
+                {canManage(subject) && (
                   <>
                     <button className="btn ghost sm" type="button" onClick={() => setModal({ type: 'subject', item: subject })}>
                       {t('common.edit')}

@@ -26,6 +26,8 @@ const User = sequelize.define('User', {
   ugcNote: { type: DataTypes.STRING(300), allowNull: true },
   // Editors only: subjects (practice and simulation) the admin opened for them. Empty = no access.
   editorSubjectIds: { type: DataTypes.JSONB, allowNull: false, defaultValue: [] },
+  // Editors only: may see and change other people's questions in the subjects opened to them.
+  editorAllQuestions: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },
 }, {
   indexes: [{ fields: ['loginKey'] }],
   hooks: {

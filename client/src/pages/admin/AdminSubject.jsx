@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { adminApi } from '../../api/client';
 import { useLang } from '../../context/LangContext';
-import { Crumbs, Modal, NameForm, SectionForm, SectionList, confirmDelete, contentPath, loadSubjects, sectionKind, subjectKinds, useIsEditor } from './adminUi';
+import { Crumbs, Modal, NameForm, SectionForm, SectionList, confirmDelete, contentPath, loadSubjects, sectionKind, subjectKinds, useCanManage } from './adminUi';
 
 export default function AdminSubject() {
   const { t } = useLang();
@@ -12,7 +12,7 @@ export default function AdminSubject() {
   const [msg, setMsg] = useState('');
   const [error, setError] = useState('');
   const [modal, setModal] = useState(null);
-  const editor = useIsEditor();
+  const canManage = useCanManage();
 
   async function reload() {
     const list = await loadSubjects();
@@ -45,6 +45,7 @@ export default function AdminSubject() {
 
   const all = subject.sections || [];
   const sections = all.filter((row) => !row.parentId);
+  const editor = !canManage(subject);
 
   return (
     <div>

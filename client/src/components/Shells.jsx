@@ -49,6 +49,7 @@ const ADMIN_SIDE = [
 ];
 const EDITOR_SIDE = [
   [`${EDITOR_ROOT}/mine`, 'admin.mine.title'],
+  [`${EDITOR_ROOT}/my-tests`, 'admin.myTests.title'],
   [`${EDITOR_ROOT}/content`, 'admin.program'],
   [`${EDITOR_ROOT}/sim`, 'admin.simulation.title'],
 ];
@@ -110,6 +111,7 @@ const ROUTE_ICON = {
   [`${ADMIN_ROOT}/chat`]: 'chat',
   [`${EDITOR_ROOT}/content`]: 'book',
   [`${EDITOR_ROOT}/mine`]: 'pen',
+  [`${EDITOR_ROOT}/my-tests`]: 'tests',
 };
 
 function Icon({ name, size = 20 }) {

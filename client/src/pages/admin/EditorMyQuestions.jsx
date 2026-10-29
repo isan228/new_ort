@@ -119,7 +119,9 @@ export default function EditorMyQuestions() {
         </select>
         <input type="search" value={search} onChange={(e) => setSearch(e.target.value)} placeholder={t('admin.mine.search')} />
       </div>
-      {user?.role === 'editor' && !(user.editorSubjectIds || []).length && <div className="form-alert">{t('admin.mine.noAccess')}</div>}
+      {user?.role === 'editor' && !(user.editorSubjectIds || []).length && data && !data.total && !data.sections?.length && (
+        <div className="form-alert">{t('admin.mine.noAccess')}</div>
+      )}
       {notice && <p className="ok-note">{notice}</p>}
       {error && <p className="err">{error}</p>}
       {data == null && <p className="muted">{t('common.loading')}</p>}
