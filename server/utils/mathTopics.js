@@ -1,4 +1,5 @@
-const { Subject, Test } = require('../models');
+const { Op } = require('sequelize');
+const { Subject, Test, SimTopic } = require('../models');
 const { getSetting, setSetting } = require('../models/AppSetting');
 
 // ORT maths topics: the admin picks one and uploads questions into it.
@@ -106,6 +107,29 @@ async function addTopics(subject, parentId, ortPart) {
 
 const DONE = (subjectId) => `mathTopics.v1:${subjectId}`;
 
+// Simulation tests keep a flat topic dictionary per test; the group goes into the name ("Арифметика · Степень")
+// so the admin can add a whole group to a part at once.
+async function ensureSimMathTopics() {
+  const tests = await Subject.findAll({
+    where: { bank: 'simulation', [Op.or]: [{ trackGroup: 'main' }, { name: { [Op.iLike]: '%математ%' } }] },
+  });
+  for (const test of tests) {
+    if (await getSetting(DONE(test.id))) continue;
+    const existing = await SimTopic.findAll({ where: { subjectId: test.id } });
+    const names = new Set(existing.map((t) => norm(t.name)));
+    let order = existing.reduce((max, t) => Math.max(max, t.sortOrder || 0), 0);
+    for (const spec of MATH_TOPICS) {
+      for (const topic of spec.topics) {
+        const name = `${spec.group} · ${topic}`;
+        if (names.has(norm(name)) || names.has(norm(topic))) continue;
+        order += 1;
+        await SimTopic.create({ subjectId: test.id, name, sortOrder: order });
+      }
+    }
+    await setSetting(DONE(test.id), new Date().toISOString());
+  }
+}
+
 // Applied once per subject, so topics the admin deletes later do not come back.
 async function ensureMathTopics() {
   const main = await Subject.findOne({ where: { name: 'Основной тест ОРТ', bank: 'practice' } });
@@ -122,6 +146,7 @@ async function ensureMathTopics() {
     await addTopics(subjectMath, null, null);
     await setSetting(DONE(subjectMath.id), new Date().toISOString());
   }
+  await ensureSimMathTopics();
 }
 
 module.exports = { ensureMathTopics, MATH_TOPICS };

@@ -236,6 +236,8 @@ export const simAdminRu = {
   confirmRemoveTopic: 'Убрать тему «{name}» из части? Вопросов внутри: {n} — они будут удалены.',
   noTopicsHint: 'Добавьте темы в справочник теста, чтобы делить часть по темам',
   addTopicToPart: '+ тема в часть…',
+  addTopicGroup: '＋ Все темы «{group}» ({n})',
+  oneTopic: 'Одна тема',
   topicsOptional: 'Без тем вопросы загружаются прямо в часть.',
   publishedTitle: 'Опубликован — ученики видят этот вариант',
   draftTitle: 'Черновик — ученики вариант не видят',

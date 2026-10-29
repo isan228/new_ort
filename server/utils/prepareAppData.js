@@ -50,8 +50,8 @@ async function prepareAppData() {
   await ensurePlansForOrt();
   await seedDemoContent();
   await ensureOrtMainExam();
-  await ensureMathTopics();
   await ensureSimCatalog();
+  await ensureMathTopics();
   await ensureReferralCodes();
 }
 

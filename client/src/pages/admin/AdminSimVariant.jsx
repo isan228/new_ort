@@ -112,13 +112,29 @@ function AddTopic({ part, topics, onAdd }) {
   const free = topics.filter((topic) => !used.has(topic.id));
   if (!topics.length) return <span className="muted sim-hint">{t('admin.simulation.noTopicsHint')}</span>;
   if (!free.length) return null;
+  // Topics named "Группа · тема" can be added to the part as a whole group.
+  const groups = new Map();
+  for (const topic of free) {
+    const [group, rest] = topic.name.split(' · ');
+    if (rest) groups.set(group, [...(groups.get(group) || []), topic.id]);
+  }
+  const bulk = [...groups.entries()].filter(([, ids]) => ids.length > 1);
   return (
     <select
       className="sim-topic-add"
       value=""
-      onChange={(e) => { if (e.target.value) onAdd(Number(e.target.value)); }}
+      onChange={(e) => {
+        const value = e.target.value;
+        if (!value) return;
+        if (value.startsWith('group:')) onAdd(groups.get(value.slice(6)));
+        else onAdd([Number(value)]);
+      }}
     >
       <option value="">{t('admin.simulation.addTopicToPart')}</option>
+      {bulk.map(([group, ids]) => (
+        <option key={`g-${group}`} value={`group:${group}`}>{t('admin.simulation.addTopicGroup', { group, n: ids.length })}</option>
+      ))}
+      {bulk.length > 0 && <option disabled>──────────</option>}
       {free.map((topic) => <option key={topic.id} value={topic.id}>{topic.name}</option>)}
     </select>
   );
@@ -193,7 +209,13 @@ function PartRow({ part, index, total, editor, topics, run, setModal, navigate }
       )}
       {canTopic && (
         <div className="sim-topic-bar">
-          <AddTopic part={part} topics={topics} onAdd={(topicId) => run(() => simAdminApi.addTopic(part.id, topicId))} />
+          <AddTopic
+            part={part}
+            topics={topics}
+            onAdd={(ids) => run(async () => {
+              for (const id of ids) await simAdminApi.addTopic(part.id, id);
+            })}
+          />
           {!part.topics.length && <span className="muted sim-hint">{t('admin.simulation.topicsOptional')}</span>}
         </div>
       )}
