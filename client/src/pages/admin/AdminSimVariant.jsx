@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { simAdminApi } from '../../api/client';
 import { useLang } from '../../context/LangContext';
 import { Crumbs, Modal, useIsEditor } from './adminUi';
+import QuickUpload from './QuickUpload';
 import {
   CountBadge,
   DifficultyBadge,
@@ -143,6 +144,7 @@ function AddTopic({ part, topics, onAdd }) {
 function PartRow({ part, index, total, editor, topics, run, setModal, navigate }) {
   const { t } = useLang();
   const canTopic = !editor && (part.topics.length > 0 || part.ownCount === 0);
+  const uploaded = (ok, err) => run(async () => { if (err) throw new Error(err); });
   return (
     <div className="sim-part">
       <div className="sim-part-head">
@@ -155,6 +157,7 @@ function PartRow({ part, index, total, editor, topics, run, setModal, navigate }
           </span>
         </div>
         <div className="row" style={{ flexWrap: 'wrap', gap: 6 }}>
+          {!part.topics.length && <QuickUpload testId={part.id} format={part.format} onDone={uploaded} />}
           {!part.topics.length && (
             <button className="btn sm" type="button" onClick={() => navigate(simPath('slot', part.id))}>
               {editor ? t('admin.simulation.upload') : t('admin.simulation.questions')}
@@ -185,6 +188,7 @@ function PartRow({ part, index, total, editor, topics, run, setModal, navigate }
               <span className="sim-topic-name">{topic.name}</span>
               <span className="muted">{t('admin.simulation.qN', { n: topic.count })}</span>
               <span style={{ flex: 1 }} />
+              <QuickUpload testId={topic.slotId} format={part.format} onDone={uploaded} />
               <button className="btn sm" type="button" onClick={() => navigate(simPath('slot', topic.slotId))}>
                 {editor ? t('admin.simulation.upload') : t('admin.simulation.questions')}
               </button>

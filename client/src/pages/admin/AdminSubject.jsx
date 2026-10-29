@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { adminApi } from '../../api/client';
 import { useLang } from '../../context/LangContext';
+import QuickUpload from './QuickUpload';
 import { Crumbs, Modal, NameForm, SectionForm, SectionList, confirmDelete, contentPath, loadSubjects, sectionKind, subjectKinds, useCanManage } from './adminUi';
 
 export default function AdminSubject() {
@@ -93,6 +94,13 @@ export default function AdminSubject() {
         all={all}
         emptyText={t('admin.noSections')}
         onOpen={(section) => navigate(contentPath(subject.id, section.id))}
+        renderActions={(section) => (
+          <QuickUpload
+            testId={section.id}
+            format={sectionKind(section)}
+            onDone={(ok, err) => (err ? setError(err) : run(async () => {}, ok))}
+          />
+        )}
         onEdit={editor ? null : (section) => setModal({ type: 'section', item: section })}
         onDelete={editor ? null : (section) => {
           if (!window.confirm(t('admin.confirmDeleteSection', { name: section.name }))) return;

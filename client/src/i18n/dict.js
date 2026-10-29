@@ -2513,6 +2513,8 @@ dict.ky.nav.favorites = 'Белгиленгендер';
 dict.ru.admin.q.difficulty = 'Сложность';
 dict.ky.admin.q.difficulty = 'Татаалдыгы';
 dict.ru.admin.txtFormat.ruleDifficulty = '"Difficulty" — сложность от 1 до 4 (необязательно). Если её нет или значение неверное, ставится 3.';
+dict.ru.admin.quickUpload = '⬆ Загрузить TXT';
+dict.ky.admin.quickUpload = '⬆ TXT жүктөө';
 dict.ru.admin.schools = {
   title: 'Школы',
   lead: 'Школ в справочнике: {n}',

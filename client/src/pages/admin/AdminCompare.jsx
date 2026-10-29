@@ -284,6 +284,41 @@ function CompareTxtPreview({ testId, fileName, parsed, onClose, onSaved }) {
   );
 }
 
+// A compact "upload TXT of comparisons" button for list rows (topics, simulation parts).
+export function CompareTxtButton({ testId, label, onDone }) {
+  const { t } = useLang();
+  const [txt, setTxt] = useState(null);
+  const [busy, setBusy] = useState(false);
+
+  async function choose() {
+    const file = await pickTextFile();
+    if (!file) return;
+    setBusy(true);
+    try {
+      setTxt({ fileName: file.name, parsed: await adminApi.parseTxt(file, 'compare') });
+    } catch (err) {
+      await onDone(null, err.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <>
+      <button className="btn sm" type="button" disabled={busy} onClick={choose}>{busy ? t('common.loading') : label}</button>
+      {txt && (
+        <CompareTxtPreview
+          testId={testId}
+          fileName={txt.fileName}
+          parsed={txt.parsed}
+          onClose={() => setTxt(null)}
+          onSaved={async (message) => { setTxt(null); await onDone(message); }}
+        />
+      )}
+    </>
+  );
+}
+
 export default function CompareBlock({ testId, questions, onChanged, onError }) {
   const { t } = useLang();
   const [editing, setEditing] = useState(undefined);

@@ -289,7 +289,7 @@ export function SectionForm({
   );
 }
 
-export function SectionList({ sections, all, onOpen, onEdit, onDelete, emptyText }) {
+export function SectionList({ sections, all, onOpen, onEdit, onDelete, emptyText, renderActions }) {
   const { t } = useLang();
   return (
     <div className="admin-list">
@@ -307,6 +307,7 @@ export function SectionList({ sections, all, onOpen, onEdit, onDelete, emptyText
               </p>
             </div>
             <div className="row" style={{ flexWrap: 'wrap' }}>
+              {renderActions?.(section)}
               <button className="btn sm" type="button" onClick={() => onOpen(section)}>{t('admin.open')}</button>
               {onEdit && <button className="btn ghost sm" type="button" onClick={() => onEdit(section)}>{t('common.edit')}</button>}
               {onDelete && <button className="btn ghost sm" type="button" onClick={() => onDelete(section)}>{t('common.delete')}</button>}
@@ -348,7 +349,7 @@ function pickTxtFile() {
   });
 }
 
-export function TxtUploadButtons({ testId, subjectId, passageId, disabled, requireImage = false, onDone }) {
+export function TxtUploadButtons({ testId, subjectId, passageId, disabled, requireImage = false, onDone, label }) {
   const { t } = useLang();
   const [busy, setBusy] = useState(false);
   const [preview, setPreview] = useState(null);
@@ -374,7 +375,7 @@ export function TxtUploadButtons({ testId, subjectId, passageId, disabled, requi
   return (
     <div className="admin-txt-row">
       <button className="btn sm" type="button" disabled={disabled || busy} onClick={upload}>
-        {busy ? t('common.loading') : t('admin.txtExplained')}
+        {busy ? t('common.loading') : (label || t('admin.txtExplained'))}
       </button>
       {preview && (
         <TxtPreview

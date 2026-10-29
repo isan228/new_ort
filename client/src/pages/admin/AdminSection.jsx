@@ -26,6 +26,7 @@ import { PassageText } from '../../components/PassageText';
 import { splitParagraphs } from '../../lib/reading';
 import { pickTextFile, readTextFile, splitTitle } from '../../lib/textFile';
 import CompareBlock from './AdminCompare';
+import QuickUpload from './QuickUpload';
 import MixedUploadButton from './MixedTxtPreview';
 import { isCompare } from '../../lib/compare';
 import { DifficultyBadge } from './DifficultyPicker';
@@ -417,6 +418,7 @@ export default function AdminSection() {
           sections={children}
           all={all}
           emptyText={t('admin.noSubsections')}
+          renderActions={(row) => <QuickUpload testId={row.id} format={sectionKind(row)} onDone={done} />}
           onOpen={(row) => navigate(contentPath(subject.id, row.id))}
           onEdit={canManage(subject) ? (row) => setModal({ item: row }) : null}
           onDelete={canManage(subject) ? (row) => {
