@@ -427,6 +427,75 @@ const BIOLOGY_TOPICS = [
   },
 ];
 
+// Russian language and literature subject test: 8 official language sections and 45 literature topics.
+const RUSSIAN_TOPICS = [
+  {
+    group: 'Русский язык',
+    kind: 'standard',
+    topics: [
+      'Фонетика',
+      'Словообразование',
+      'Лексика',
+      'Морфология',
+      'Синтаксис',
+      'Орфография',
+      'Пунктуация',
+      'Стилистика',
+    ],
+  },
+  {
+    group: 'Русская литература',
+    kind: 'standard',
+    topics: [
+      'Литературный герой и персонаж',
+      'Роды и жанры литературы',
+      'Сюжет и композиция',
+      'Тема, проблема и идея произведения',
+      'Изобразительно-выразительные средства',
+      'Звуковые и речевые приёмы',
+      'Гуманизм и психологизм литературы',
+      'Традиции и новаторство',
+      'Стихотворная речь и стихосложение',
+      'Комическое в литературе',
+      'Литературные направления и история литературы',
+      'Грибоедов',
+      'Пушкин',
+      'Лермонтов',
+      'Гоголь',
+      'Островский',
+      'Тургенев',
+      'Тютчев, Фет и Некрасов',
+      'Салтыков-Щедрин',
+      'Литературная критика',
+      'Достоевский',
+      'Толстой',
+      'Чехов',
+      'Горький',
+      'Бунин',
+      'Куприн',
+      'Серебряный век русской поэзии',
+      'Блок',
+      'Маяковский',
+      'Есенин',
+      'Цветаева',
+      'Ахматова',
+      'Пастернак',
+      'Булгаков',
+      'Шолохов',
+      'Твардовский',
+      'Солженицын',
+      'Шаламов',
+      'Поэзия второй половины XX века',
+      'Бондарев',
+      'Быков',
+      'Шукшин',
+      'Астафьев',
+      'Айтматов',
+      'Анализ художественного текста',
+    ],
+  },
+];
+
 const norm = (s) => String(s || '').toLowerCase().replace(/ё/g, 'е').replace(/[.\s]+$/g, '').replace(/\s+/g, ' ').trim();
 
 async function descendants(rootId, subjectId) {
@@ -491,6 +560,19 @@ async function addSimTopics(test, groups) {
   }
 }
 
+// Finds the practice subject (name LIKE `like` and matching `re`) or creates it. Created once: if the admin
+// deletes it later, it stays deleted.
+async function practiceSubjectOnce(key, like, re, attrs) {
+  const candidates = await Subject.findAll({ where: { bank: 'practice', name: { [Op.iLike]: like } }, order: [['id', 'ASC']] });
+  let subject = candidates.find((s) => re.test(s.name));
+  if (!subject) {
+    if (await getSetting(`${key}:created`)) return [];
+    subject = await Subject.create({ trackGroup: 'subject', bank: 'practice', isActive: true, ...attrs });
+    await setSetting(`${key}:created`, new Date().toISOString());
+  }
+  return [{ subject, parentId: null, ortPart: null }];
+}
+
 const TEMPLATES = [
   {
     key: 'mathTopics.v1',
@@ -552,19 +634,17 @@ const TEMPLATES = [
     groups: KYRGYZ_TOPICS,
     // The practice bank has no such subject by default ("Государственный язык" is a different test), so it is created.
     async practiceTargets() {
-      const candidates = await Subject.findAll({ where: { bank: 'practice', name: { [Op.iLike]: '%кыргыз%' } }, order: [['id', 'ASC']] });
-      let subject = candidates.find((s) => /литерат|адабият/i.test(s.name));
-      if (!subject) {
-        // Created once: if the admin deletes it later, it stays deleted.
-        if (await getSetting('kyrgyzTopics.v1:created')) return [];
-        subject = await Subject.create({
-          name: 'Кыргызский язык и литература', trackGroup: 'subject', language: 'ky', bank: 'practice', sortOrder: 50, isActive: true,
-        });
-        await setSetting('kyrgyzTopics.v1:created', new Date().toISOString());
-      }
-      return [{ subject, parentId: null, ortPart: null }];
+      return practiceSubjectOnce('kyrgyzTopics.v1', '%кыргыз%', /литерат|адабият/i, { name: 'Кыргызский язык и литература', language: 'ky', sortOrder: 50 });
     },
     simWhere: { trackGroup: 'subject', name: { [Op.iLike]: '%кыргыз%' } },
+  },
+  {
+    key: 'russianTopics.v1',
+    groups: RUSSIAN_TOPICS,
+    async practiceTargets() {
+      return practiceSubjectOnce('russianTopics.v1', '%русск%', /литерат/i, { name: 'Русский язык и литература', language: 'ru', sortOrder: 51 });
+    },
+    simWhere: { trackGroup: 'subject', name: { [Op.iLike]: 'русский язык и литер%' } },
   },
   {
     key: 'biologyTopics.v1',
@@ -598,5 +678,5 @@ async function ensureSubjectTopics() {
 }
 
 module.exports = {
-  ensureSubjectTopics, MATH_TOPICS, CHEMISTRY_TOPICS, SUBJECT_MATH_TOPICS, HISTORY_TOPICS, KYRGYZ_TOPICS, BIOLOGY_TOPICS,
+  ensureSubjectTopics, MATH_TOPICS, CHEMISTRY_TOPICS, SUBJECT_MATH_TOPICS, HISTORY_TOPICS, KYRGYZ_TOPICS, BIOLOGY_TOPICS, RUSSIAN_TOPICS,
 };
