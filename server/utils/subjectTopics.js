@@ -114,6 +114,95 @@ const CHEMISTRY_TOPICS = [
   },
 ];
 
+// Subject maths test (simulation): ORT.kg breakdown of the six official ЦООМО content lines, 49 topics.
+const SUBJECT_MATH_TOPICS = [
+  {
+    group: 'Числа и вычисления',
+    kind: 'standard',
+    topics: [
+      'Натуральные и целые числа',
+      'Делимость, НОД и НОК',
+      'Рациональные числа и дроби',
+      'Проценты, отношения и пропорции',
+      'Степени и корни',
+      'Модуль и числовые промежутки',
+    ],
+  },
+  {
+    group: 'Преобразование выражений',
+    kind: 'standard',
+    topics: [
+      'Одночлены и многочлены',
+      'Формулы сокращённого умножения',
+      'Разложение на множители',
+      'Алгебраические дроби',
+      'Иррациональные выражения',
+      'Степенные выражения',
+      'Логарифмические выражения',
+      'Тригонометрические выражения',
+    ],
+  },
+  {
+    group: 'Уравнения и неравенства',
+    kind: 'standard',
+    topics: [
+      'Линейные уравнения и системы',
+      'Квадратные уравнения',
+      'Рациональные уравнения',
+      'Иррациональные уравнения',
+      'Уравнения с модулем',
+      'Показательные уравнения',
+      'Логарифмические уравнения',
+      'Тригонометрические уравнения',
+      'Линейные и квадратные неравенства',
+      'Рациональные неравенства',
+      'Показательные и логарифмические неравенства',
+      'Тригонометрические неравенства',
+      'Системы и совокупности неравенств',
+    ],
+  },
+  {
+    group: 'Последовательности и прогрессии',
+    kind: 'standard',
+    topics: [
+      'Числовые последовательности',
+      'Арифметическая прогрессия',
+      'Геометрическая прогрессия',
+    ],
+  },
+  {
+    group: 'Функции',
+    kind: 'standard',
+    topics: [
+      'Понятие функции и область определения',
+      'Графики и преобразования графиков',
+      'Линейная и квадратичная функции',
+      'Степенная и корневая функции',
+      'Показательная и логарифмическая функции',
+      'Тригонометрические функции и графики',
+      'Производная и её применение',
+    ],
+  },
+  {
+    group: 'Геометрия',
+    kind: 'standard',
+    topics: [
+      'Углы, прямые и параллельность',
+      'Треугольники и их свойства',
+      'Подобие и теорема Пифагора',
+      'Четырёхугольники и многоугольники',
+      'Окружность и круг',
+      'Площади плоских фигур',
+      'Координаты и векторы на плоскости',
+      'Прямые и плоскости в пространстве',
+      'Призмы и параллелепипеды',
+      'Пирамиды',
+      'Цилиндр, конус и шар',
+      'Объёмы и площади поверхностей',
+    ],
+  },
+];
+
 const norm = (s) => String(s || '').toLowerCase().replace(/ё/g, 'е').replace(/[.\s]+$/g, '').replace(/\s+/g, ' ').trim();
 
 async function descendants(rootId, subjectId) {
@@ -194,7 +283,25 @@ const TEMPLATES = [
       if (subject) out.push({ subject, parentId: null, ortPart: null });
       return out;
     },
-    simWhere: { [Op.or]: [{ trackGroup: 'main' }, { name: { [Op.iLike]: '%математ%' } }] },
+    simWhere: { trackGroup: 'main' },
+  },
+  {
+    key: 'subjectMathTopics.v1',
+    groups: SUBJECT_MATH_TOPICS,
+    async practiceTargets() {
+      return [];
+    },
+    simWhere: { trackGroup: { [Op.ne]: 'main' }, name: { [Op.iLike]: '%математ%' } },
+    // The main-exam maths topics were put into this dictionary earlier; they do not fit the subject test.
+    async before(test) {
+      const old = new Set(MATH_TOPICS.flatMap((g) => g.topics.map((topic) => norm(`${g.group} · ${topic}`))));
+      const rows = await SimTopic.findAll({ where: { subjectId: test.id } });
+      for (const row of rows) {
+        if (!old.has(norm(row.name))) continue;
+        if (await Test.count({ where: { simTopicId: row.id } })) continue;
+        await row.destroy();
+      }
+    },
   },
   {
     key: 'chemTopics.v1',
@@ -220,10 +327,13 @@ async function ensureSubjectTopics() {
     const simTests = await Subject.findAll({ where: { bank: 'simulation', ...template.simWhere } });
     for (const test of simTests) {
       if (await getSetting(done(test.id))) continue;
+      if (template.before) await template.before(test);
       await addSimTopics(test, template.groups);
       await setSetting(done(test.id), new Date().toISOString());
     }
   }
 }
 
-module.exports = { ensureSubjectTopics, MATH_TOPICS, CHEMISTRY_TOPICS };
+module.exports = {
+  ensureSubjectTopics, MATH_TOPICS, CHEMISTRY_TOPICS, SUBJECT_MATH_TOPICS,
+};
