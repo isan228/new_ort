@@ -263,6 +263,64 @@ const HISTORY_TOPICS = [
   },
 ];
 
+// Kyrgyz language and literature subject test: 42 ORT.kg topics, named in Kyrgyz.
+const KYRGYZ_TOPICS = [
+  {
+    group: 'Кыргыз тили',
+    kind: 'standard',
+    topics: [
+      'Тыбыштар жана тамгалар',
+      'Үндүү жана үнсүз тыбыштар',
+      'Үндөштүк закону',
+      'Муун жана басым',
+      'Орфоэпия жана туура айтылыш',
+      'Сөздүн мааниси жана көп маанилүүлүк',
+      'Синонимдер антонимдер жана омонимдер',
+      'Фразеологизмдер',
+      'Сөздүн курамы жана сөз жасоо',
+      'Зат атооч',
+      'Сын атооч',
+      'Сан атооч',
+      'Ат атооч',
+      'Этиш жана анын формалары',
+      'Тактооч жана кызматчы сөздөр',
+      'Сөз айкашы жана сүйлөм мүчөлөрү',
+      'Жөнөкөй жана татаал сүйлөмдөр',
+      'Сүйлөмдүн түрлөрү',
+      'Орфография жана туура жазуу',
+      'Пунктуация',
+      'Стилистика жана кеп маданияты',
+    ],
+  },
+  {
+    group: 'Кыргыз адабияты',
+    kind: 'standard',
+    topics: [
+      'Элдик оозеки чыгармачылык',
+      'Макал-лакаптар жана табышмактар',
+      'Манас эпосу',
+      'Кенже эпостор жана дастандар',
+      'Төкмө акындар жана акындык өнөр',
+      'XIX кылымдагы кыргыз адабияты',
+      'XX кылымдын башындагы кыргыз адабияты',
+      'Совет мезгилиндеги кыргыз адабияты',
+      'Эгемендүүлүк мезгилиндеги адабият',
+      'Кыргыз акындарынын өмүрү жана чыгармачылыгы',
+      'Кыргыз жазуучуларынын өмүрү жана чыгармачылыгы',
+      'Драматургдар жана драмалык чыгармалар',
+      'Чыңгыз Айтматовдун өмүрү жана чыгармачылыгы',
+      'Адабияттын тектери жана жанрлары',
+      'Адабий каарман жана көркөм образ',
+      'Тема идея жана автордук позиция',
+      'Сюжет композиция жана конфликт',
+      'Көркөм тил жана сүрөттөө каражаттары',
+      'Ыр түзүлүшү жана поэтикалык каражаттар',
+      'Адабий багыттар жана агымдар',
+      'Көркөм текстти талдоо жана түшүнүү',
+    ],
+  },
+];
+
 const norm = (s) => String(s || '').toLowerCase().replace(/ё/g, 'е').replace(/[.\s]+$/g, '').replace(/\s+/g, ' ').trim();
 
 async function descendants(rootId, subjectId) {
@@ -383,6 +441,25 @@ const TEMPLATES = [
     },
     simWhere: { trackGroup: { [Op.ne]: 'main' }, name: { [Op.iLike]: 'истори%' } },
   },
+  {
+    key: 'kyrgyzTopics.v1',
+    groups: KYRGYZ_TOPICS,
+    // The practice bank has no such subject by default ("Государственный язык" is a different test), so it is created.
+    async practiceTargets() {
+      const candidates = await Subject.findAll({ where: { bank: 'practice', name: { [Op.iLike]: '%кыргыз%' } }, order: [['id', 'ASC']] });
+      let subject = candidates.find((s) => /литерат|адабият/i.test(s.name));
+      if (!subject) {
+        // Created once: if the admin deletes it later, it stays deleted.
+        if (await getSetting('kyrgyzTopics.v1:created')) return [];
+        subject = await Subject.create({
+          name: 'Кыргызский язык и литература', trackGroup: 'subject', language: 'ky', bank: 'practice', sortOrder: 50, isActive: true,
+        });
+        await setSetting('kyrgyzTopics.v1:created', new Date().toISOString());
+      }
+      return [{ subject, parentId: null, ortPart: null }];
+    },
+    simWhere: { trackGroup: 'subject', name: { [Op.iLike]: '%кыргыз%' } },
+  },
 ];
 
 // Each template is applied once per subject, so topics the admin deletes later do not come back.
@@ -405,5 +482,5 @@ async function ensureSubjectTopics() {
 }
 
 module.exports = {
-  ensureSubjectTopics, MATH_TOPICS, CHEMISTRY_TOPICS, SUBJECT_MATH_TOPICS, HISTORY_TOPICS,
+  ensureSubjectTopics, MATH_TOPICS, CHEMISTRY_TOPICS, SUBJECT_MATH_TOPICS, HISTORY_TOPICS, KYRGYZ_TOPICS,
 };
