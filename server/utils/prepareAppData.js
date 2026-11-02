@@ -13,7 +13,7 @@ const { seedDemoContent } = require('./seedDemo');
 const { ensureOrtMainExam } = require('./ensureOrtMainExam');
 const { ensureReferralCodes } = require('./referral');
 const { ensureSimCatalog } = require('./simCatalog');
-const { ensureMathTopics } = require('./mathTopics');
+const { ensureSubjectTopics } = require('./subjectTopics');
 
 // Questions added before Question.createdById existed get their author from the editor journal.
 // Only rows still without an author are touched, so this is a no-op once everything is filled.
@@ -51,7 +51,7 @@ async function prepareAppData() {
   await seedDemoContent();
   await ensureOrtMainExam();
   await ensureSimCatalog();
-  await ensureMathTopics();
+  await ensureSubjectTopics();
   await ensureReferralCodes();
 }
 
