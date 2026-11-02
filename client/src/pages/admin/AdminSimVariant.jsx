@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { simAdminApi } from '../../api/client';
 import { useLang } from '../../context/LangContext';
 import { Crumbs, Modal, useIsEditor } from './adminUi';
+import BulkTopicUpload, { BULK_FORMATS } from './BulkTopicUpload';
 import QuickUpload from './QuickUpload';
 import {
   CountBadge,
@@ -227,6 +228,28 @@ function PartRow({ part, index, total, editor, topics, run, setModal, navigate }
   );
 }
 
+// Topic slots of the variant (or the part itself when it has no topics) that take TXT questions.
+// The part is named only for topics used in several parts.
+function uploadTargets(blocks) {
+  const out = [];
+  for (const block of blocks) {
+    for (const part of block.parts) {
+      if (!BULK_FORMATS.includes(part.format)) continue;
+      const where = block.parts.length > 1 ? `${block.title} / ${part.name}` : block.title;
+      if (!part.topics.length) {
+        out.push({ key: `p${part.id}`, testId: part.id, name: part.name, label: where, format: part.format });
+        continue;
+      }
+      for (const topic of part.topics) {
+        out.push({ key: `s${topic.slotId}`, testId: topic.slotId, name: topic.name, where, format: part.format });
+      }
+    }
+  }
+  const uses = new Map();
+  for (const row of out) uses.set(row.name, (uses.get(row.name) || 0) + 1);
+  return out.map(({ where, ...row }) => (where && uses.get(row.name) > 1 ? { ...row, label: `${row.name} — ${where}` } : row));
+}
+
 function PublishPanel({ data, editor, run }) {
   const { t, locale } = useLang();
   const { variant, published, problems } = data;
@@ -356,6 +379,7 @@ export default function AdminSimVariant() {
 
   if (!data) return <p className="muted">{error || t('common.loading')}</p>;
   const { subject, variant, blocks, totals } = data;
+  const targets = uploadTargets(blocks);
 
   return (
     <div>
@@ -382,7 +406,12 @@ export default function AdminSimVariant() {
             {data.attempts > 0 && ` · ${t('admin.simulation.attemptsN', { n: data.attempts })}`}
           </p>
         </div>
-        {!editor && <button className="btn" type="button" onClick={() => setModal({ type: 'block' })}>{t('admin.simulation.addBlock')}</button>}
+        <div className="row" style={{ flexWrap: 'wrap', gap: 8 }}>
+          {targets.length > 1 && (
+            <BulkTopicUpload targets={targets} onDone={(ok, err) => run(async () => { if (err) throw new Error(err); })} />
+          )}
+          {!editor && <button className="btn" type="button" onClick={() => setModal({ type: 'block' })}>{t('admin.simulation.addBlock')}</button>}
+        </div>
       </div>
       {msg && <p className="ok">{msg}</p>}
       {error && <p className="err">{error}</p>}

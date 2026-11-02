@@ -2,8 +2,25 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { adminApi } from '../../api/client';
 import { useLang } from '../../context/LangContext';
+import BulkTopicUpload, { BULK_FORMATS } from './BulkTopicUpload';
 import QuickUpload from './QuickUpload';
 import { Crumbs, Modal, NameForm, SectionForm, SectionList, confirmDelete, contentPath, loadSubjects, sectionKind, subjectKinds, useCanManage } from './adminUi';
+
+// Sections that take questions, in tree order, labelled with their path ("Русский язык / Фонетика").
+function uploadTargets(all) {
+  const order = (a, b) => (a.sortOrder || 0) - (b.sortOrder || 0) || a.id - b.id;
+  const out = [];
+  const walk = (parentId, path) => {
+    for (const row of all.filter((r) => (r.parentId || null) === parentId).sort(order)) {
+      const label = [...path, row.name].join(' / ');
+      const format = sectionKind(row);
+      if (BULK_FORMATS.includes(format)) out.push({ key: String(row.id), testId: row.id, name: row.name, label, format });
+      walk(row.id, [...path, row.name]);
+    }
+  };
+  walk(null, []);
+  return out;
+}
 
 export default function AdminSubject() {
   const { t } = useLang();
@@ -47,6 +64,7 @@ export default function AdminSubject() {
   const all = subject.sections || [];
   const sections = all.filter((row) => !row.parentId);
   const editor = !canManage(subject);
+  const targets = uploadTargets(all);
 
   return (
     <div>
@@ -83,11 +101,16 @@ export default function AdminSubject() {
 
       <div className="admin-section-head">
         <h2 style={{ margin: 0 }}>{t('admin.sections')}</h2>
-        {!editor && (
-          <button className="btn" type="button" onClick={() => setModal({ type: 'section', item: null })}>
-            {t('admin.addSection')}
-          </button>
-        )}
+        <div className="row" style={{ flexWrap: 'wrap', gap: 8 }}>
+          {targets.length > 1 && (
+            <BulkTopicUpload targets={targets} onDone={(ok, err) => (err ? setError(err) : run(async () => {}, ok))} />
+          )}
+          {!editor && (
+            <button className="btn" type="button" onClick={() => setModal({ type: 'section', item: null })}>
+              {t('admin.addSection')}
+            </button>
+          )}
+        </div>
       </div>
       <SectionList
         sections={sections}
