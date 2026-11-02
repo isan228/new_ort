@@ -321,6 +321,112 @@ const KYRGYZ_TOPICS = [
   },
 ];
 
+// Biology subject test: 66 ORT.kg topics in six blocks.
+const BIOLOGY_TOPICS = [
+  {
+    group: 'Растения, грибы, бактерии и лишайники',
+    kind: 'standard',
+    topics: [
+      'Растительный мир',
+      'Систематика растений',
+      'Растительная клетка',
+      'Ткани растений',
+      'Органы растений',
+      'Размножение растений',
+      'Отделы растений',
+      'Покрытосеменные',
+      'Культурные растения',
+      'Грибы',
+      'Лишайники',
+      'Бактерии',
+    ],
+  },
+  {
+    group: 'Животные',
+    kind: 'standard',
+    topics: [
+      'Животные и растения',
+      'Систематика животных',
+      'Простейшие',
+      'Кишечнополостные',
+      'Плоские черви',
+      'Круглые черви',
+      'Кольчатые черви',
+      'Моллюски',
+      'Членистоногие',
+      'Рыбы',
+      'Земноводные',
+      'Пресмыкающиеся',
+      'Птицы',
+      'Млекопитающие',
+      'Эволюция животных',
+      'Значение животных',
+      'Охрана животных',
+    ],
+  },
+  {
+    group: 'Человек и его здоровье',
+    kind: 'standard',
+    topics: [
+      'Ткани человека',
+      'Органы и регуляция',
+      'Опорно-двигательная система',
+      'Кровь и иммунитет',
+      'Сердце и сосуды',
+      'Дыхательная система',
+      'Пищеварение',
+      'Обмен веществ',
+      'Выделительная система',
+      'Кожа',
+      'Эндокринная система',
+      'Размножение человека',
+      'Нервная система',
+      'Органы чувств',
+    ],
+  },
+  {
+    group: 'Общая биология и генетика',
+    kind: 'standard',
+    topics: [
+      'Признаки жизни',
+      'Вирусы',
+      'Прокариоты',
+      'Клетка и её вещества',
+      'Клеточный обмен',
+      'ДНК и генетический код',
+      'Деление и размножение',
+      'Развитие организма',
+      'Изменчивость и мутации',
+      'Законы наследования',
+      'Генетические задачи',
+      'Генетика человека',
+      'Селекция и биотехнология',
+      'Генетика популяций',
+    ],
+  },
+  {
+    group: 'Эволюция',
+    kind: 'standard',
+    topics: [
+      'История эволюционных учений',
+      'Микроэволюция',
+      'Макроэволюция',
+      'Происхождение человека',
+    ],
+  },
+  {
+    group: 'Экология',
+    kind: 'standard',
+    topics: [
+      'Экологические факторы',
+      'Отношения организмов',
+      'Экосистемы и питание',
+      'Биосфера',
+      'Охрана природы',
+    ],
+  },
+];
+
 const norm = (s) => String(s || '').toLowerCase().replace(/ё/g, 'е').replace(/[.\s]+$/g, '').replace(/\s+/g, ' ').trim();
 
 async function descendants(rootId, subjectId) {
@@ -460,6 +566,16 @@ const TEMPLATES = [
     },
     simWhere: { trackGroup: 'subject', name: { [Op.iLike]: '%кыргыз%' } },
   },
+  {
+    key: 'biologyTopics.v1',
+    groups: BIOLOGY_TOPICS,
+    async practiceTargets() {
+      const subject = await Subject.findOne({ where: { name: 'Биология', bank: 'practice' } })
+        || await Subject.findOne({ where: { name: { [Op.iLike]: 'биолог%' }, bank: 'practice' }, order: [['id', 'ASC']] });
+      return subject ? [{ subject, parentId: null, ortPart: null }] : [];
+    },
+    simWhere: { trackGroup: { [Op.ne]: 'main' }, name: { [Op.iLike]: 'биолог%' } },
+  },
 ];
 
 // Each template is applied once per subject, so topics the admin deletes later do not come back.
@@ -482,5 +598,5 @@ async function ensureSubjectTopics() {
 }
 
 module.exports = {
-  ensureSubjectTopics, MATH_TOPICS, CHEMISTRY_TOPICS, SUBJECT_MATH_TOPICS, HISTORY_TOPICS, KYRGYZ_TOPICS,
+  ensureSubjectTopics, MATH_TOPICS, CHEMISTRY_TOPICS, SUBJECT_MATH_TOPICS, HISTORY_TOPICS, KYRGYZ_TOPICS, BIOLOGY_TOPICS,
 };
