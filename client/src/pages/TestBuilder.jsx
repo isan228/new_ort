@@ -75,6 +75,7 @@ export default function TestBuilder() {
   const navigate = useNavigate();
   const [params] = useSearchParams();
   const preset = Number(params.get('bank')) || null;
+  const presetSubject = Number(params.get('subject')) || null;
   const presetFilter = FILTERS.includes(params.get('filter')) ? [params.get('filter')] : [];
 
   const [data, setData] = useState(null);
@@ -109,15 +110,21 @@ export default function TestBuilder() {
   }, []);
 
   useEffect(() => {
-    if (!data || presetApplied.current || !preset) return;
+    if (!data || presetApplied.current || (!preset && !presetSubject)) return;
     presetApplied.current = true;
+    const whole = presetSubject && data.subjects.find((s) => s.id === presetSubject);
+    if (whole) {
+      setSelected(new Set(whole.sections.filter((s) => s.leaf).map((s) => s.id)));
+      setExpanded(new Set([whole.id]));
+      return;
+    }
     for (const subject of data.subjects) {
       const hit = subject.sections.find((s) => s.id === preset);
       if (!hit) continue;
       setSelected(new Set(hit.leaf ? [hit.id] : leavesUnder(subject.sections, hit.id)));
       setExpanded(new Set([subject.id]));
     }
-  }, [data, preset]);
+  }, [data, preset, presetSubject]);
 
   function toggle(ids, on) {
     setSelected((prev) => {

@@ -5,6 +5,48 @@ import { isOrtGate } from '../context/AuthContext';
 import { useBank } from '../context/BankContext';
 import { useLang } from '../context/LangContext';
 
+// Section names arrive as a path ("Математика · Арифметика · Степень"): the last part is the topic,
+// everything before it is the section the topic is listed under.
+function groupTopics(tests) {
+  const groups = [];
+  for (const test of tests) {
+    const parts = String(test.name || '').split(' · ');
+    const topic = parts.pop();
+    const name = parts.join(' · ');
+    let group = groups.find((row) => row.name === name);
+    if (!group) {
+      group = { name, items: [] };
+      groups.push(group);
+    }
+    group.items.push({ test, topic });
+  }
+  return groups;
+}
+
+function TopicGroup({ group, open, t, onPick }) {
+  const rows = (
+    <div className="tests-topics">
+      {group.items.map(({ test, topic }) => (
+        <button key={test.id} type="button" className="tests-topic" onClick={() => onPick(test)}>
+          <span className="tests-topic-name">{topic || t('tests.start')}</span>
+          <span className="tests-topic-count">{t('tests.qShort', { n: test.questionCount || 0 })}</span>
+          <span className="tests-topic-go" aria-hidden="true">›</span>
+        </button>
+      ))}
+    </div>
+  );
+  if (!group.name) return rows;
+  return (
+    <details className="tests-group" open={open}>
+      <summary>
+        <span>{group.name}</span>
+        <small>{group.items.length}</small>
+      </summary>
+      {rows}
+    </details>
+  );
+}
+
 export default function Tests() {
   const { t } = useLang();
   const [data, setData] = useState({ main: [], state_lang: [], subject: [], mainExam: null });
@@ -46,7 +88,7 @@ export default function Tests() {
       testName: test?.name,
       trackGroup: subject.trackGroup,
     });
-    navigate(test ? `/app/create?bank=${test.id}` : '/app/create');
+    navigate(test ? `/app/create?bank=${test.id}` : `/app/create?subject=${subject.id}`);
   }
 
   return (
@@ -123,21 +165,28 @@ export default function Tests() {
           </div>
         );
       })}
-      <div className="cards">
+      <div className="tests-subjects">
         {list.map((subject) => {
           const tests = subject.Tests || subject.tests || [];
+          const groups = groupTopics(tests);
+          const questions = tests.reduce((sum, test) => sum + (test.questionCount || 0), 0);
           return (
-            <div key={subject.id} className="card">
-              <h3>{subject.name}</h3>
-              <p className="muted">{subject.description}</p>
-              <p className="muted">{tests.length ? t('tests.ready') : t('tests.emptyBank')}</p>
-              <div className="row" style={{ flexWrap: 'wrap' }}>
-                {tests.map((test) => (
-                  <button key={test.id} className="btn" type="button" onClick={() => open(subject, test)}>
-                    {test.name || t('tests.start')}
-                  </button>
-                ))}
+            <div key={subject.id} className="card tests-subject">
+              <div className="tests-subject-head">
+                <div style={{ minWidth: 0 }}>
+                  <h3>{subject.name}</h3>
+                  {subject.description && <p className="muted">{subject.description}</p>}
+                  <p className="muted tests-subject-meta">
+                    {tests.length ? t('tests.summary', { t: tests.length, q: questions }) : t('tests.emptyBank')}
+                  </p>
+                </div>
+                {tests.length > 0 && (
+                  <button className="btn sm" type="button" onClick={() => open(subject, null)}>{t('tests.buildAll')}</button>
+                )}
               </div>
+              {groups.map((group, gi) => (
+                <TopicGroup key={group.name || gi} group={group} open={groups.length === 1 || gi === 0} t={t} onPick={(test) => open(subject, test)} />
+              ))}
             </div>
           );
         })}

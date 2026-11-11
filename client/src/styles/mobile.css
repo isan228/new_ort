@@ -77,6 +77,59 @@
 
 .ref-actions { flex-wrap: wrap; gap: 8px; }
 
+/* Tests page: one card per subject, topics as wrapping rows grouped by section. */
+.tests-subjects { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(420px, 100%), 1fr)); gap: 14px; align-items: start; }
+.tests-subject { display: grid; gap: 10px; min-width: 0; }
+.tests-subject-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap; }
+.tests-subject-head h3 { margin-bottom: 4px; }
+.tests-subject-head p { margin: 0 0 2px; }
+.tests-subject-meta { font-size: 13px; font-weight: 600; }
+.tests-group { border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
+.tests-group > summary {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 48px;
+  padding: 10px 14px;
+  cursor: pointer;
+  list-style: none;
+  font-weight: 700;
+  font-size: 14px;
+  background: var(--bg-soft);
+}
+.tests-group > summary::-webkit-details-marker { display: none; }
+.tests-group > summary span { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.tests-group > summary small { color: var(--muted); font-weight: 700; }
+.tests-group > summary::after { content: '▾'; color: var(--muted); transition: transform 0.2s ease; }
+.tests-group[open] > summary::after { transform: rotate(180deg); }
+.tests-topics { display: grid; }
+.tests-group .tests-topics { padding: 4px 6px 6px; }
+.tests-topic {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 48px;
+  padding: 10px 10px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  font-size: 14px;
+  text-align: left;
+  cursor: pointer;
+}
+.tests-topic + .tests-topic { border-top: 1px solid var(--line); border-radius: 0; }
+.tests-topic:hover { background: var(--brand-soft); border-radius: 10px; }
+.tests-topic-name { flex: 1; min-width: 0; line-height: 1.35; overflow-wrap: anywhere; }
+.tests-topic-count { flex: none; color: var(--muted); font-size: 12.5px; font-weight: 600; white-space: nowrap; }
+.tests-topic-go { flex: none; color: var(--brand); font-size: 20px; line-height: 1; }
+
+@media (max-width: 720px) {
+  .tests-subject-head .btn { flex: 1 1 100%; }
+}
+
 /* Registration: "Выбранный тариф" stays a caption above the plan instead of running into it. */
 .cl-auth-plan > div { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 
@@ -131,6 +184,9 @@
   /* Activity calendar: four rows of 28 days, not four rows of big squares. */
   .heat { gap: 4px; }
   .heat i { aspect-ratio: auto; height: 20px; border-radius: 5px; }
+
+  /* A long label wraps inside its button instead of pushing it past the screen edge. */
+  .btn { max-width: 100%; white-space: normal; text-align: center; line-height: 1.25; }
 
   /* Touch targets: small buttons are still at least 38px tall. */
   .btn.sm { min-height: 38px; padding: 8px 14px; }
