@@ -8,6 +8,10 @@ import { ThemeProvider } from './context/ThemeContext';
 import { LangProvider } from './context/LangContext';
 import './index.css';
 import './styles/exam-uworld.css';
+import './styles/mobile.css';
+import { startMobileTables } from './lib/mobileTables';
+
+startMobileTables();
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>

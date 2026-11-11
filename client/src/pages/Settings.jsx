@@ -29,9 +29,11 @@ export default function Settings() {
             <option value="ky">{t('settings.ky')}</option>
           </select>
         </label>
-        <label className="field"><span><input type="checkbox" defaultChecked /> {t('settings.notify')}</span></label>
-        <label className="field"><span><input type="checkbox" checked={theme === 'dark'} onChange={toggle} /> {t('settings.dark')}</span></label>
-        <label className="field"><span><input type="checkbox" defaultChecked /> {t('settings.publicRank')}</span></label>
+        <div className="settings-toggles">
+          <label className="settings-toggle"><span>{t('settings.notify')}</span><input type="checkbox" defaultChecked /></label>
+          <label className="settings-toggle"><span>{t('settings.dark')}</span><input type="checkbox" checked={theme === 'dark'} onChange={toggle} /></label>
+          <label className="settings-toggle"><span>{t('settings.publicRank')}</span><input type="checkbox" defaultChecked /></label>
+        </div>
         <button className="btn" type="submit">{t('common.save')}</button>
       </form>
     </div>

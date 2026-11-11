@@ -17,7 +17,7 @@ export default function Achievements() {
     <div>
       <h1>{t('ach.title')}</h1>
       <p className="muted">{t('ach.lead')}</p>
-      <div className="cards">
+      <div className="cards ach-grid">
         {ACHIEVEMENT_DEFS.map((a) => {
           const unlocked = !!open[a.id];
           return (

@@ -6,7 +6,7 @@ import { useLang } from '../../context/LangContext';
 import QuestionStem from '../../components/QuestionStem';
 import MathText from '../../components/MathText';
 import { COMPARE_LETTERS, compareAnswerText, isCompare } from '../../lib/compare';
-import { SIM_LETTERS, formatClock } from '../sim/simShared';
+import { CompareInstruction, SIM_LETTERS, formatClock } from '../sim/simShared';
 import '../../styles/exam-uworld.css';
 import '../../styles/sim.css';
 import '../../styles/practice.css';
@@ -239,12 +239,7 @@ export default function PracticeRunner() {
             {q.missing ? <p className="muted">{t('practice.missing')}</p> : (
               <>
                 <div className="sim-qnum">{safeIndex + 1}</div>
-                {isCompare(q) && (
-                  <div className="sim-compare-help">
-                    <b>{t('simulation.compareTitle')}</b>
-                    <ol>{COMPARE_LETTERS.map((l, i) => <li key={l}><b>({l})</b> {t(`simulation.compareRule${i}`)}</li>)}</ol>
-                  </div>
-                )}
+                {isCompare(q) && <CompareInstruction t={t} />}
                 <QuestionStem q={q} className="usmle-question-stem" />
                 <div className="answers-list" role="radiogroup">
                   {q.answers.map((a, i) => {

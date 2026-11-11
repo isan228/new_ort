@@ -33,7 +33,7 @@ export default function Ranking() {
       </div>
       {error && <p className="err">{error}</p>}
       <div className="table-scroll">
-        <table className="table">
+        <table className="table rank-table">
           <thead><tr><th>#</th><th>{t('ranking.pupil')}</th><th>{t('ranking.score')}</th><th>{t('ranking.progress')}</th><th>{t('home.streak')}</th></tr></thead>
           <tbody>
             {rows.map((row) => (

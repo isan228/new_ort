@@ -7,7 +7,7 @@ import QuestionStem from '../../components/QuestionStem';
 import MathText from '../../components/MathText';
 import { PassageText } from '../../components/PassageText';
 import { COMPARE_LETTERS, compareAnswerText, isCompare } from '../../lib/compare';
-import { SIM_LETTERS, formatClock } from './simShared';
+import { CompareInstruction, SIM_LETTERS, formatClock } from './simShared';
 import '../../styles/exam-uworld.css';
 import '../../styles/reading-book.css';
 import '../../styles/sim.css';
@@ -23,17 +23,6 @@ function IconNext() {
 }
 function IconClock() {
   return <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" strokeWidth="1.8" /><path d="M12 7.5V12l3 2" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" /></svg>;
-}
-
-function CompareInstruction({ t }) {
-  return (
-    <div className="sim-compare-help">
-      <b>{t('simulation.compareTitle')}</b>
-      <ol>
-        {COMPARE_LETTERS.map((letter, i) => <li key={letter}><b>({letter})</b> {t(`simulation.compareRule${i}`)}</li>)}
-      </ol>
-    </div>
-  );
 }
 
 function BlockIntro({ state, t, onStart, busy, error }) {

@@ -102,7 +102,7 @@ export default function SimVariant() {
       </div>
 
       {error && <p className="err">{error}</p>}
-      <div className="row" style={{ flexWrap: 'wrap' }}>
+      <div className="row sim-start-row" style={{ flexWrap: 'wrap' }}>
         {activeAttemptId ? (
           <Link className="btn lg" to={`/app/sim/attempt/${activeAttemptId}`}>{t('simulation.continue')}</Link>
         ) : (

@@ -26,11 +26,12 @@ const SIDE = [
   ['/app/settings', 'nav.settings'],
 ];
 
+// The middle item is the main action and is drawn as a raised button on phones.
 const BOTTOM = [
   ['/app', 'nav.dashboard'],
   ['/app/tests', 'nav.tests'],
-  ['/app/flashcards', 'nav.cardsShort'],
-  ['/app/ranking', 'nav.ranking'],
+  ['/app/create', 'nav.createShort'],
+  ['/app/sim', 'nav.simShort'],
   ['/app/profile', 'nav.profile'],
 ];
 
@@ -383,7 +384,7 @@ export function AppShell({ children }) {
       </div>
       <nav className="bottom-nav">
         {BOTTOM.map(([to, key]) => (
-          <NavLink key={to} to={to} end={to === '/app'} className={({ isActive }) => isActive ? 'active' : ''}>
+          <NavLink key={to} to={to} end={to === '/app'} className={({ isActive }) => `${isActive ? 'active' : ''}${to === '/app/create' ? ' bottom-nav-main' : ''}`}>
             <span className="bottom-nav-icon"><Icon name={ROUTE_ICON[to]} size={21} /></span>
             <span className="bottom-nav-label">{t(key)}</span>
           </NavLink>

@@ -46,6 +46,8 @@ export const dict = {
       settings: 'Настройки',
       profile: 'Профиль',
       cardsShort: 'Карты',
+      createShort: 'Создать',
+      simShort: 'Симуляция',
       support: 'Поддержка',
     },
     admin: {
@@ -488,6 +490,7 @@ export const dict = {
       q: 'Вопрос #{id}',
     },
     cards: {
+      stop: 'Закончить',
       title: 'Флеш-карты',
       today: 'Сегодня: {n} карточек. Система сама решает, что повторить — как Anki.',
       reviewToday: 'Повторение сегодня',
@@ -588,6 +591,8 @@ export const dict = {
       code: 'Персональный код',
       copy: 'Скопировать ссылку',
       copied: 'Скопировано',
+      share: 'Поделиться',
+      shareText: 'Готовлюсь к ОРТ на ORT.KG — регистрируйся по моей ссылке:',
       invited: 'приглашено',
       registered: 'зарегистрировались',
       premium: 'оформили Premium',
@@ -796,6 +801,8 @@ export const dict = {
       settings: 'Жөндөөлөр',
       profile: 'Профиль',
       cardsShort: 'Карталар',
+      createShort: 'Түзүү',
+      simShort: 'Симуляция',
       support: 'Колдоо',
     },
     admin: {
@@ -1238,6 +1245,7 @@ export const dict = {
       q: 'Суроо #{id}',
     },
     cards: {
+      stop: 'Бүтүрүү',
       title: 'Флеш-карталар',
       today: 'Бүгүн: {n} карта. Система өзү кайталанууну чечет — Anki сыяктуу.',
       reviewToday: 'Бүгүнкү кайталоо',
@@ -1338,6 +1346,8 @@ export const dict = {
       code: 'Жеке код',
       copy: 'Шилтемени көчүрүү',
       copied: 'Көчүрүлдү',
+      share: 'Бөлүшүү',
+      shareText: 'ORT.KG менен ОРТго даярданып жатам — менин шилтемем аркылуу катталып ал:',
       invited: 'чакырылды',
       registered: 'катталышты',
       premium: 'Premium алды',

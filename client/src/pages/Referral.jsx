@@ -28,6 +28,7 @@ export default function Referral() {
   const pct = Math.min(100, (invited / goal) * 100);
   const perFriend = data?.coinsPerFriend || 50;
   const history = data?.coinHistory || [];
+  const canShare = typeof navigator !== 'undefined' && typeof navigator.share === 'function';
 
   function reasonText(row) {
     const key = `coins.reason.${row.reason}`;
@@ -59,14 +60,26 @@ export default function Referral() {
         <p className="muted">{t('ref.code')}</p>
         <h2>{code}</h2>
         <p className="muted ref-link">{link}</p>
-        <button
-          className="btn"
-          type="button"
-          disabled={!data?.code}
-          onClick={() => { navigator.clipboard.writeText(link); setCopied(true); }}
-        >
-          {copied ? t('ref.copied') : t('ref.copy')}
-        </button>
+        <div className="row ref-actions">
+          {canShare && (
+            <button
+              className="btn"
+              type="button"
+              disabled={!data?.code}
+              onClick={() => navigator.share({ title: 'ORT.KG', text: t('ref.shareText'), url: link }).catch(() => {})}
+            >
+              {t('ref.share')}
+            </button>
+          )}
+          <button
+            className={`btn${canShare ? ' ghost' : ''}`}
+            type="button"
+            disabled={!data?.code}
+            onClick={() => { navigator.clipboard.writeText(link); setCopied(true); }}
+          >
+            {copied ? t('ref.copied') : t('ref.copy')}
+          </button>
+        </div>
       </div>
       <div className="grid-4" style={{ marginTop: 16 }}>
         <div className="card stat"><b>{invited}</b><span className="muted">{t('ref.invited')}</span></div>

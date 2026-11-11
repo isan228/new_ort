@@ -1,0 +1,353 @@
+/* Phone and tablet layer. Loaded after every other stylesheet, so it only refines what is already there. */
+
+/* ——— Page loading ——— */
+.app-loading {
+  min-height: 60vh;
+  min-height: 60dvh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  color: var(--muted);
+  font-size: 14px;
+  font-weight: 600;
+}
+.app-spinner {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 3px solid var(--brand-soft);
+  border-top-color: var(--brand);
+  animation: app-spin 0.8s linear infinite;
+}
+@keyframes app-spin { to { transform: rotate(360deg); } }
+
+/* Settings: each option is a row with a switch on the right. */
+.settings-toggles { display: grid; margin: 6px 0 16px; border-top: 1px solid var(--line); }
+.settings-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  min-height: 54px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--line);
+  font-size: 14.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.settings-toggle input {
+  appearance: none;
+  -webkit-appearance: none;
+  flex: none;
+  position: relative;
+  width: 46px;
+  height: 28px;
+  margin: 0;
+  border-radius: 999px;
+  background: var(--line);
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+.settings-toggle input::after {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+  transition: transform 0.2s ease;
+}
+.settings-toggle input:checked { background: var(--brand); }
+.settings-toggle input:checked::after { transform: translateX(18px); }
+
+/* Compare instruction is a <details>: the summary line replaces the old bold title. */
+.sim-compare-help > summary { cursor: pointer; font-weight: 700; list-style: none; }
+.sim-compare-help > summary::-webkit-details-marker { display: none; }
+.sim-compare-keys { display: none; }
+
+/* Flashcard session. */
+.flash-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 10px; }
+.flash-head .muted { font-size: 13px; text-align: right; min-width: 0; }
+.flash-progress { margin-bottom: 14px; }
+
+.ref-actions { flex-wrap: wrap; gap: 8px; }
+
+/* Registration: "Выбранный тариф" stays a caption above the plan instead of running into it. */
+.cl-auth-plan > div { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+
+@media (max-width: 980px) {
+  /* iOS zooms the whole page into any field with text smaller than 16px. */
+  input:not([type=checkbox]):not([type=radio]):not([type=range]),
+  select,
+  textarea { font-size: 16px; }
+
+  /* The logo file has a white background; on the grey top bar it should not look like a sticker. */
+  :root:not([data-theme="dark"]) .app-top .logo-img,
+  :root:not([data-theme="dark"]) .admin-top .logo-img {
+    background: transparent;
+    mix-blend-mode: multiply;
+    padding: 0;
+  }
+
+  /* The open drawer covers the page; the chat and bell buttons must not float above it. */
+  body.menu-open .cabinet-dock { display: none; }
+
+  /* Bottom navigation: the middle item ("Создать") is the main action. */
+  .bottom-nav { align-items: flex-end; }
+  .bottom-nav a { min-height: 50px; justify-content: flex-end; }
+  .bottom-nav a.bottom-nav-main { color: var(--ink); }
+  .bottom-nav a.bottom-nav-main .bottom-nav-icon {
+    width: 52px;
+    height: 52px;
+    margin-top: -24px;
+    border-radius: 50%;
+    background: var(--brand);
+    color: #fff;
+    border: 4px solid var(--card);
+    box-shadow: 0 8px 20px rgba(44, 110, 247, 0.35);
+  }
+  .bottom-nav a.bottom-nav-main.active .bottom-nav-icon { background: var(--brand-2); }
+  .bottom-nav a:active .bottom-nav-icon { transform: scale(0.94); }
+
+  /* Admin: search, section heads and list rows use the full width. */
+  .admin-search { width: 100%; min-width: 0; }
+  .admin-section-head > .row,
+  .admin-section-head > div:last-child:not(:first-child) { width: 100%; }
+  .admin-list-item > .row { width: 100%; gap: 8px; }
+  .admin-list-item > .row > .btn { flex: 1 1 auto; }
+}
+
+@media (max-width: 720px) {
+  /* Small number tiles sit two in a row instead of one huge tile per screen. */
+  .grid-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .grid-4 > .card.stat { padding: 14px; }
+  .grid-4 > .card.stat b { font-size: 22px; }
+
+  /* Activity calendar: four rows of 28 days, not four rows of big squares. */
+  .heat { gap: 4px; }
+  .heat i { aspect-ratio: auto; height: 20px; border-radius: 5px; }
+
+  /* Touch targets: small buttons are still at least 38px tall. */
+  .btn.sm { min-height: 38px; padding: 8px 14px; }
+
+  /* Floating chat and notifications: smaller, so they hide less of the page. */
+  .cabinet-dock { right: 12px; gap: 10px; }
+  .dock-btn { width: 48px; height: 48px; }
+  .dock-btn svg { width: 20px; height: 20px; }
+  .dock-panel {
+    width: calc(100vw - 24px);
+    height: min(72vh, calc(100dvh - var(--bottom) - 96px));
+  }
+
+  /* Test builder: the sticky start bar is a single compact row above the bottom navigation. */
+  .builder-start {
+    gap: 4px 12px;
+    padding: 10px;
+    border-radius: 18px;
+    box-shadow: 0 -6px 24px rgba(18, 28, 54, 0.08);
+  }
+  .builder-start .btn { flex: 1 1 100%; min-height: 50px; }
+  .builder-start > .muted { flex: 1 1 100%; text-align: center; font-size: 12.5px; }
+  .ar-check { align-items: flex-start; }
+  .ar-check input { width: 20px; height: 20px; flex: none; margin: 1px 0 0; }
+  .pb-subject-head label { min-width: 0; }
+  .pb-topic { min-height: 44px; }
+
+  /* Plans: only the chosen plan shows its full description; the others are short price rows. */
+  .plan-grid { gap: 10px; }
+  .plan-card { padding: 18px 18px 16px; gap: 10px; border-radius: 20px; }
+  .plan-card:not(.on) .plan-desc,
+  .plan-card:not(.on) .plan-perks { display: none; }
+  .plan-price b { font-size: 30px; }
+  .plan-cta { min-height: 44px; }
+
+  /* Dialogs open as a bottom sheet that the thumb can reach. */
+  .modal-back { place-items: end center; padding: 0; }
+  .admin-modal {
+    width: 100%;
+    max-height: 92vh;
+    max-height: 92dvh;
+    border-radius: 22px 22px 0 0;
+    padding-bottom: calc(16px + env(safe-area-inset-bottom));
+  }
+
+  /* Test runner: the question number strip scrolls without a visible scrollbar. */
+  .test-session-layout .usmle-qnav { scrollbar-width: none; }
+  .test-session-layout .usmle-qnav::-webkit-scrollbar { display: none; }
+  /* Answers are separate cards with room for a thumb, not a dense desktop list. */
+  .answers-list { gap: 8px; border: 0; border-radius: 0; background: transparent; overflow: visible; }
+  .answers-list .answer-item,
+  .answers-list .answer-item:last-child {
+    min-height: 54px;
+    align-items: center;
+    padding: 12px 14px;
+    border: 1px solid #d6e0ee;
+    border-radius: 14px;
+    background: #fff;
+  }
+  .answers-list .answer-item.selected { border-color: #2c6ef7; background: #eef4ff; box-shadow: inset 0 0 0 1px #2c6ef7; }
+  .answers-list .answer-item .answer-radio { width: 20px; height: 20px; margin-top: 0; flex: none; }
+  .pr-runner .answers-list .answer-item.pr-correct { border-color: #059669; background: #ecfdf5; box-shadow: inset 0 0 0 1px #059669; }
+  .pr-runner .answers-list .answer-item.pr-wrong { border-color: #dc2626; background: #fef2f2; box-shadow: inset 0 0 0 1px #dc2626; }
+}
+
+@media (max-width: 720px) {
+  /* Result summary: the percent is the headline, the three counters share one row under it. */
+  .sim-summary { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+  .sim-result .sim-summary > .card { margin: 0; }
+  .sim-summary > .card.stat { display: flex; flex-direction: column; padding: 12px 8px; text-align: center; align-items: center; }
+  .sim-summary > .card.stat b { font-size: 24px; }
+  .sim-summary > .card.stat span { font-size: 12px; line-height: 1.3; }
+  .sim-summary > .card.stat:nth-child(2) b { color: var(--ok); }
+  .sim-summary > .card.stat:nth-child(3) b { color: var(--bad); }
+  .sim-summary > .card.stat.sim-stat-main {
+    grid-column: 1 / -1;
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 14px;
+    padding: 16px 18px;
+    text-align: left;
+  }
+  .sim-summary > .card.stat.sim-stat-main b { font-size: 40px; line-height: 1; }
+  .sim-summary > .card.stat.sim-stat-main span { font-size: 14px; }
+
+  /* Variant brief: the start button stays in reach above the bottom navigation. */
+  .sim-start-row {
+    position: sticky;
+    bottom: calc(var(--bottom) + 10px + env(safe-area-inset-bottom));
+    z-index: 5;
+    padding: 10px;
+    margin-top: 12px;
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 18px;
+    box-shadow: 0 -6px 24px rgba(18, 28, 54, 0.08);
+  }
+  .sim-start-row .btn { flex: 1 1 100%; }
+  .sim-start-row .muted { flex: 1 1 100%; text-align: center; font-size: 13px; }
+  .exam-rules { padding-left: 18px; font-size: 14px; }
+  .exam-rules li + li { margin-top: 6px; }
+
+  /* Block intro: actions stacked full width. */
+  .sim-intro .row .btn { flex: 1 1 100%; }
+
+  /* Compare instruction folds into one line: "Инструкция. Ответ: А · Б · В · Г". */
+  .sim-compare-help { padding: 10px 14px; }
+  .sim-compare-help:not([open]) .sim-compare-keys { display: inline; margin-left: 4px; color: var(--muted); font-weight: 600; }
+  .sim-compare-help > summary::after { content: '▾'; float: right; color: var(--muted); }
+  .sim-compare-help[open] > summary::after { content: '▴'; }
+
+  /* Reading inside a timed block: the text scrolls in its own window, the question stays right below. */
+  .sim-passage .rb-embed .rb-page { max-height: 50vh; max-height: 50dvh; }
+  .rb.rb-embed .rb-text { padding: 16px 16px 22px 34px; font-size: 17px; }
+  .rb.rb-embed .rb-runhead { margin-bottom: 16px; }
+  .rb.rb-embed .rb-title { font-size: 24px; }
+
+  /* Stats: both rings side by side. */
+  .stats-circles { grid-template-columns: 1fr 1fr; gap: 12px; }
+  .stats-circles .circle.sm { width: 104px; height: 104px; }
+  .stats-circles .circle.sm span { width: 78px; height: 78px; font-size: 19px; }
+
+  /* Achievements: compact two-column tiles. */
+  .ach-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .ach-grid > .card { padding: 14px; }
+  .ach-grid > .card h3 { font-size: 14px; margin-bottom: 4px; }
+  .ach-grid > .card p { font-size: 12.5px; margin-bottom: 8px; }
+
+  /* Flashcards: a big tappable card; the start button stays above the bottom navigation. */
+  .flash-session .flip,
+  .flash-session .flip-inner { min-height: 46vh; min-height: 46dvh; }
+  .flash-session .flip-face { font-size: 20px; line-height: 1.45; padding: 22px; }
+  .flash-session .rate-grid .btn { min-height: 52px; }
+  .flash-start {
+    position: sticky;
+    bottom: calc(var(--bottom) + 12px + env(safe-area-inset-bottom));
+    width: 100%;
+    z-index: 5;
+    box-shadow: 0 10px 24px rgba(44, 110, 247, 0.3);
+  }
+  .ref-actions .btn { flex: 1 1 0; }
+
+  /* A sticky main action owns the bottom-right corner; chat and bell would cover it. */
+  body:has(.sim-start-row, .flash-start, .flash-session) .cabinet-dock { display: none; }
+}
+
+/* Tables become one card per row on phones; cell captions come from the header (lib/mobileTables.js). */
+@media (max-width: 640px) {
+  .table:not(.sim-table) { min-width: 0; border-collapse: separate; }
+  .table:not(.sim-table) thead { display: none; }
+  .table:not(.sim-table),
+  .table:not(.sim-table) tbody { display: block; width: 100%; }
+  .table:not(.sim-table) tr {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px 14px;
+    padding: 14px 16px;
+    margin-bottom: 10px;
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 16px;
+  }
+  .table:not(.sim-table) tr.you { border-color: var(--brand); background: var(--brand-soft); }
+  .table:not(.sim-table) td {
+    display: block;
+    padding: 0;
+    border: 0;
+    min-width: 0;
+    font-size: 14px;
+    overflow-wrap: anywhere;
+  }
+  .table:not(.sim-table) td[data-label]::before {
+    content: attr(data-label);
+    display: block;
+    margin-bottom: 2px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  /* The first column names the row; columns without a header (actions) span the card. */
+  .table:not(.sim-table) td:first-child { grid-column: 1 / -1; font-size: 15px; font-weight: 700; }
+  .table:not(.sim-table) td:first-child::before { display: none; }
+  .table:not(.sim-table) td:not([data-label]) { grid-column: 1 / -1; }
+  .table:not(.sim-table) td .row { flex-wrap: wrap; }
+  .table:not(.sim-table) td .progress { margin-top: 4px; }
+  .table-scroll:has(> .table:not(.sim-table)) { overflow: visible; }
+
+  /* Ranking reads as a leaderboard row: place · pupil · score, progress and streak underneath. */
+  .table.rank-table tr { grid-template-columns: 34px minmax(0, 1fr) auto; align-items: center; gap: 8px 10px; padding: 12px 14px; }
+  .table.rank-table td::before { display: none !important; }
+  .table.rank-table td:nth-child(1) { grid-column: auto; font-size: 17px; text-align: center; }
+  .table.rank-table td:nth-child(2) { display: flex; align-items: center; gap: 8px; font-weight: 700; }
+  .table.rank-table td:nth-child(3) { font-size: 18px; font-weight: 800; text-align: right; }
+  .table.rank-table td:nth-child(4) { grid-column: 2 / 3; }
+  .table.rank-table td:nth-child(4) .progress { margin: 0; }
+  .table.rank-table td:nth-child(5) { font-size: 12.5px; color: var(--muted); text-align: right; white-space: nowrap; }
+
+  /* Variant brief: "1 · Математика" on top, questions and time underneath. */
+  .table.sim-brief-table tr { grid-template-columns: 30px minmax(0, 1fr) minmax(0, 1fr); gap: 6px 10px; padding: 12px 14px; }
+  .table.sim-brief-table td:nth-child(1) {
+    grid-column: 1;
+    grid-row: 1 / span 2;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    background: var(--brand-soft);
+    color: var(--brand);
+    font-size: 13px;
+  }
+  .table.sim-brief-table td:nth-child(1):empty { background: transparent; }
+  .table.sim-brief-table td:nth-child(2) { grid-column: 2 / -1; }
+  .table.sim-brief-table td:nth-child(2)::before { display: none; }
+  .table.sim-brief-table td:nth-child(3) { grid-column: 2; }
+  .table.sim-brief-table td:nth-child(4) { grid-column: 3; }
+}

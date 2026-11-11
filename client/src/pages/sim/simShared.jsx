@@ -1,5 +1,21 @@
+import { useState } from 'react';
+import { COMPARE_LETTERS } from '../../lib/compare';
+
 // ORT answer sheets use Cyrillic letters.
 export const SIM_LETTERS = 'АБВГДЕЖЗИК';
+
+// Open on wide screens; on phones it is one tappable line so the question itself stays in view.
+export function CompareInstruction({ t }) {
+  const [wide] = useState(() => typeof window === 'undefined' || window.matchMedia('(min-width: 721px)').matches);
+  return (
+    <details className="sim-compare-help" open={wide}>
+      <summary>{t('simulation.compareTitle')} <span className="sim-compare-keys">{COMPARE_LETTERS.join(' · ')}</span></summary>
+      <ol>
+        {COMPARE_LETTERS.map((letter, i) => <li key={letter}><b>({letter})</b> {t(`simulation.compareRule${i}`)}</li>)}
+      </ol>
+    </details>
+  );
+}
 
 export function formatClock(sec) {
   const safe = Math.max(0, Math.floor(Number(sec) || 0));

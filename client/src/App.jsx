@@ -53,6 +53,15 @@ import { EDITOR_ROOT } from './pages/admin/adminUi';
 
 export const ADMIN_PATH = '/админ';
 
+function AppLoading({ label }) {
+  return (
+    <div className="app-loading" role="status" aria-live="polite">
+      <span className="app-spinner" aria-hidden="true" />
+      <span>{label}</span>
+    </div>
+  );
+}
+
 function homePath(user) {
   if (user?.role === 'admin') return ADMIN_PATH;
   if (user?.role === 'editor') return EDITOR_ROOT;
@@ -63,7 +72,7 @@ function Private({ children }) {
   const { user, ready } = useAuth();
   const { t } = useLang();
   const location = useLocation();
-  if (!ready) return <p className="muted">{t('common.loading')}</p>;
+  if (!ready) return <AppLoading label={t('common.loading')} />;
   if (!user) return <Navigate to="/login" replace state={{ from: location }} />;
   if (user.role !== 'student') return <Navigate to={homePath(user)} replace />;
   return children;
@@ -76,7 +85,7 @@ function AppLayout({ children }) {
 function AdminGate() {
   const { user, ready } = useAuth();
   const { t } = useLang();
-  if (!ready) return <p className="muted">{t('common.loading')}</p>;
+  if (!ready) return <AppLoading label={t('common.loading')} />;
   if (user?.role === 'admin') {
     return <AdminShell><Outlet /></AdminShell>;
   }
@@ -87,7 +96,7 @@ function AdminGate() {
 function EditorGate() {
   const { user, ready } = useAuth();
   const { t } = useLang();
-  if (!ready) return <p className="muted">{t('common.loading')}</p>;
+  if (!ready) return <AppLoading label={t('common.loading')} />;
   if (user?.role === 'editor' || user?.role === 'admin') {
     return <AdminShell editor><Outlet /></AdminShell>;
   }
@@ -113,7 +122,7 @@ function contentPages() {
 function LoggedInRedirect({ children }) {
   const { user, ready } = useAuth();
   const { t } = useLang();
-  if (!ready) return <p className="muted">{t('common.loading')}</p>;
+  if (!ready) return <AppLoading label={t('common.loading')} />;
   if (user) return <Navigate to={homePath(user)} replace />;
   return children;
 }

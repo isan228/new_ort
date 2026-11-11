@@ -62,9 +62,13 @@ export default function Flashcards() {
   if (session?.[idx]) {
     const card = session[idx];
     return (
-      <div style={{ maxWidth: 640, margin: '0 auto' }}>
-        <p className="muted">{t('cards.of', { a: idx + 1, b: session.length })}</p>
-        <div className="flip">
+      <div className="flash-session" style={{ maxWidth: 640, margin: '0 auto' }}>
+        <div className="flash-head">
+          <button className="btn ghost sm" type="button" onClick={() => setSession(null)}>← {t('cards.stop')}</button>
+          <span className="muted">{t('cards.of', { a: idx + 1, b: session.length })}</span>
+        </div>
+        <div className="progress flash-progress"><i style={{ width: `${(idx / session.length) * 100}%` }} /></div>
+        <div className="flip" onClick={() => setShow(true)}>
           <div className={`flip-inner ${show ? 'show' : ''}`}>
             <div className="flip-face" dangerouslySetInnerHTML={{ __html: buildFrontHtml(card.frontText) }} />
             <div className="flip-face back">{card.backText}</div>
@@ -115,7 +119,7 @@ export default function Flashcards() {
         ))}
       </div>
       {!!list.length && (
-        <button className="btn lg" style={{ marginTop: 16 }} type="button" onClick={() => { setSession(list); setIdx(0); setShow(false); }}>
+        <button className="btn lg flash-start" style={{ marginTop: 16 }} type="button" onClick={() => { setSession(list); setIdx(0); setShow(false); }}>
           {t('cards.repeat')}
         </button>
       )}
