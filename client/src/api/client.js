@@ -68,6 +68,11 @@ export const ortApi = {
   }),
 };
 
+export const schoolDirectoryApi = {
+  regions: () => api('/api/schools/regions'),
+  schools: (region, district) => api(`/api/schools?${new URLSearchParams({ region, district })}`),
+};
+
 export const payApi = {
   plans: () => api('/api/payments/plans'),
   create: (planId, promoCode, useCoins) => api('/api/payments/create', {

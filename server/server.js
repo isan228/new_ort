@@ -18,6 +18,7 @@ const termImagesRoutes = require('./routes/termImages');
 const { chatRouter } = require('./routes/chat');
 const simRoutes = require('./routes/sim');
 const practiceRoutes = require('./routes/practice');
+const schoolsRoutes = require('./routes/schools');
 const { telegramRouter, startTelegram } = require('./routes/telegram');
 
 const app = express();
@@ -56,6 +57,7 @@ app.use('/api/term-images', termImagesRoutes);
 app.use('/api/chat', chatRouter);
 app.use('/api/sim', simRoutes);
 app.use('/api/practice', practiceRoutes);
+app.use('/api/schools', schoolsRoutes);
 app.use('/api/telegram', telegramRouter);
 
 const clientDist = path.join(__dirname, '..', 'client', 'dist');

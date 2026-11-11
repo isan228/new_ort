@@ -7,6 +7,7 @@ import { AuthLayout, PublicShell } from '../components/Shells';
 import SiteFooter from '../components/SiteFooter';
 import PlanPicker from '../components/PlanPicker';
 import PromoField from '../components/PromoField';
+import SchoolPicker from '../components/SchoolPicker';
 import { rememberPendingPayment, startCheckout } from '../lib/checkout';
 import { promoPrice } from '../lib/promo';
 
@@ -17,6 +18,7 @@ const FIELD_BY_CODE = {
   LOGIN_TAKEN: 'login',
   PASSWORD_REQUIRED: 'password',
   PASSWORD_SHORT: 'password',
+  SCHOOL_REQUIRED: 'school',
 };
 
 export default function Register() {
@@ -28,7 +30,8 @@ export default function Register() {
   const [planId, setPlanId] = useState(() => Number(params.get('plan')) || null);
   const ref = params.get('ref') || (typeof sessionStorage !== 'undefined' ? sessionStorage.getItem('ortRef') : '') || '';
   const [step, setStep] = useState(() => (params.get('plan') ? 'form' : 'plan'));
-  const [form, setForm] = useState({ name: '', login: '', password: '', grade: 11, language: lang });
+  const [form, setForm] = useState({ name: '', login: '', password: '', grade: 11, schoolId: null, language: lang });
+  const [schoolsListed, setSchoolsListed] = useState(false);
   const [error, setError] = useState('');
   const [errorCode, setErrorCode] = useState('');
   const [fieldErr, setFieldErr] = useState({});
@@ -72,6 +75,7 @@ export default function Register() {
     if (!form.name.trim()) next.name = errText('NAME_REQUIRED');
     if (!loginValue) next.login = errText('LOGIN_REQUIRED');
     if (!form.password) next.password = errText('PASSWORD_REQUIRED');
+    if (schoolsListed && !form.schoolId) next.school = errText('SCHOOL_REQUIRED');
     return next;
   }
 
@@ -221,6 +225,15 @@ export default function Register() {
                   <option value={11}>11</option>
                 </select>
               </label>
+              <SchoolPicker
+                value={form.schoolId}
+                onChange={(id) => {
+                  setField('schoolId', id);
+                  if (id && fieldErr.school) setFieldErr((fe) => ({ ...fe, school: '' }));
+                }}
+                onReady={setSchoolsListed}
+                error={fieldErr.school}
+              />
               {error && <div className="form-alert" role="alert">{error}</div>}
               <button className="btn lg cl-auth-submit" type="submit" disabled={busy}>
                 {busy ? t('common.loading') : t('auth.payAndStart')}

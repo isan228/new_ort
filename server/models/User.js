@@ -12,6 +12,8 @@ const User = sequelize.define('User', {
   role: { type: DataTypes.ENUM('student', 'admin', 'editor'), allowNull: false, defaultValue: 'student' },
   language: { type: DataTypes.ENUM('ru', 'ky'), allowNull: false, defaultValue: 'ru' },
   grade: { type: DataTypes.INTEGER, allowNull: true },
+  // Chosen at registration from the admin's school directory.
+  schoolId: { type: DataTypes.INTEGER, allowNull: true },
   subscriptionEndDate: { type: DataTypes.DATE, allowNull: true },
   subscriptionPlanId: { type: DataTypes.INTEGER, allowNull: true },
   referralCode: { type: DataTypes.STRING, allowNull: true, unique: true },

@@ -52,6 +52,7 @@ async function createUserFromSignup(payment, transaction) {
     phone: data.phone || null,
     language: data.language === 'ky' ? 'ky' : 'ru',
     grade: data.grade || null,
+    schoolId: data.schoolId || null,
     role: 'student',
     subscriptionPlanId: payment.planId,
     referredById: data.referredById || null,

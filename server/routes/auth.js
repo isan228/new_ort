@@ -1,7 +1,7 @@
 const express = require('express');
 const bcrypt = require('bcryptjs');
 const { Op } = require('sequelize');
-const { User, SubscriptionPlan } = require('../models');
+const { User, SubscriptionPlan, School } = require('../models');
 const { requireAuth, signToken, publicUserWithPlan } = require('../middleware/auth');
 const { ensureReferralCode, findInviterByCode, referralStats } = require('../utils/referral');
 const { userStats, rankingFor } = require('../utils/userProgress');
@@ -42,7 +42,9 @@ async function findByLoginOrEmail(ident) {
 }
 
 router.post('/register', async (req, res) => {
-  const { name, login, email, password, phone, language, grade, planId, ref, promoCode } = req.body || {};
+  const {
+    name, login, email, password, phone, language, grade, schoolId, planId, ref, promoCode,
+  } = req.body || {};
   const fail = (status, code, field, error) => res.status(status).json({ error, code, field });
   if (!String(name || '').trim()) return fail(400, 'NAME_REQUIRED', 'name', 'Укажите имя');
   if (!String(login || '').trim()) return fail(400, 'LOGIN_REQUIRED', 'login', 'Придумайте логин');
@@ -62,6 +64,12 @@ router.post('/register', async (req, res) => {
   });
   if (exists) return fail(409, 'LOGIN_TAKEN', 'login', 'Такой или очень похожий логин уже занят');
 
+  // The school is required once the admin has filled the directory; before that registration stays open.
+  const school = Number(schoolId) ? await School.findOne({ where: { id: Number(schoolId), isActive: true } }) : null;
+  if (!school && await School.count({ where: { isActive: true } })) {
+    return fail(400, 'SCHOOL_REQUIRED', 'school', 'Выберите область, район и школу');
+  }
+
   const plan = await SubscriptionPlan.findByPk(Number(planId));
   if (!plan || !plan.isActive) return fail(400, 'PLAN_REQUIRED', null, 'Выберите тариф');
   const inviter = await findInviterByCode(ref);
@@ -75,6 +83,7 @@ router.post('/register', async (req, res) => {
     phone: phone || null,
     language: lang,
     grade: grade ? Number(grade) : null,
+    schoolId: school?.id || null,
     referredById: inviter && inviter.login !== cleanLogin ? inviter.id : null,
   };
 

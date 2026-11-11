@@ -24,6 +24,7 @@ const {
   ActivityLog,
   SimBlock,
   SimVariant,
+  School,
   sequelize,
 } = require('../models');
 const bcrypt = require('bcryptjs');
@@ -916,6 +917,7 @@ router.get('/users', async (req, res) => {
   const { count, rows } = await User.findAndCountAll({
     where,
     attributes: { exclude: ['passwordHash'] },
+    include: [{ model: School, attributes: ['id', 'name', 'region', 'district'] }],
     order: [['id', 'DESC']],
     limit,
     offset: (page - 1) * limit,

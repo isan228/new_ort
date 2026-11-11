@@ -121,6 +121,7 @@ Test.belongsTo(SimTopic, { foreignKey: 'simTopicId', constraints: false });
 SimAttempt.belongsTo(SimVersion, { foreignKey: 'versionId', constraints: false });
 SimAttempt.belongsTo(User, { foreignKey: 'userId', constraints: false });
 SimAttempt.hasMany(SimAnswer, { foreignKey: 'attemptId', constraints: false });
+User.belongsTo(School, { foreignKey: 'schoolId', constraints: false });
 
 module.exports = {
   sequelize,

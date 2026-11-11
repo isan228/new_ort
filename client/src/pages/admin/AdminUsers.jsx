@@ -62,7 +62,7 @@ export default function AdminUsers() {
             <tr>
               <th>{t('common.name')}</th>
               <th>{t('common.login')}</th>
-              <th>Email</th>
+              <th>{t('auth.school')}</th>
               <th>{t('admin.subUntil')}</th>
               <th>{t('admin.coins')}</th>
               <th></th>
@@ -79,7 +79,14 @@ export default function AdminUsers() {
                     {u.isUgc && <span className="badge brand" style={{ marginLeft: 6 }}>UGC</span>}
                   </td>
                   <td>{u.login || '—'}</td>
-                  <td>{u.email}</td>
+                  <td>
+                    {u.School ? (
+                      <>
+                        {u.School.name}
+                        <div className="muted" style={{ fontSize: 12 }}>{[u.School.region, u.School.district].filter(Boolean).join(' · ')}</div>
+                      </>
+                    ) : '—'}
+                  </td>
                   <td>
                     <span className={`badge ${active || (u.isUgc && !u.ugcDisabled) ? 'ok' : ''}`}>
                       {u.isUgc && !u.ugcDisabled ? t('admin.ugc.unlimited') : (end ? end.toLocaleDateString(locale) : t('admin.noSub'))}
