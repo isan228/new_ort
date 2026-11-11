@@ -177,9 +177,14 @@ router.get('/ranking', requireAuth, async (req, res) => {
 });
 
 router.patch('/me', requireAuth, async (req, res) => {
-  const { name, language } = req.body || {};
+  const { name, language, schoolId } = req.body || {};
   if (name) req.user.name = String(name).trim();
   if (language === 'ky' || language === 'ru') req.user.language = language;
+  if (schoolId !== undefined) {
+    const school = await School.findOne({ where: { id: Number(schoolId) || 0, isActive: true } });
+    if (!school) return res.status(400).json({ error: 'Выберите школу из списка', code: 'SCHOOL_REQUIRED' });
+    req.user.schoolId = school.id;
+  }
   await req.user.save();
   return res.json({ user: await publicUserWithPlan(req.user) });
 });

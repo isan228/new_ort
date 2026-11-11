@@ -68,7 +68,11 @@ function signToken(user) {
   );
 }
 
-function publicUser(user, plan) {
+function publicSchool(school) {
+  return school ? { id: school.id, name: school.name, region: school.region, district: school.district } : null;
+}
+
+function publicUser(user, plan, school) {
   const end = user.subscriptionEndDate ? new Date(user.subscriptionEndDate) : null;
   const resolved = plan || user.SubscriptionPlan || null;
   return {
@@ -80,6 +84,8 @@ function publicUser(user, plan) {
     role: user.role,
     language: user.language,
     grade: user.grade,
+    schoolId: user.schoolId || null,
+    school: publicSchool(school || user.School),
     subscriptionEndDate: end,
     subscriptionActive: user.role === 'admin' || (!!user.isUgc && !user.ugcDisabled) || !!(end && end > new Date()),
     unlimited: !!user.isUgc && !user.ugcDisabled,
@@ -96,11 +102,13 @@ function publicUser(user, plan) {
 
 async function publicUserWithPlan(user) {
   if (!user) return null;
-  if (user.SubscriptionPlan) return publicUser(user, user.SubscriptionPlan);
-  if (!user.subscriptionPlanId) return publicUser(user);
   const { SubscriptionPlan } = require('../models/SubscriptionPlan');
-  const plan = await SubscriptionPlan.findByPk(user.subscriptionPlanId);
-  return publicUser(user, plan);
+  const { School } = require('../models/School');
+  const [plan, school] = await Promise.all([
+    user.SubscriptionPlan || (user.subscriptionPlanId ? SubscriptionPlan.findByPk(user.subscriptionPlanId) : null),
+    user.School || (user.schoolId ? School.findByPk(user.schoolId) : null),
+  ]);
+  return publicUser(user, plan, school);
 }
 
 module.exports = {
