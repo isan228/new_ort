@@ -427,6 +427,162 @@ const BIOLOGY_TOPICS = [
   },
 ];
 
+// Physics subject test: 56 topics in 16 sections; TXT files are named by the transliterated topic.
+const PHYSICS_TOPICS = [
+  {
+    group: 'Кинематика',
+    kind: 'standard',
+    topics: [
+      'Равномерное прямолинейное движение',
+      'Равноускоренное движение',
+      'Графики движения',
+      'Движение по окружности',
+    ],
+  },
+  {
+    group: 'Динамика',
+    kind: 'standard',
+    topics: [
+      'Законы Ньютона и взаимодействие тел',
+      'Силы в механике',
+      'Закон всемирного тяготения',
+      'Равновесие тел',
+    ],
+  },
+  {
+    group: 'Законы сохранения в механике',
+    kind: 'standard',
+    topics: [
+      'Импульс и столкновения',
+      'Механическая работа и мощность',
+      'Коэффициент полезного действия',
+      'Механическая энергия и её сохранение',
+    ],
+  },
+  {
+    group: 'Гидро- и аэромеханика',
+    kind: 'standard',
+    topics: [
+      'Давление жидкостей и газов',
+      'Закон Паскаля и гидравлические устройства',
+      'Закон Архимеда и движение жидкостей',
+    ],
+  },
+  {
+    group: 'Молекулярно-кинетическая теория',
+    kind: 'standard',
+    topics: [
+      'Основы молекулярно-кинетической теории',
+      'Идеальный газ и основное уравнение МКТ',
+      'Уравнение состояния и газовые законы',
+    ],
+  },
+  {
+    group: 'Тепловые явления',
+    kind: 'standard',
+    topics: [
+      'Температура и теплопередача',
+      'Количество теплоты и тепловой баланс',
+      'Фазовые переходы',
+    ],
+  },
+  {
+    group: 'Термодинамика',
+    kind: 'standard',
+    topics: [
+      'Внутренняя энергия и работа газа',
+      'Первый закон термодинамики и изопроцессы',
+      'Тепловые двигатели и КПД',
+    ],
+  },
+  {
+    group: 'Свойства паров, жидкостей и твёрдых тел',
+    kind: 'standard',
+    topics: [
+      'Пар и влажность воздуха',
+      'Поверхностное натяжение и капиллярность',
+      'Деформация твёрдых тел',
+    ],
+  },
+  {
+    group: 'Электростатика',
+    kind: 'standard',
+    topics: [
+      'Электрический заряд и закон Кулона',
+      'Электрическое поле',
+      'Потенциал и напряжение',
+      'Электроёмкость и конденсаторы',
+    ],
+  },
+  {
+    group: 'Постоянный ток в различных средах',
+    kind: 'standard',
+    topics: [
+      'Закон Ома',
+      'Последовательное и параллельное соединение проводников',
+      'Работа и мощность тока',
+      'Электрический ток в различных средах',
+    ],
+  },
+  {
+    group: 'Магнитное поле',
+    kind: 'standard',
+    topics: [
+      'Магнитное поле и магнитная индукция',
+      'Сила Ампера и сила Лоренца',
+      'Магнитные свойства веществ',
+    ],
+  },
+  {
+    group: 'Механические колебания',
+    kind: 'standard',
+    topics: [
+      'Гармонические колебания',
+      'Маятники и энергия колебаний',
+      'Резонанс и вынужденные колебания',
+    ],
+  },
+  {
+    group: 'Механические волны',
+    kind: 'standard',
+    topics: [
+      'Виды и характеристики волн',
+      'Звуковые волны',
+      'Распространение и свойства волн',
+    ],
+  },
+  {
+    group: 'Переменный ток',
+    kind: 'standard',
+    topics: [
+      'Электромагнитная индукция и самоиндукция',
+      'Электромагнитные колебания и переменный ток',
+      'Трансформаторы и электромагнитные волны',
+    ],
+  },
+  {
+    group: 'Геометрическая и волновая оптика',
+    kind: 'standard',
+    topics: [
+      'Отражение и преломление света',
+      'Линзы и оптические приборы',
+      'Волновая оптика',
+    ],
+  },
+  {
+    group: 'Атомная физика',
+    kind: 'standard',
+    topics: [
+      'Строение атома',
+      'Строение ядра',
+      'Радиоактивность',
+      'Ядерные реакции',
+      'Фотоэффект и квантовые свойства света',
+      'Энергия и импульс фотона',
+    ],
+  },
+];
+
 // Russian language and literature subject test: 8 official language sections and 45 literature topics.
 const RUSSIAN_TOPICS = [
   {
@@ -656,6 +812,16 @@ const TEMPLATES = [
     },
     simWhere: { trackGroup: { [Op.ne]: 'main' }, name: { [Op.iLike]: 'биолог%' } },
   },
+  {
+    key: 'physicsTopics.v1',
+    groups: PHYSICS_TOPICS,
+    async practiceTargets() {
+      const subject = await Subject.findOne({ where: { name: 'Физика', bank: 'practice' } })
+        || await Subject.findOne({ where: { name: { [Op.iLike]: 'физик%' }, bank: 'practice' }, order: [['id', 'ASC']] });
+      return subject ? [{ subject, parentId: null, ortPart: null }] : [];
+    },
+    simWhere: { trackGroup: { [Op.ne]: 'main' }, name: { [Op.iLike]: 'физик%' } },
+  },
 ];
 
 // Each template is applied once per subject, so topics the admin deletes later do not come back.
@@ -678,5 +844,5 @@ async function ensureSubjectTopics() {
 }
 
 module.exports = {
-  ensureSubjectTopics, MATH_TOPICS, CHEMISTRY_TOPICS, SUBJECT_MATH_TOPICS, HISTORY_TOPICS, KYRGYZ_TOPICS, BIOLOGY_TOPICS, RUSSIAN_TOPICS,
+  ensureSubjectTopics, MATH_TOPICS, CHEMISTRY_TOPICS, SUBJECT_MATH_TOPICS, HISTORY_TOPICS, KYRGYZ_TOPICS, BIOLOGY_TOPICS, RUSSIAN_TOPICS, PHYSICS_TOPICS,
 };
