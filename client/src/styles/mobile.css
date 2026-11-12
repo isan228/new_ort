@@ -185,6 +185,18 @@
   .heat { gap: 4px; }
   .heat i { aspect-ratio: auto; height: 20px; border-radius: 5px; }
 
+  /* Filter tabs wrap onto a second line: a tab hidden behind the right edge is never found. */
+  .tabs { flex-wrap: wrap; overflow: visible; margin-inline: 0; padding-inline: 0; gap: 8px; }
+  .tabs button { flex: none; min-height: 38px; }
+
+  /* Long single words ("зарегистрировались", "Общереспубликанскому") break instead of sticking out. */
+  .stat span, .cl-foot-cols a, .cl-foot-cols span, .card p, .card h3 {
+    overflow-wrap: anywhere;
+    hyphens: auto;
+    -webkit-hyphens: auto;
+  }
+  .cl-foot-cols a, .cl-foot-cols span { width: auto; max-width: 100%; }
+
   /* A long label wraps inside its button instead of pushing it past the screen edge. */
   .btn { max-width: 100%; white-space: normal; text-align: center; line-height: 1.25; }
 
@@ -332,6 +344,20 @@
 
   /* A sticky main action owns the bottom-right corner; chat and bell would cover it. */
   body:has(.sim-start-row, .flash-start, .flash-session) .cabinet-dock { display: none; }
+}
+
+/* The narrowest phones (iPhone SE, 320px). */
+@media (max-width: 380px) {
+  /* Public header: the language switch moves to the menu, so the logo keeps its size. */
+  .cl-header-right .lang-switch { display: none; }
+  .cl-header .logo-img { width: 40px; height: 34px; }
+
+  /* Test runners: the arrows in the top bar duplicate "Назад / Далее" under the question
+     and collided with the flag and the "Вопрос 3 / 5" label. */
+  .sim-runner .uworld-tb-nav { display: none; }
+  .sim-runner .uworld-tb-left { gap: 8px; }
+  .uworld-tb-item-label { white-space: nowrap; }
+  .sim-runner .uworld-sf-tool { font-size: 12px; }
 }
 
 /* Tables become one card per row on phones; cell captions come from the header (lib/mobileTables.js). */
